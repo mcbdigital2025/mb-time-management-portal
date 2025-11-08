@@ -1,0 +1,48 @@
+/* Basic CSS Reset/Normalize for cross-browser consistency */
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  line-height: 1.6;
+  font-size: 18px; /* Default font size for better readability */
+  color: #333; /* A default dark grey text color */
+  background-color: #f9f9f9; /* A light background color for the entire app */
+}
+
+/* Apply box-sizing globally for easier layout calculations */
+* {
+  box-sizing: border-box;
+}
+
+/* Basic styling for anchor tags */
+a {
+  color: #0070f3; /* Standard Next.js blue for links */
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Utility classes (optional, but common) */
+.text-center {
+  text-align: center;
+}
+
+.mt-10 {
+  margin-top: 2.5rem; /* Equivalent to Tailwind's mt-10 */
+}
+
+.mb-4 {
+  margin-bottom: 1rem; /* Equivalent to Tailwind's mb-4 */
+}
+
+/* Add any other global styles you need here */
+/* For example, if you're using Tailwind CSS, you'd add its directives here: */
+/*
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+*/
