@@ -1,154 +1,155 @@
 // pages/_app.js
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { authenticatedFetch } from '../utils/api'; // Adjust path if needed
-
-// Import your Company and Job components if they are not already in pages
-// For _app.js, you generally render the 'Component' prop, so you don't
-// directly import your page components here unless they are part of a shared layout component.
-// Instead, your page components (Company.js, index.js, job.js) will be passed as `Component`
-
-import '../styles/globals.css'; // Assuming you have a global CSS file
+import Head from 'next/head';
+import Script from 'next/script';
+import Footer from '../pages/footer';
+import '../styles/globals.css';
 
 function MyApp({ Component, pageProps }) {
+  const router = useRouter();
+  const [authorized, setAuthorized] = useState(false);
   const [user, setUser] = useState(null);
   const [accessPages, setAccessPages] = useState([]);
   const [error, setError] = useState(null);
-  const router = useRouter();
 
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
+    const handleAuth = () => {
+      const userStr = localStorage.getItem("user");
+      const token = localStorage.getItem("jwtToken");
 
-    if (!storedUser || !storedUser.companyId || !storedUser.email || !storedUser.jwtToken) {
-      setUser(null);
-      setError("");
-      // No immediate redirect here; allow login/registration buttons to show
-      return;
-    }
+      const protectedRoutes = ["/landing", "/employee", "/client"];
+      const isProtectedRoute = protectedRoutes.includes(router.pathname);
 
-    setUser(storedUser);
-    setError(null);
+      if (userStr && token) {
+        const storedUser = JSON.parse(userStr);
+        setUser(storedUser);
+        setAuthorized(true);
 
-    const fetchAccessPages = async () => {
-      try {
-        const response = await authenticatedFetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/accessPages?email=${encodeURIComponent(storedUser.email)}&companyId=${encodeURIComponent(storedUser.companyId)}`,
-          {
-            method: "POST",
-            headers: { "Accept": "application/json" },
-          }
-        );
-        if (!response.ok) {
-          const errorDetails = await response.text();
-          console.error("Failed to fetch access pages:", response.status, response.statusText, errorDetails);
-          throw new Error(`Failed to fetch access pages: ${response.status} ${response.statusText}`);
+        // Only fetch if we don't have pages yet
+        if (accessPages.length === 0) {
+          fetchAccessPages(storedUser, token);
         }
-
-        const data = await response.json();
-        setAccessPages(data);
-      } catch (err) {
-        console.error("Error in fetchAccessPages:", err);
-        setError(err.message);
-        if (err.message.includes("Authentication token missing") || err.message.includes("401 Unauthorized")) {
-          setTimeout(() => {
-            router.replace("/login");
-          }, 1500);
+      } else {
+        setUser(null);
+        setAccessPages([]);
+        if (isProtectedRoute) {
+          setAuthorized(false);
+          router.push("/login");
+        } else {
+          setAuthorized(true);
         }
       }
     };
 
-    fetchAccessPages();
-  }, []); // Empty dependency array to run once on mount
+    handleAuth();
+  }, [router.pathname]);
 
-  const handlePageClick = (page) => {
-    if (!page) return;
-      // Format the page string by removing spaces and converting to lowercase
-      const formattedPage = page.replace(/\s+/g, "").toLowerCase();
+  const fetchAccessPages = async (storedUser, token) => {
+    try {
+      // Note: Ensure your API expects "Bearer " or just the token string
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/accessPages?email=${encodeURIComponent(storedUser.email)}&companyId=${encodeURIComponent(storedUser.companyId)}`,
+        {
+          method: "POST",
+          headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": token.startsWith("Bearer ") ? token : `Bearer ${token}`
+          },
+        }
+      );
 
-      // If the formatted page is "home", push to the root URL "/"
-      if (formattedPage === "home") {
-        router.push("/");
+      if (response.ok) {
+        const data = await response.json();
+        setAccessPages(data);
+        setError(null); // Clear any previous errors
       } else {
-        // For all other pages, push to the formatted path (e.g., /company, /job)
-        router.push(`/${formattedPage}`);
+        // If 401, token might be expired
+        if (response.status === 401) handleLogout(new Event('click'));
+        console.error("Menu fetch failed:", response.status);
       }
+    } catch (err) {
+      console.error("Network error:", err);
+    }
   };
 
-  const handleLoginClick = () => { router.push("/login"); };
-  const handleRegistrationClick = () => { router.push("/registration"); };
-  const handleLogoutClick = () => { router.push("/logout"); };
+  const handleLogout = (e) => {
+    if (e) e.preventDefault();
+    localStorage.removeItem("user");
+    localStorage.removeItem("jwtToken");
+    setUser(null);
+    setAccessPages([]);
+    router.push("/login");
+  };
 
-  // This is the common layout wrapper
+  const handlePageClick = (e, page) => {
+    e.preventDefault();
+    const formattedPage = page.replace(/\s+/g, "").toLowerCase();
+    router.push(formattedPage === "home" ? "/" : `/${formattedPage}`);
+  };
+
+  const isPublicPage = ["/", "/login"].includes(router.pathname);
+
   return (
-    <div className="flex-1 flex flex-col min-h-screen">
-      {/* Top Toolbar (Header) */}
-      <header className="bg-blue-600 text-white py-3 shadow-md w-full">
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-4">
-          {user ? (
-            <>
-              <nav className="flex-grow flex items-center justify-between">
-                <div className="flex items-center space-x-6">
-                  <img src="/mcb_service_hub_logo.png" alt="Company Logo" className="h-10 w-10 rounded-full mr-2"/>
-                  {accessPages.map((page, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handlePageClick(page)}
-                      className="px-4 py-2 rounded hover:bg-blue-800 transition duration-200"
-                    >
-                      {page.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                    </button>
-                  ))}
-                       <img src="/mcb_blank_menu.png" alt="Company Logo" className="h-10 w-10 rounded-full"/>
-                       <span className="text-lg font-semibold">Hi, {user.firstName}   </span>
-                       <button
-                         onClick={handleLogoutClick}
-                         className="px-4 py-2 rounded bg-blue-700 hover:bg-blue-800 transition duration-200"
-                       >
-                         Logout
-                       </button>
-           </div>
-                <div className="flex items-center space-x-4">
-                </div>
+    <>
+      <Head>
+        <title>MaboCore</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
+
+      {!authorized && !isPublicPage ? (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <div className="text-block">Loading...</div>
+        </div>
+      ) : (
+        <div className="body" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <div role="banner" className="navbar w-nav">
+            <a href="/" className="brand w-nav-brand">
+              <img src="/images/Screenshot---logo-2025-12-23-at-11.39.16-pm.png" alt="Logo" className="image-2" />
+            </a>
+            <div className="container w-container">
+              <nav role="navigation" className="nav-menu w-nav-menu">
+                <a href="/" className="nav-link w-nav-link">Home</a>
+                {user && accessPages.map((page, index) => (
+                  <a key={index} href="#" onClick={(e) => handlePageClick(e, page)} className="w-nav-link">{page}</a>
+                ))}
+                <a href="#" className="w-nav-link">About</a>
               </nav>
-            </>
-          ) : (
-            <div className="flex-grow flex items-center justify-end space-x-4">
-              <img src="/mcb_service_hub_logo.png" alt="Company Logo" className="h-10 w-10 rounded-full mr-2"/>
-              <button
-                onClick={handleLoginClick}
-                className="px-4 py-2 rounded hover:bg-blue-800 transition duration-200"
-              >
-                Login
-              </button>
-              <button
-                onClick={handleRegistrationClick}
-                className="px-4 py-2 rounded hover:bg-blue-800 transition duration-200"
-              >
-                Registration
-              </button>
             </div>
-          )}
-        </div>
-      </header>
 
-      {/* Main Content Area: This is where each page component will be rendered */}
-      <main className="flex-1 flex flex-col items-center justify-center p-6">
-         {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <strong className="font-bold">Error: </strong>
-                <span className="block sm:inline">{error}</span>
+            <div className="right-nav-button-link-div">
+              {user ? (
+                <>
+                  <span style={{ marginRight: '15px', fontWeight: 'bold' }}>
+                    Hi, {user.firstName || user.email}
+                  </span>
+                  <a onClick={handleLogout} href="#" className="log-in-link">Log Out</a>
+                </>
+              ) : (
+                <a href="/login" className="log-in-link">Log In</a>
+              )}
+              <a href="#" className="green-button w-inline-block">
+                <div className="text-block">Book a Demo</div>
+              </a>
             </div>
-         )}
-        <Component {...pageProps} /> {/* This renders the current page (e.g., Company, Job, Home) */}
-      </main>
+          </div>
 
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-4 text-center text-sm shadow-inner w-full">
-        <div className="max-w-7xl mx-auto px-4">
-          <p>&copy; {new Date().getFullYear()} MCB Service Hub. All rights reserved.</p>
+          <main className="flex-1 flex flex-col items-center justify-center p-6">
+             {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    {error}
+                </div>
+             )}
+            <Component {...pageProps} user={user} />
+          </main>
+
+          <Footer />
         </div>
-      </footer>
-    </div>
+      )}
+      <Script src="https://d3e54v103j8qbb.cloudfront.net/js/jquery-3.5.1.min.dc5e7f18c8.js" strategy="beforeInteractive" />
+      <Script src="/js/webflow.js" strategy="afterInteractive" />
+    </>
   );
 }
 

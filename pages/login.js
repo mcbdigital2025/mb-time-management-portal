@@ -60,7 +60,7 @@ export default function Login() {
             }
 
             // Redirect to home page
-            router.push("/");
+            router.push("/landing");
 
         } catch (error) {
             console.error("Error Login request:", error);
