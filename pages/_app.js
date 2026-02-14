@@ -1,10 +1,19 @@
 // pages/_app.js
-import { useEffect, useState } from "react";
+import Head from "next/head";
+import { Roboto } from "next/font/google";
+import "../styles/globals.css";
 import { useRouter } from "next/router";
-import Head from 'next/head';
-import Script from 'next/script';
-import Footer from '../pages/footer';
-import '../styles/globals.css';
+import Script from "next/script";
+import { useEffect, useState } from "react";
+import Navbar from "../components/layout/Navbar";
+import Footer from "../pages/footer";
+
+const roboto = Roboto({
+  subsets: ["latin"],
+  weight: ["100", "300", "400", "500", "700", "900"], // pick what you actually use
+  display: "swap",
+  variable: "--font-roboto", // optional but recommended
+});
 
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
@@ -53,11 +62,13 @@ function MyApp({ Component, pageProps }) {
         {
           method: "POST",
           headers: {
-            "Accept": "application/json",
+            Accept: "application/json",
             "Content-Type": "application/json",
-            "Authorization": token.startsWith("Bearer ") ? token : `Bearer ${token}`
+            Authorization: token.startsWith("Bearer ")
+              ? token
+              : `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (response.ok) {
@@ -66,7 +77,7 @@ function MyApp({ Component, pageProps }) {
         setError(null); // Clear any previous errors
       } else {
         // If 401, token might be expired
-        if (response.status === 401) handleLogout(new Event('click'));
+        if (response.status === 401) handleLogout(new Event("click"));
         console.error("Menu fetch failed:", response.status);
       }
     } catch (err) {
@@ -97,57 +108,41 @@ function MyApp({ Component, pageProps }) {
         <title>MaboCore</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
-
-      {!authorized && !isPublicPage ? (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <div className="text-block">Loading...</div>
-        </div>
-      ) : (
-        <div className="body" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-          <div role="banner" className="navbar w-nav">
-            <a href="/" className="brand w-nav-brand">
-              <img src="/images/Screenshot---logo-2025-12-23-at-11.39.16-pm.png" alt="Logo" className="image-2" />
-            </a>
-            <div className="container w-container">
-              <nav role="navigation" className="nav-menu w-nav-menu">
-                <a href="/" className="nav-link w-nav-link">Home</a>
-                {user && accessPages.map((page, index) => (
-                  <a key={index} href="#" onClick={(e) => handlePageClick(e, page)} className="w-nav-link">{page}</a>
-                ))}
-                <a href="#" className="w-nav-link">About</a>
-              </nav>
-            </div>
-
-            <div className="right-nav-button-link-div">
-              {user ? (
-                <>
-                  <span style={{ marginRight: '15px', fontWeight: 'bold' }}>
-                    Hi, {user.firstName || user.email}
-                  </span>
-                  <a onClick={handleLogout} href="#" className="log-in-link">Log Out</a>
-                </>
-              ) : (
-                <a href="/login" className="log-in-link">Log In</a>
-              )}
-              <a href="#" className="green-button w-inline-block">
-                <div className="text-block">Book a Demo</div>
-              </a>
-            </div>
+      <div
+        className={`${roboto.variable} ${roboto.className} w-full min-h-screen`}
+      >
+        {!authorized && !isPublicPage ? (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: "100vh",
+            }}
+          >
+            <div className="text-block">Loading...</div>
           </div>
+        ) : (
+          <div className="w-full min-h-screen">
+            <Navbar user={user} handleLogout={handleLogout} />
 
-          <main className="flex-1 flex flex-col items-center justify-center p-6">
-             {error && (
+            <main className="flex-1 flex flex-col items-center justify-center">
+              {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                    {error}
+                  {error}
                 </div>
-             )}
-            <Component {...pageProps} user={user} />
-          </main>
+              )}
+              <Component {...pageProps} user={user} />
+            </main>
 
-          <Footer />
-        </div>
-      )}
-      <Script src="https://d3e54v103j8qbb.cloudfront.net/js/jquery-3.5.1.min.dc5e7f18c8.js" strategy="beforeInteractive" />
+            <Footer />
+          </div>
+        )}
+      </div>
+      <Script
+        src="https://d3e54v103j8qbb.cloudfront.net/js/jquery-3.5.1.min.dc5e7f18c8.js"
+        strategy="beforeInteractive"
+      />
       <Script src="/js/webflow.js" strategy="afterInteractive" />
     </>
   );

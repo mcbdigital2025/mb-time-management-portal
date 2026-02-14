@@ -1,48 +1,39 @@
-/* Basic CSS Reset/Normalize for cross-browser consistency */
-html,
+@import "tailwindcss";
+
+
+:root {
+  font-family: var(--font-roboto), system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+}
+
 body {
-  padding: 0;
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
-  line-height: 1.6;
-  font-size: 18px; /* Default font size for better readability */
-  color: #333; /* A default dark grey text color */
-  background-color: #f9f9f9; /* A light background color for the entire app */
+  font-family: var(--font-roboto), system-ui, -apple-system, Segoe UI, Arial, sans-serif;
 }
 
-/* Apply box-sizing globally for easier layout calculations */
-* {
-  box-sizing: border-box;
+.hero-radiall-bg {
+  background:
+  radial-gradient(13.98% 18.61% at 86.74% 19.63%, rgba(110, 178, 188, 0.4), rgba(217, 217, 217, 0.4)),
+    radial-gradient(12% 14.08% at 9.42% 89.81%, #D1E5FF, #F8FAFC);
 }
 
-/* Basic styling for anchor tags */
-a {
-  color: #0070f3; /* Standard Next.js blue for links */
-  text-decoration: none;
+.hero-radial {
+  background:
+    radial-gradient(12% 14.08% at 9.42% 89.81%, #D1E5FF 0%, #F8FAFC 100%),
+    radial-gradient(13.98% 18.61% at 86.74% 19.63%, rgba(110, 178, 188, 0.4) 0%, rgba(217, 217, 217, 0.4) 100%);
 }
 
-a:hover {
-  text-decoration: underline;
+.hero-radial-background {
+  background:
+    radial-gradient(circle at 10% 90%, #D1E5FF 0%, transparent 60%),
+    radial-gradient(circle at 85% 20%, rgba(110,178,188,0.4) 0%, transparent 60%),
+    linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%);
 }
 
-/* Utility classes (optional, but common) */
-.text-center {
-  text-align: center;
+
+.custom-shadow {
+  box-shadow: 0px 7px 11.6px 0px #6EB2BC40;
 }
 
-.mt-10 {
-  margin-top: 2.5rem; /* Equivalent to Tailwind's mt-10 */
+.howitworks-gradient {
+  background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%);
 }
 
-.mb-4 {
-  margin-bottom: 1rem; /* Equivalent to Tailwind's mb-4 */
-}
-
-/* Add any other global styles you need here */
-/* For example, if you're using Tailwind CSS, you'd add its directives here: */
-/*
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-*/

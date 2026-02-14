@@ -13,14 +13,14 @@ export default function Document() {
         <link href="/css/webflow.css" rel="stylesheet" type="text/css" />
         <link href="/css/mabocore.webflow.css" rel="stylesheet" type="text/css" />
 
-        <link href="https://fonts.googleapis.com" rel="preconnect" />
-        <link href="https://fonts.gstatic.com" rel="preconnect" crossOrigin="anonymous" />
+        {/* <link href="https://fonts.googleapis.com" rel="preconnect" /> */}
+        {/* <link href="https://fonts.gstatic.com" rel="preconnect" crossOrigin="anonymous" /> */}
 
         {/* Webfont Loader */}
-        <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js" type="text/javascript" />
-        <script dangerouslySetInnerHTML={{
+        {/* <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js" type="text/javascript" /> */}
+        {/* <script dangerouslySetInnerHTML={{
           __html: `WebFont.load({ google: { families: ["Roboto:100,200,300,regular,500,600,700,800,900"] }});`
-        }} />
+        }} /> */}
 
         {/* Webflow Touch Detection Script */}
         <script dangerouslySetInnerHTML={{
@@ -30,7 +30,7 @@ export default function Document() {
         <link href="/images/favicon.ico" rel="shortcut icon" type="image/x-icon" />
         <link href="/images/webclip.png" rel="apple-touch-icon" />
       </Head>
-      <body className="body">
+      <body className="">
         <Main />
         <NextScript />
       </body>
