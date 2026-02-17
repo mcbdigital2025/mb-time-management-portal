@@ -1,22 +1,14 @@
 import {
-  Building,
   Calendar,
   Laptop,
-  Laptop2,
-  TimerIcon,
   TimerResetIcon,
-  UsersRoundIcon,
+  UsersRoundIcon
 } from "lucide-react";
-import React from "react";
-import { steps } from "../../data";
+import { Feature, steps } from "../../data";
 
-  type Feature = {
-  title: string;
-  desc: string;
-  icon: React.ReactNode;
-};
 
- const features: Feature[] = [
+
+const features: Feature[] = [
   {
     title: "Smart Scheduling",
     desc: "Plan shifts and jobs across staff and sites with intelligent conflict detection.",
@@ -39,36 +31,36 @@ import { steps } from "../../data";
   },
 ];
 
-
-
 export default function HeroHowItWorks() {
   return (
     <section className="w-full bg-white">
       <div className=" w-full   max-h[376px] ">
         {/* Top cards row */}
-        <div className="w-full px-28.5 py-25 ">
-          <div className="flex max-w-7xl justify-center gap-3">
-            {features.map((f) => (
-              <div
-                key={f.title}
-                className="max-w-70 px-3 py-2.5 rounded-[14px] bg-[#008080]  text-white shadow-[0_8px_20px_rgba(0,0,0,0.12)]"
-              >
-                <div className="flex flex-col items-start gap-3">
-                  <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#008080]">
-                    {f.icon}
-                  </div>
-
-                  <div className="min-w-0">
-                    <div className="text-[20px] font-semibold leading-5">
-                      {f.title}
+        <div className="w-full py-12 sm:py-16 lg:py-25 px-4 sm:px-8 lg:px-28.5">
+          <div className="mx-auto max-w-7xl flex flex-col items-center ">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 justify-center">
+              {features.map((f) => (
+                <div
+                  key={f.title}
+                  className="w-full max-w-70 px-3 py-2.5 rounded-[14px] bg-[#008080] text-white shadow-[0_8px_20px_rgba(0,0,0,0.12)]"
+                >
+                  <div className="flex flex-col items-start gap-3">
+                    <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#008080]">
+                      {f.icon}
                     </div>
-                    <div className="mt-1 text-[14px] leading-4 text-white/90">
-                      {f.desc}
+
+                    <div className="min-w-0">
+                      <div className="text-[20px] font-semibold leading-5">
+                        {f.title}
+                      </div>
+                      <div className="mt-1 text-[14px] leading-4 text-white/90">
+                        {f.desc}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
@@ -102,21 +94,20 @@ export default function HeroHowItWorks() {
                 <span className="text-[20px] font-bold text-[#08979C]">03</span>
               </div>
             </div>
-          {/* Step text rows */}
-          <div className="flex justify-between lg:w-6xl md:w-5xl sm:5xl 4xl text-center">
-            {steps.map((s) => (
-              <div key={s.num}>
-                <div className="text-[18px] font-semibold text-gray-900">
-                  {s.title}
+            {/* Step text rows */}
+            <div className="flex justify-between lg:w-6xl md:w-5xl sm:5xl 4xl text-center">
+              {steps.map((s) => (
+                <div key={s.num}>
+                  <div className="text-[18px] font-semibold text-gray-900">
+                    {s.title}
+                  </div>
+                  <p className="mx-auto mt-2 max-w-65 text-[12px] leading-4 text-[#8C8C8C]">
+                    {s.desc}
+                  </p>
                 </div>
-                <p className="mx-auto mt-2 max-w-65 text-[12px] leading-4 text-[#8C8C8C]">
-                  {s.desc}
-                </p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-          </div>
-
         </div>
       </div>
     </section>

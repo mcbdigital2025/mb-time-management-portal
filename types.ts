@@ -13,6 +13,7 @@ export interface User {
 
 export interface NavbarProps {
   user?: User | null;
+  accessPage?: User | null;
   handleLogout?: () => void;
 }
 

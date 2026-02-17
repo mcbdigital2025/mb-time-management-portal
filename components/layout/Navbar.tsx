@@ -4,10 +4,21 @@ import Link from "next/link";
 import Image from "next/image";
 import { navItems } from "../../data";
 import { NavbarProps } from "../../types";
+import { useRouter } from "next/router";
 
+export default function Navbar({
+  user,
+  accessPages,
+  handleLogout,
+}: NavbarProps) {
+  const router = useRouter();
 
+  const handlePageClick = (e:any , page: any) => {
+    e.preventDefault();
+    const formattedPage = page.replace(/\s+/g, "").toLowerCase();
+    router.push(formattedPage === "home" ? "/" : `/${formattedPage}`);
+  };
 
-export default function Navbar({ user, handleLogout }: NavbarProps) {
   return (
     <div className="w-full h-17.5 px-29 py-3.75 flex items-center justify-between bg-white/70 backdrop-blur-md overflow-hidden">
       {/* Logo */}
@@ -23,7 +34,26 @@ export default function Navbar({ user, handleLogout }: NavbarProps) {
       </Link>
 
       <nav className="flex items-center  space-x-3">
-        {navItems.map((item) => (
+        <Link href="/" className="px-3 py-2 font-medium text-sm">
+          Home
+        </Link>
+        {user &&
+          accessPages.map((page: any, index: any) => (
+            <Link
+            key={index}
+            // href={item.href}
+            href="#"
+            onClick={(e) => handlePageClick(e, page)}
+            className="  items-center justify-center px-3 py-2 font-medium text-sm   "
+            >
+            {page}
+              </Link>
+          ))}
+        <Link href="/about" className="px-3 py-2 font-medium text-sm">
+          About
+        </Link>
+
+        {/* {navItems.map((item) => (
           <Link
             key={item.label}
             href={item.href}
@@ -31,7 +61,7 @@ export default function Navbar({ user, handleLogout }: NavbarProps) {
           >
             {item.label}
           </Link>
-        ))}
+        ))} */}
       </nav>
 
       {/* Right Side */}

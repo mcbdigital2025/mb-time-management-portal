@@ -53,6 +53,13 @@ export const steps = [
   },
 ];
 
+export type Feature = {
+  title: string;
+  desc: string;
+  icon: React.ReactNode;
+};
+
+
 
 
 export const testimonials: Testimonial[] = [
@@ -81,4 +88,41 @@ export const testimonials: Testimonial[] = [
     quote: "“Cut scheduling time in half. Our team loves the mobile app.”",
   },
 ];
+
+// for testing purposes only, to simulate a logged in user
+export const dummyUsers = {
+  id: "u123456",
+  firstName: "John",
+  lastName: "Doe",
+  email: "john.doe@example.com",
+  phone: "+1 555-123-4567",
+  username: "johndoe",
+  role: "admin", // or "user"
+  avatar: "https://i.pravatar.cc/150?img=12",
+  isVerified: true,
+  createdAt: "2026-02-16T10:30:00Z",
+  address: {
+    street: "123 Main Street",
+    city: "New York",
+    state: "NY",
+    zipCode: "10001",
+    country: "USA"
+  }
+};
+
+export const dummyUser = {
+  id: "u123456",
+  name: "John Doe",
+  firstName: "John",
+  email: "john@example.com",
+  role: "admin",
+  isVerified: true
+};
+
+// This is just a fake JWT string (3 parts separated by dots)
+export const dummyJWT =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9." +
+  "eyJpZCI6InUxMjM0NTYiLCJuYW1lIjoiSm9obiBEb2UiLCJyb2xlIjoiYWRtaW4ifQ." +
+  "dummy-signature-123456";
+
 
