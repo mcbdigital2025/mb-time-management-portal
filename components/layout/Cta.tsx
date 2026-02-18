@@ -32,7 +32,7 @@ export default function Cta() {
               </Link>
 
               <Link
-                href="#"
+                href="##"
                 className="inline-flex py-3 px-5 items-center justify-center rounded-[77px]
                            border border-white/30 bg-transparent text-[14px] font-medium text-white hover:border-white/45 transition
                            w-full sm:w-auto"
