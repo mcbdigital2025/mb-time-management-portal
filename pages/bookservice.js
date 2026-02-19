@@ -7,15 +7,17 @@ const BookingService = ({ user }) => {
   const [clients, setClients] = useState([]);
   const [selectedClientId, setSelectedClientId] = useState(null);
   const [activeBookings, setActiveBookings] = useState([]);
+  const [jobTypes, setJobTypes] = useState([]);
+  const [selectedJobType, setSelectedJobType] = useState("");
+  const [availableJobs, setAvailableJobs] = useState([]);
+  const [selectedJob, setSelectedJob] = useState(null);
   const [isRecurring, setIsRecurring] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
   const [formData, setFormData] = useState({
-    jobId: '',
     workLocation: '',
     startDate: '',
-    endDate: '',
     workDate: '',
     startTime: '',
     endTime: '',
@@ -23,46 +25,46 @@ const BookingService = ({ user }) => {
     friday: false, saturday: false, sunday: false
   });
 
-  // 1. Fetch Client List on Load (Reference from client.js)
   useEffect(() => {
-    const fetchClients = async () => {
-      if (!user?.companyId) return;
+    if (!user?.companyId) return;
+    const initializeData = async () => {
       try {
-        const response = await authenticatedFetch(
-                  `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/client/${encodeURIComponent(user.companyId)}`,
-                  {
-                    method: "GET",
-                    headers: { Accept: "application/json" },
-                    // ✅ Removed credentials: "include"
-                  }
-        );
-        if (response.ok) {
-          const text = await response.text();
-          const data = JSONbig.parse(text);
-          setClients(data);
+        const clientRes = await authenticatedFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/client/${user.companyId}`);
+        if (clientRes.ok) setClients(JSONbig.parse(await clientRes.text()));
+
+        const typeRes = await authenticatedFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/jobType/${user.companyId}`);
+        if (typeRes.ok) {
+          const types = JSONbig.parse(await typeRes.text());
+          setJobTypes(types);
+          if (types.length > 0) setSelectedJobType(types[0].jobType);
         }
-      } catch (err) { console.error("Error fetching clients:", err); }
+      } catch (err) { console.error("Initialization error", err); }
     };
-    fetchClients();
+    initializeData();
   }, [user]);
 
-  // 2. Fetch Bookings when a Client is selected
   useEffect(() => {
-    if (selectedClientId && user?.companyId) {
-      fetchUserBookings(selectedClientId);
+    if (selectedJobType && user?.companyId) {
+      const fetchJobsByType = async () => {
+        try {
+          const res = await authenticatedFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/job/type/${selectedJobType}/${user.companyId}`);
+          if (res.ok) setAvailableJobs(JSONbig.parse(await res.text()));
+          else setAvailableJobs([]);
+          setSelectedJob(null);
+        } catch (err) { console.error("Error fetching jobs", err); }
+      };
+      fetchJobsByType();
     }
+  }, [selectedJobType, user]);
+
+  useEffect(() => {
+    if (selectedClientId && user?.companyId) fetchUserBookings(selectedClientId);
   }, [selectedClientId, user]);
 
   const fetchUserBookings = async (clientId) => {
     try {
-      // API from ClientBookingScheduleController
-      const response = await authenticatedFetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/clientschedule/id/${user.companyId}/${clientId}`
-      );
-      if (response.ok) {
-        const text = await response.text();
-        setActiveBookings(JSONbig.parse(text));
-      }
+      const res = await authenticatedFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/clientschedule/id/${user.companyId}/${clientId}`);
+      if (res.ok) setActiveBookings(JSONbig.parse(await res.text()));
     } catch (err) { console.error("Fetch bookings error", err); }
   };
 
@@ -73,20 +75,15 @@ const BookingService = ({ user }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedClientId) {
-      alert("Please select a client first");
-      return;
-    }
+    if (!selectedClientId || !selectedJob) return;
     setLoading(true);
-
-    // Logic to select between Single or Recurring controllers
     const endpoint = isRecurring ? 'clientschedulerecurring' : 'clientschedule';
-    const selectedClient = clients.find(c => c.clientId.toString() === selectedClientId.toString());
+    const client = clients.find(c => c.clientId.toString() === selectedClientId);
 
     const payload = isRecurring ? {
       companyId: user.companyId,
-      clientId: selectedClientId.toString(),
-      jobId: formData.jobId,
+      clientId: selectedClientId,
+      jobId: selectedJob.jobId.toString(),
       workLocation: formData.workLocation,
       startTime: formData.startTime,
       endTime: formData.endTime,
@@ -96,140 +93,158 @@ const BookingService = ({ user }) => {
       isActive: true
     } : {
       companyId: user.companyId,
-      clientId: selectedClientId.toString(),
-      jobId: formData.jobId,
+      clientId: selectedClientId,
+      jobId: selectedJob.jobId.toString(),
       workLocation: formData.workLocation,
       workDate: `${formData.workDate}T00:00:00`,
       startTime: `${formData.workDate}T${formData.startTime}:00`,
       endTime: `${formData.workDate}T${formData.endTime}:00`,
-      firstName: selectedClient.firstName,
-      lastName: selectedClient.lastName,
-      email: selectedClient.email
+      firstName: client.firstName,
+      lastName: client.lastName
     };
 
     try {
-      const response = await authenticatedFetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/${endpoint}/create`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        }
-      );
-
-      if (response.ok) {
-        setMessage({ type: 'success', text: 'Booking successfully saved!' });
+      const res = await authenticatedFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/${endpoint}/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSONbig.stringify(payload)
+      });
+      if (res.ok) {
+        setMessage({ type: 'success', text: 'Booking Created!' });
         fetchUserBookings(selectedClientId);
       } else {
-        setMessage({ type: 'error', text: 'Failed to save booking.' });
+        setMessage({ type: 'error', text: 'Failed to create booking.' });
       }
-    } catch (err) { setMessage({ type: 'error', text: 'Connection error.' });
-    } finally { setLoading(false); }
+    } catch (err) { setMessage({ type: 'error', text: 'Network Error.' }); }
+    finally { setLoading(false); }
   };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif' }}>
-      <h1 style={{ color: '#333' }}>Service Booking</h1>
+    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif', color: '#333' }}>
+      <h2 style={{ borderBottom: '2px solid #389E0D', paddingBottom: '10px' }}>Staff Supervisor Service Booking</h2>
 
-      {/* CLIENT SELECTION TABLE (Ref: client.js) */}
-      <fieldset style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '15px', marginBottom: '20px' }}>
-        <legend style={{ fontWeight: 'bold', padding: '0 10px' }}>Step 1: Select Client</legend>
-        <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+      {/* Row 1: Client Selection Table (Full Width) */}
+      <div style={{ marginBottom: '20px', background: '#fff', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <strong style={{ fontSize: '16px' }}>Step 1: Select a Client</strong>
+        <div style={{ maxHeight: '180px', overflowY: 'auto', marginTop: '10px', border: '1px solid #eee' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead style={{ background: '#f4f4f4', position: 'sticky', top: 0 }}>
-              <tr>
-                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Name</th>
-                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Client ID</th>
-                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Status</th>
-              </tr>
+              <tr><th style={{ padding: '10px', textAlign: 'left' }}>Client Name</th><th style={{ padding: '10px', textAlign: 'left' }}>Client ID</th></tr>
             </thead>
             <tbody>
-              {clients.map(client => (
-                <tr
-                  key={client.clientId.toString()}
-                  onClick={() => setSelectedClientId(client.clientId.toString())}
-                  style={{
-                    cursor: 'pointer',
-                    backgroundColor: selectedClientId === client.clientId.toString() ? '#e6f7ff' : 'transparent'
-                  }}
-                >
-                  <td style={{ border: '1px solid #ddd', padding: '8px' }}>{client.firstName} {client.lastName}</td>
-                  <td style={{ border: '1px solid #ddd', padding: '8px' }}>{client.clientId.toString()}</td>
-                  <td style={{ border: '1px solid #ddd', padding: '8px', color: client.status === 'Active' ? 'green' : 'red' }}>{client.status}</td>
+              {clients.map(c => (
+                <tr key={c.clientId.toString()}
+                    onClick={() => setSelectedClientId(c.clientId.toString())}
+                    style={{ cursor: 'pointer', borderBottom: '1px solid #eee', background: selectedClientId === c.clientId.toString() ? '#e6f7ff' : '' }}>
+                  <td style={{ padding: '10px' }}>{c.firstName} {c.lastName}</td>
+                  <td style={{ padding: '10px' }}>{c.clientId.toString()}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </fieldset>
+      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-        {/* BOOKING FORM */}
-        <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #ddd', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginTop: 0 }}>Step 2: Create Booking</h3>
-          <div style={{ marginBottom: '15px' }}>
-            <button onClick={() => setIsRecurring(false)} style={{ padding: '8px 15px', cursor: 'pointer', background: !isRecurring ? '#389E0D' : '#eee', color: !isRecurring ? '#fff' : '#333', border: 'none', borderRadius: '4px 0 0 4px' }}>Single</button>
-            <button onClick={() => setIsRecurring(true)} style={{ padding: '8px 15px', cursor: 'pointer', background: isRecurring ? '#389E0D' : '#eee', color: isRecurring ? '#fff' : '#333', border: 'none', borderRadius: '0 4px 4px 0' }}>Recurring</button>
+      {/* Row 2: Grid Layout for Job Selection, Booking Form, and Schedule */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '20px', alignItems: 'start' }}>
+
+        {/* Column 1: Job Selection (Bigger view) */}
+        <div style={{ background: '#fff', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', height: '600px' }}>
+          <strong style={{ display: 'block', marginBottom: '10px' }}>Step 2: Service Type & Job List</strong>
+          <label style={{ fontSize: '12px', color: '#666' }}>Filter by Category:</label>
+          <select
+            value={selectedJobType}
+            onChange={(e) => setSelectedJobType(e.target.value)}
+            style={{ width: '100%', padding: '10px', margin: '5px 0 15px', borderRadius: '4px', border: '1px solid #ccc' }}
+          >
+            {jobTypes.map((jt, idx) => (
+              <option key={jt.jobId?.toString() || idx} value={jt.jobType}>{jt.jobType}</option>
+            ))}
+          </select>
+
+          <div style={{ height: '420px', overflowY: 'auto', border: '1px solid #eee' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead style={{ background: '#f4f4f4', position: 'sticky', top: 0 }}>
+                <tr><th style={{ padding: '8px', textAlign: 'left' }}>Job Code</th><th style={{ padding: '8px', textAlign: 'left' }}>Description</th></tr>
+              </thead>
+              <tbody>
+                {availableJobs.map(j => (
+                  <tr key={j.jobId.toString()}
+                      onClick={() => setSelectedJob(j)}
+                      style={{ cursor: 'pointer', borderBottom: '1px solid #eee', background: selectedJob?.jobId === j.jobId ? '#f6ffed' : '' }}>
+                    <td style={{ padding: '8px', fontWeight: 'bold' }}>{j.jobCode}</td>
+                    <td style={{ padding: '8px' }}>{j.jobType}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+        </div>
+
+        {/* Column 2: Booking Form (Always visible fields) */}
+        <div style={{ background: '#fff', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', minHeight: '600px', opacity: selectedJob ? 1 : 0.6 }}>
+          <strong style={{ display: 'block', marginBottom: '15px' }}>Step 3: Create Booking</strong>
+          {!selectedJob && <p style={{ fontSize: '12px', color: 'orange' }}>⚠️ Select a Job from the list to enable fields.</p>}
 
           <form onSubmit={handleSubmit}>
-            <label style={{ fontSize: '14px', fontWeight: 'bold' }}>Service Category</label>
-            <select name="jobId" onChange={handleInputChange} required style={{ width: '100%', padding: '10px', margin: '8px 0 15px' }}>
-              <option value="">-- Choose --</option>
-              <option value="NDIS_OT">NDIS OT Session</option>
-              <option value="OUTDOOR_ZOO">Outdoor Activity (Zoo)</option>
-              <option value="SPEECH_PATH">Speech Pathology</option>
-              <option value="MEDICAL_DENTIST">Medical / Dentist</option>
-            </select>
+            <div style={{ marginBottom: '15px' }}>
+              <button type="button" onClick={() => setIsRecurring(false)} style={{ width: '50%', padding: '10px', background: !isRecurring ? '#389E0D' : '#eee', color: !isRecurring ? '#fff' : '#333', border: '1px solid #ccc', borderRadius: '4px 0 0 4px', cursor: 'pointer' }}>Single</button>
+              <button type="button" onClick={() => setIsRecurring(true)} style={{ width: '50%', padding: '10px', background: isRecurring ? '#389E0D' : '#eee', color: isRecurring ? '#fff' : '#333', border: '1px solid #ccc', borderRadius: '0 4px 4px 0', cursor: 'pointer' }}>Recurring</button>
+            </div>
 
-            <label style={{ fontSize: '14px', fontWeight: 'bold' }}>Location</label>
-            <input name="workLocation" onChange={handleInputChange} required style={{ width: '100%', padding: '10px', margin: '8px 0 15px' }} />
+            <label style={{ fontSize: '13px', fontWeight: 'bold' }}>Work Location</label>
+            <input name="workLocation" disabled={!selectedJob} placeholder="e.g. Sydney Zoo" onChange={handleInputChange} required style={{ width: '100%', padding: '10px', margin: '5px 0 15px', borderRadius: '4px', border: '1px solid #ccc' }} />
 
             {isRecurring ? (
-              <div style={{ background: '#f9f9f9', padding: '10px', borderRadius: '5px', marginBottom: '15px' }}>
-                <p style={{ margin: '0 0 10px 0', fontSize: '13px' }}>Repeat Every:</p>
-                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => (
-                  <label key={day} style={{ marginRight: '10px', fontSize: '12px', textTransform: 'capitalize' }}>
-                    <input type="checkbox" name={day} onChange={handleInputChange} /> {day.slice(0,3)}
-                  </label>
-                ))}
-                <input type="date" name="startDate" onChange={handleInputChange} style={{ width: '100%', marginTop: '10px', padding: '8px' }} />
+              <div style={{ background: '#f9f9f9', padding: '10px', borderRadius: '4px', marginBottom: '15px' }}>
+                <p style={{ margin: '0 0 8px 0', fontSize: '12px' }}>Days of Week:</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                  {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(d => (
+                    <label key={d} style={{ fontSize: '12px', textTransform: 'capitalize' }}>
+                      <input type="checkbox" name={d} disabled={!selectedJob} onChange={handleInputChange} /> {d.slice(0,3)}
+                    </label>
+                  ))}
+                </div>
+                <label style={{ display: 'block', marginTop: '10px', fontSize: '12px' }}>Start Date</label>
+                <input type="date" name="startDate" disabled={!selectedJob} onChange={handleInputChange} style={{ width: '100%', padding: '8px', marginTop: '5px' }} />
               </div>
             ) : (
-              <input type="date" name="workDate" onChange={handleInputChange} required style={{ width: '100%', padding: '10px', marginBottom: '15px' }} />
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 'bold' }}>Service Date</label>
+                <input type="date" name="workDate" disabled={!selectedJob} onChange={handleInputChange} required style={{ width: '100%', padding: '10px', marginTop: '5px', borderRadius: '4px', border: '1px solid #ccc' }} />
+              </div>
             )}
 
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: '12px' }}>Start</label>
-                <input type="time" name="startTime" onChange={handleInputChange} required style={{ width: '100%', padding: '8px' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
+              <div>
+                <label style={{ fontSize: '12px' }}>Start Time</label>
+                <input type="time" name="startTime" disabled={!selectedJob} onChange={handleInputChange} required style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }} />
               </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: '12px' }}>End</label>
-                <input type="time" name="endTime" onChange={handleInputChange} required style={{ width: '100%', padding: '8px' }} />
+              <div>
+                <label style={{ fontSize: '12px' }}>End Time</label>
+                <input type="time" name="endTime" disabled={!selectedJob} onChange={handleInputChange} required style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }} />
               </div>
             </div>
 
-            <button type="submit" disabled={loading || !selectedClientId} style={{ width: '100%', marginTop: '20px', padding: '12px', background: selectedClientId ? '#389E0D' : '#ccc', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
-              {loading ? 'Saving...' : 'Confirm Schedule'}
+            <button type="submit" disabled={loading || !selectedJob || !selectedClientId}
+                    style={{ width: '100%', padding: '15px', background: (selectedJob && selectedClientId) ? '#389E0D' : '#ccc', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
+              {loading ? 'Submitting...' : 'Confirm Schedule'}
             </button>
           </form>
-          {message && <p style={{ color: message.type === 'success' ? 'green' : 'red', fontWeight: 'bold', textAlign: 'center' }}>{message.text}</p>}
+          {message && <div style={{ marginTop: '15px', padding: '10px', borderRadius: '4px', background: message.type === 'success' ? '#f6ffed' : '#fff2f0', color: message.type === 'success' ? '#389e0d' : '#cf1322', border: '1px solid' }}>{message.text}</div>}
         </div>
 
-        {/* SCHEDULE LIST */}
-        <div style={{ background: '#f0f2f5', padding: '20px', borderRadius: '12px', border: '1px solid #ddd' }}>
-          <h3 style={{ marginTop: 0 }}>Client Schedule</h3>
-          {!selectedClientId ? (
-            <p style={{ color: '#888', fontStyle: 'italic' }}>Please select a client to view their schedule.</p>
-          ) : (
+        {/* Column 3: Schedule List */}
+        <div style={{ background: '#f0f2f5', padding: '15px', borderRadius: '8px', border: '1px solid #ddd', height: '600px', overflowY: 'auto' }}>
+          <strong style={{ display: 'block', marginBottom: '15px' }}>Client Schedule History</strong>
+          {!selectedClientId ? <p style={{ fontSize: '13px', color: '#999' }}>Select a client to view bookings.</p> : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {activeBookings.length === 0 ? <p>No bookings found.</p> : activeBookings.map(b => (
-                <div key={b.clientBookingId?.toString()} style={{ background: '#fff', padding: '12px', borderRadius: '8px', borderLeft: '5px solid #389E0D' }}>
-                  <div style={{ fontWeight: 'bold' }}>{b.jobId}</div>
-                  <div style={{ fontSize: '14px' }}>📅 {b.workDate ? new Date(b.workDate).toLocaleDateString() : 'Recurring'}</div>
-                  <div style={{ fontSize: '14px' }}>⏰ {b.startTime} - {b.endTime}</div>
-                  <div style={{ fontSize: '12px', color: '#666' }}>📍 {b.workLocation}</div>
+              {activeBookings.length === 0 ? <p style={{ fontSize: '12px' }}>No bookings found.</p> : activeBookings.map(b => (
+                <div key={b.clientBookingId?.toString()} style={{ background: '#fff', padding: '12px', borderRadius: '6px', borderLeft: '4px solid #389E0D', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{b.jobId}</div>
+                  <div style={{ fontSize: '12px', color: '#666' }}>📅 {b.workDate ? new Date(b.workDate).toLocaleDateString() : 'Weekly Recurring'}</div>
+                  <div style={{ fontSize: '12px', color: '#666' }}>⏰ {b.startTime} - {b.endTime}</div>
+                  <div style={{ fontSize: '11px', marginTop: '4px' }}>📍 {b.workLocation}</div>
                 </div>
               ))}
             </div>

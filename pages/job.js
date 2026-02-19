@@ -3,17 +3,17 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import JSONbig from "json-bigint";
-import { authenticatedFetch } from '../utils/api'; // Import authenticatedFetch
+import { authenticatedFetch } from '../utils/api';
 
 const Job = () => {
   const [jobs, setJobs] = useState([]);
-  const [jobTypes, setJobTypes] = useState([]); // Dynamic state for remote job types
-  const [selectedJobType, setSelectedJobType] = useState(""); // Track selected type
+  const [jobTypes, setJobTypes] = useState([]);
+  const [selectedJobType, setSelectedJobType] = useState("");
   const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
   const router = useRouter();
 
+  // 1. Initial Load: Fetch Job Types
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     if (!user || !user.companyId) {
@@ -22,7 +22,6 @@ const Job = () => {
       return;
     }
 
-    // ✅ 1. Fetch Job Types from remote API
     const fetchJobTypes = async () => {
       try {
         const response = await authenticatedFetch(
@@ -31,14 +30,11 @@ const Job = () => {
         if (response.ok) {
           const text = await response.text();
           const data = JSONbig.parse(text);
-
-          // Assuming the API returns a list of Job objects.
-          // We extract unique job types or codes for the dropdown.
           setJobTypes(data);
 
-          // Set initial selection if data exists
           if (data.length > 0) {
-            setSelectedJobType(data[0].jobType || data[0].jobId);
+            // Set the first type as default
+            setSelectedJobType(data[0].jobType || data[0].description || "");
           }
         } else {
           setError("Failed to fetch job types from the server.");
@@ -50,60 +46,65 @@ const Job = () => {
     };
 
     fetchJobTypes();
-    fetchJobs(); // Existing fetch for the table
   }, []);
 
-  const fetchJobs = async () => {
+  // 2. Trigger fetchJobs whenever selectedJobType changes
+  useEffect(() => {
+    if (selectedJobType) {
+      fetchJobs(selectedJobType);
+    }
+  }, [selectedJobType]); // Dependency array ensures this runs when selection changes
+
+  const fetchJobs = async (type) => {
     const user = JSON.parse(localStorage.getItem("user"));
+    if (!user?.companyId || !type) return;
+
     try {
+      // ✅ FIX: Replaced {jobType} with the dynamic 'type' variable
       const response = await authenticatedFetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/job/${user.companyId}`
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/job/type/${type}/${user.companyId}`
       );
+
       if (response.ok) {
         const text = await response.text();
         setJobs(JSONbig.parse(text));
+        setSelectedJob(null); // Clear selection when list changes
+      } else {
+        setJobs([]); // Clear list if no jobs found for this type
       }
     } catch (err) {
+      console.error("Error fetching jobs list:", err);
       setError("Error fetching jobs list.");
     }
-  };
-
-  const handleJobTypeChange = (e) => {
-    setSelectedJobType(e.target.value);
-  };
-
-  const handleDelete = async () => {
-    // ... existing delete logic using authenticatedFetch ...
   };
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <h1 className="text-2xl font-bold mb-4">Job Management</h1>
 
-      {/* ✅ REPLACED JOB_TYPES MAP WITH DYNAMIC REMOTE DATA */}
       <div className="mb-6">
         <label className="font-semibold mr-2">Select Job Type:</label>
         <select
           value={selectedJobType}
-          onChange={handleJobTypeChange}
-          className="border border-gray-300 rounded px-2 py-1 bg-white shadow-sm"
+          onChange={(e) => setSelectedJobType(e.target.value)}
+          className="border border-gray-300 rounded px-4 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           {jobTypes.length > 0 ? (
-            jobTypes.map((job) => (
-              <option key={job.jobId.toString()} value={job.jobType}>
-                {job.jobType} — {job.jobCode}
+            jobTypes.map((job, index) => (
+              <option key={job?.jobId?.toString() || index} value={job.jobType}>
+                {job.jobType} {job.jobCode ? `— ${job.jobCode}` : ""}
               </option>
             ))
           ) : (
-            <option>Loading types...</option>
+            <option value="">Loading types...</option>
           )}
         </select>
       </div>
 
       <fieldset className="border border-gray-300 rounded p-4 mb-6 bg-white shadow">
-        <legend className="font-bold px-2">Job List</legend>
+        <legend className="font-bold px-2">Job List for {selectedJobType}</legend>
         {jobs.length === 0 ? (
-          <p className="text-gray-500 italic">No jobs available for this company.</p>
+          <p className="text-gray-500 italic p-4">No jobs available for this type.</p>
         ) : (
           <table className="w-full border-collapse">
             <thead>
@@ -114,15 +115,15 @@ const Job = () => {
               </tr>
             </thead>
             <tbody>
-              {jobs.map((job) => (
+              {jobs.map((job, index) => (
                 <tr
-                  key={job.jobId.toString()}
+                  key={job?.jobId?.toString() || index}
                   className={`cursor-pointer hover:bg-blue-50 ${
                     selectedJob?.jobId === job.jobId ? "bg-blue-100" : ""
                   }`}
                   onClick={() => setSelectedJob(job)}
                 >
-                  <td className="border p-2">{job.jobId.toString()}</td>
+                  <td className="border p-2">{job?.jobId?.toString() || "N/A"}</td>
                   <td className="border p-2">{job.jobCode}</td>
                   <td className="border p-2">{job.jobType}</td>
                 </tr>
@@ -133,9 +134,7 @@ const Job = () => {
       </fieldset>
 
       <div className="flex gap-4">
-        <button className="bg-green-600 text-white px-4 py-2 rounded" onClick={() => router.push("/createJob")}>
-          Create
-        </button>
+        <button className="bg-green-600 text-white px-4 py-2 rounded" onClick={() => router.push("/createJob")}>Create</button>
         <button
           className={`${selectedJob ? "bg-yellow-500" : "bg-gray-300"} text-white px-4 py-2 rounded`}
           disabled={!selectedJob}
@@ -146,9 +145,7 @@ const Job = () => {
         >
           Update
         </button>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={() => router.push("/home")}>
-          Home
-        </button>
+        <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={() => router.push("/home")}>Home</button>
       </div>
 
       {error && <div className="mt-4 p-2 bg-red-100 text-red-700 rounded">{error}</div>}
