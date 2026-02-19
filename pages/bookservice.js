@@ -121,7 +121,7 @@ const BookingService = ({ user }) => {
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif', color: '#333' }}>
-      <h2 style={{ borderBottom: '2px solid #389E0D', paddingBottom: '10px' }}>Staff Supervisor Service Booking</h2>
+      <h2 style={{ borderBottom: '2px solid #389E0D', paddingBottom: '10px' }}>Client Service Booking</h2>
 
       {/* Row 1: Client Selection Table (Full Width) */}
       <div style={{ marginBottom: '20px', background: '#fff', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
