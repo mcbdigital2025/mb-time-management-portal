@@ -7,8 +7,8 @@ import Script from "next/script";
 import Footer from "./footer";
 import "../styles/globals.css";
 import Navbar from "../components/layout/Navbar";
-import { dummyJWT, dummyUser } from "../data";
-
+import {NAVIGATION, ROLES } from "../data";
+import { dummyJWT, dummyUser, mockFetchAccessPages } from "../data/mockdata";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -16,37 +16,25 @@ const roboto = Roboto({
   display: "swap",
 });
 
-
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
   const [user, setUser] = useState(null);
   // const [accessPages, setAccessPages] = useState([]);
-  const [accessPages, setAccessPages] = useState([
-    "profile",
-    "company",
-    "conversations",
-    "viewEmployees",
-    "loginEmployees",
-    // "jobs link",
-    // "mySchedule",
-    // "job",
-    // "quote",
-    // "client",
-    // "employeeSchedules",
-    // "about",
-  ]);
+  const [accessPages, setAccessPages] = useState([]);
+  const [allowedNav, setAllowedNav] = useState([]);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const handleAuth = () => {
-      // localStorage.setItem("user", JSON.stringify(dummyUser));
-      // localStorage.setItem("jwtToken", dummyJWT);
+    const handleAuth = async () => {
+      if (process.env.NEXT_PUBLIC_USE_DUMMY_AUTH === "true") {
+        localStorage.setItem("user", JSON.stringify(dummyUser));
+        localStorage.setItem("jwtToken", dummyJWT);
+      }
 
       const userStr = localStorage.getItem("user");
-      console.log("🚀 ~ handleAuth ~ userStr:", userStr);
+      console.log("🚀 ~ handleAuth ~ userStr:", userStr)
       const token = localStorage.getItem("jwtToken");
-      console.log("🚀 ~ handleAuth ~ token:", token);
 
       const protectedRoutes = ["/landing", "/employee", "/client"];
       const isProtectedRoute = protectedRoutes.includes(router.pathname);
@@ -56,13 +44,26 @@ function MyApp({ Component, pageProps }) {
         setUser(storedUser);
         setAuthorized(true);
 
-        // Only fetch if we don't have pages yet
-        if (accessPages.length === 0) {
-          fetchAccessPages(storedUser, token);
+        // Mock fetch of access pages
+        const baseNav = getAllowedNavigation(storedUser.role);
+        setAllowedNav(baseNav);
+
+        if (process.env.NEXT_PUBLIC_USE_MOCK_ACCESS_PAGES === "true") {
+          const data = await mockFetchAccessPages(storedUser);
+          setAccessPages(data);
+          setAllowedNav(applyAccessPages(baseNav, data));
+        } else {
+          await fetchAccessPages(storedUser, token, baseNav);
         }
+
+        // Only fetch if we don't have pages yet
+        // if (accessPages.length === 0) {
+        //   await fetchAccessPages(storedUser, token);
+        // }
       } else {
         setUser(null);
         setAccessPages([]);
+        setAllowedNav([]);
         if (isProtectedRoute) {
           setAuthorized(false);
           router.push("/login");
@@ -72,14 +73,37 @@ function MyApp({ Component, pageProps }) {
       }
     };
 
-    handleAuth();
+    handleAuth().catch((err) => {
+      console.error("handleAuth failed:", err);
+      setError(err?.message || "Auth init failed");
+      setAuthorized(true);
+    });
   }, [router.pathname]);
 
-  const fetchAccessPages = async (storedUser, token) => {
+  const applyAccessPages = (nav, accessPages) => {
+    if (!accessPages || accessPages.length === 0) return nav;
+    const allowed = new Set(accessPages.map((p) => p.trim()));
+    return nav
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) => allowed.has(item.key)),
+      }))
+      .filter((section) => section.items.length > 0);
+  };
+
+  const fetchAccessPages = async (storedUser, token, baseNav) => {
     try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+      if (!baseUrl) {
+        setError(
+          "No API base URL set. Enable mock access pages in .env.local.",
+        );
+        return;
+      }
+
       // Note: Ensure your API expects "Bearer " or just the token string
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/accessPages?email=${encodeURIComponent(storedUser.email)}&companyId=${encodeURIComponent(storedUser.companyId)}`,
+        `${baseUrl}/mcbtt/api/timesheet/userLogin/accessPages?email=${encodeURIComponent(storedUser.email)}&companyId=${encodeURIComponent(storedUser.companyId)}`,
         {
           method: "POST",
           headers: {
@@ -95,6 +119,9 @@ function MyApp({ Component, pageProps }) {
       if (response.ok) {
         const data = await response.json();
         setAccessPages(data);
+
+        const finalNav = applyAccessPages(baseNav, data);
+        setAllowedNav(finalNav);
         setError(null); // Clear any previous errors
       } else {
         // If 401, token might be expired
@@ -113,6 +140,13 @@ function MyApp({ Component, pageProps }) {
     setUser(null);
     setAccessPages([]);
     router.push("/login");
+  };
+
+  const getAllowedNavigation = (role) => {
+    return NAVIGATION.map((section) => ({
+      ...section,
+      items: section.items.filter((item) => item.roles.includes(role)),
+    })).filter((section) => section.items.length > 0);
   };
 
   const handlePageClick = (e, page) => {
@@ -142,8 +176,9 @@ function MyApp({ Component, pageProps }) {
           <div className="text-block">Loading...</div>
         </div>
       ) : (
-        <div className={roboto.className}
-        // className="body" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
+        <div
+          className={roboto.className}
+          // className="body" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
         >
           {/* <div role="banner" className="navbar w-nav">
             <a href="/" className="brand w-nav-brand">
@@ -175,7 +210,7 @@ function MyApp({ Component, pageProps }) {
               </a>
             </div>
           </div> */}
-          <Navbar user={user} accessPages={accessPages} />
+          <Navbar user={user} accessPages={accessPages} nav={allowedNav} />
 
           <main className="flex-1 flex flex-col items-center justify-center p-">
             {error && (

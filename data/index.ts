@@ -89,40 +89,55 @@ export const testimonials: Testimonial[] = [
   },
 ];
 
-// for testing purposes only, to simulate a logged in user
-export const dummyUsers = {
-  id: "u123456",
-  firstName: "John",
-  lastName: "Doe",
-  email: "john.doe@example.com",
-  phone: "+1 555-123-4567",
-  username: "johndoe",
-  role: "admin", // or "user"
-  avatar: "https://i.pravatar.cc/150?img=12",
-  isVerified: true,
-  createdAt: "2026-02-16T10:30:00Z",
-  address: {
-    street: "123 Main Street",
-    city: "New York",
-    state: "NY",
-    zipCode: "10001",
-    country: "USA"
-  }
+export const ROLES = {
+  PLATFORM_ADMIN: "PLATFORM_ADMIN",
+  COMPANY_ADMIN: "COMPANY_ADMIN",
+  STAFF: "STAFF",
 };
 
-export const dummyUser = {
-  id: "u123456",
-  name: "John Doe",
-  firstName: "John",
-  email: "john@example.com",
-  role: "admin",
-  isVerified: true
-};
+export const NAVIGATION = [
+  {
+    group: "Home",
+    items: [
+      { key: "home", label: "Home", roles: ["PLATFORM_ADMIN", "COMPANY_ADMIN", "STAFF"] },
+    ],
+  },
+  {
+    group: "Conversations",
+    items: [
+      { key: "conversations", label: "Conversations", roles: ["PLATFORM_ADMIN", "COMPANY_ADMIN", "STAFF"] },
+    ],
+  },
+  {
+    group: "Workforce",
+    items: [
+      { key: "profile", label: "Profile", roles: ["PLATFORM_ADMIN", "COMPANY_ADMIN", "STAFF"] },
+      { key: "company", label: "Company", roles: ["PLATFORM_ADMIN", "COMPANY_ADMIN", "STAFF"] },
+      { key: "viewEmployees", label: "View Employees", roles: ["PLATFORM_ADMIN", "COMPANY_ADMIN"] },
+      { key: "loginEmployees", label: "Login Employees", roles: ["PLATFORM_ADMIN", "COMPANY_ADMIN"] },
+      { key: "jobs", label: "Jobs", roles: ["PLATFORM_ADMIN", "COMPANY_ADMIN"] },
+      { key: "mySchedule", label: "My Schedule", roles: ["PLATFORM_ADMIN", "COMPANY_ADMIN", "STAFF"] },
+    ],
+  },
+  {
+    group: "Clients",
+    items: [
+      { key: "clients", label: "Clients", roles: ["PLATFORM_ADMIN", "COMPANY_ADMIN"] },
+      { key: "quoteClient", label: "Quote Client", roles: ["PLATFORM_ADMIN", "COMPANY_ADMIN"] },
+      { key: "employeeSchedules", label: "Employee Schedules", roles: ["PLATFORM_ADMIN", "COMPANY_ADMIN"] },
+    ],
+  },
+  {
+    group: "About",
+    items: [
+      { key: "about", label: "About", roles: ["PLATFORM_ADMIN", "COMPANY_ADMIN", "STAFF"] },
+    ],
+  },
+];
 
-// This is just a fake JWT string (3 parts separated by dots)
-export const dummyJWT =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9." +
-  "eyJpZCI6InUxMjM0NTYiLCJuYW1lIjoiSm9obiBEb2UiLCJyb2xlIjoiYWRtaW4ifQ." +
-  "dummy-signature-123456";
+
+
+
+
 
 

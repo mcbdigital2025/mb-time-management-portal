@@ -13,9 +13,16 @@ export interface User {
 
 export interface NavbarProps {
   user?: User | null;
-  accessPage?: User | null;
+  nav?: {
+    group: string;
+    items: {
+      key: string;
+      label: string;
+    }[];
+  }[];
   handleLogout?: () => void;
 }
+
 
 export type Testimonial = {
   name: string;
@@ -23,3 +30,4 @@ export type Testimonial = {
   company: string;
   quote: string;
 };
+
