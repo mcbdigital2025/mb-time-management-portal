@@ -148,7 +148,6 @@ function MyApp({ Component, pageProps }) {
       ) : (
         <div
           className={roboto.className}
-          // className="body" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
         >
           
           <Navbar
