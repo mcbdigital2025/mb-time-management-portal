@@ -1,14 +1,14 @@
 // pages/_app.js
-import { useEffect, useState } from "react";
 import { Roboto } from "next/font/google";
-import { useRouter } from "next/router";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import Script from "next/script";
-import Footer from "./footer";
+import { useEffect, useState } from "react";
+import Navbar from "../components/layout/Navbar/Navbar";
+import { NAVIGATIONS } from "../data";
+import { dummyJWT, dummyUser } from "../data/mockdata";
 import "../styles/globals.css";
-import Navbar from "../components/layout/Navbar";
-import { dummyJWT, dummyUser } from "../data";
-
+import Footer from "./footer";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -16,51 +16,31 @@ const roboto = Roboto({
   display: "swap",
 });
 
+// FOR TESTING
+// const nav = NAVIGATIONS;
 
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
   const [user, setUser] = useState(null);
-  // const [accessPages, setAccessPages] = useState([]);
-  const [accessPages, setAccessPages] = useState([
-    "profile",
-    "company",
-    "conversations",
-    "viewEmployees",
-    "loginEmployees",
-    // "jobs link",
-    // "mySchedule",
-    // "job",
-    // "quote",
-    // "client",
-    // "employeeSchedules",
-    // "about",
-  ]);
+  const [accessPages, setAccessPages] = useState([]);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const handleAuth = () => {
-      // localStorage.setItem("user", JSON.stringify(dummyUser));
-      // localStorage.setItem("jwtToken", dummyJWT);
+    const handleAuth = async () => {
+      //?  THIS IS USE FOR TESTING/SIMULATION
+      // if (process.env.NEXT_PUBLIC_USE_DUMMY_AUTH === "true") {
+      //   localStorage.setItem("user", JSON.stringify(dummyUser));
+      //   localStorage.setItem("jwtToken", dummyJWT);
+      // }
 
       const userStr = localStorage.getItem("user");
-      console.log("🚀 ~ handleAuth ~ userStr:", userStr);
       const token = localStorage.getItem("jwtToken");
-      console.log("🚀 ~ handleAuth ~ token:", token);
 
       const protectedRoutes = ["/landing", "/employee", "/client"];
       const isProtectedRoute = protectedRoutes.includes(router.pathname);
 
-      if (userStr && token) {
-        const storedUser = JSON.parse(userStr);
-        setUser(storedUser);
-        setAuthorized(true);
-
-        // Only fetch if we don't have pages yet
-        if (accessPages.length === 0) {
-          fetchAccessPages(storedUser, token);
-        }
-      } else {
+      if (!userStr || !token) {
         setUser(null);
         setAccessPages([]);
         if (isProtectedRoute) {
@@ -69,17 +49,38 @@ function MyApp({ Component, pageProps }) {
         } else {
           setAuthorized(true);
         }
+        return;
+      }
+
+      const storedUser = JSON.parse(userStr);
+      setUser(storedUser);
+      setAuthorized(true);
+
+      if (accessPages.length === 0) {
+        await fetchAccessPages(storedUser, token);
       }
     };
 
-    handleAuth();
+    handleAuth().catch((err) => {
+      console.error("handleAuth failed:", err);
+      setError(err?.message || "Auth init failed");
+      setAuthorized(true);
+    });
   }, [router.pathname]);
 
   const fetchAccessPages = async (storedUser, token) => {
     try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+      if (!baseUrl) {
+        setError(
+          "No API base URL set. Enable mock access pages in .env.local.",
+        );
+        return;
+      }
+
       // Note: Ensure your API expects "Bearer " or just the token string
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/accessPages?email=${encodeURIComponent(storedUser.email)}&companyId=${encodeURIComponent(storedUser.companyId)}`,
+        `${baseUrl}/mcbtt/api/timesheet/userLogin/accessPages?email=${encodeURIComponent(storedUser.email)}&companyId=${encodeURIComponent(storedUser.companyId)}`,
         {
           method: "POST",
           headers: {
@@ -92,15 +93,18 @@ function MyApp({ Component, pageProps }) {
         },
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        setAccessPages(data);
-        setError(null); // Clear any previous errors
-      } else {
-        // If 401, token might be expired
-        if (response.status === 401) handleLogout(new Event("click"));
-        console.error("Menu fetch failed:", response.status);
+      if (response.status === 401) {
+        handleLogout(new Event("click"));
+        return;
       }
+
+      if (!response.ok) {
+        throw new Error(`Navigation fetch failed: ${res.status}`);
+      }
+
+      const nav = await res.json();
+      setAccessPages(nav);
+      setError(null);
     } catch (err) {
       console.error("Network error:", err);
     }
@@ -142,40 +146,17 @@ function MyApp({ Component, pageProps }) {
           <div className="text-block">Loading...</div>
         </div>
       ) : (
-        <div className={roboto.className}
-        // className="body" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
+        <div
+          className={roboto.className}
+          // className="body" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
         >
-          {/* <div role="banner" className="navbar w-nav">
-            <a href="/" className="brand w-nav-brand">
-              <img src="/images/Screenshot---logo-2025-12-23-at-11.39.16-pm.png" alt="Logo" className="image-2" />
-            </a>
-            <div className="container w-container">
-              <nav role="navigation" className="nav-menu w-nav-menu">
-                <a href="/" className="nav-link w-nav-link">Home</a>
-                {user && accessPages.map((page, index) => (
-                  <a key={index} href="#" onClick={(e) => handlePageClick(e, page)} className="w-nav-link">{page}</a>
-                ))}
-                <a href="#" className="w-nav-link">About</a>
-              </nav>
-            </div>
-
-            <div className="right-nav-button-link-div">
-              {user ? (
-                <>
-                  <span style={{ marginRight: '15px', fontWeight: 'bold' }}>
-                    Hi, {user.firstName || user.email}
-                  </span>
-                  <a onClick={handleLogout} href="#" className="log-in-link">Log Out</a>
-                </>
-              ) : (
-                <a href="/login" className="log-in-link">Log In</a>
-              )}
-              <a href="#" className="green-button w-inline-block">
-                <div className="text-block">Book a Demo</div>
-              </a>
-            </div>
-          </div> */}
-          <Navbar user={user} accessPages={accessPages} />
+          
+          <Navbar
+            user={user}
+            nav={accessPages}
+            // nav={nav}
+            handleLogout={handleLogout}
+          />
 
           <main className="flex-1 flex flex-col items-center justify-center p-">
             {error && (

@@ -89,40 +89,88 @@ export const testimonials: Testimonial[] = [
   },
 ];
 
-// for testing purposes only, to simulate a logged in user
-export const dummyUsers = {
-  id: "u123456",
-  firstName: "John",
-  lastName: "Doe",
-  email: "john.doe@example.com",
-  phone: "+1 555-123-4567",
-  username: "johndoe",
-  role: "admin", // or "user"
-  avatar: "https://i.pravatar.cc/150?img=12",
-  isVerified: true,
-  createdAt: "2026-02-16T10:30:00Z",
-  address: {
-    street: "123 Main Street",
-    city: "New York",
-    state: "NY",
-    zipCode: "10001",
-    country: "USA"
-  }
+export const ROLES = {
+  PLATFORM_ADMIN: "PLATFORM_ADMIN",
+  COMPANY_ADMIN: "COMPANY_ADMIN",
+  STAFF: "STAFF",
 };
 
-export const dummyUser = {
-  id: "u123456",
-  name: "John Doe",
-  firstName: "John",
-  email: "john@example.com",
-  role: "admin",
-  isVerified: true
-};
+export const NAVIGATION = [
+  {
+    group: "Home",
+    items: [
+      { key: "home", label: "Home", roles: ["PLATFORM_ADMIN", "COMPANY_ADMIN", "STAFF"] },
+    ],
+  },
+  {
+    group: "Conversations",
+    items: [
+      { key: "conversations", label: "Conversations", roles: ["PLATFORM_ADMIN", "COMPANY_ADMIN", "STAFF"] },
+    ],
+  },
+   {
+    group: "Workforce",
+    items: [
+      { key: "profile", label: "Profile", href: "/profile", roles: ["PLATFORM_ADMIN","COMPANY_ADMIN","STAFF"] },
+      { key: "company", label: "Company", href: "/company", roles: ["PLATFORM_ADMIN","COMPANY_ADMIN","STAFF"] },
 
-// This is just a fake JWT string (3 parts separated by dots)
-export const dummyJWT =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9." +
-  "eyJpZCI6InUxMjM0NTYiLCJuYW1lIjoiSm9obiBEb2UiLCJyb2xlIjoiYWRtaW4ifQ." +
-  "dummy-signature-123456";
+      // ✅ set these to the real existing routes in your app:
+      { key: "viewEmployees", label: "View Employees", href: "/employees", roles: ["PLATFORM_ADMIN","COMPANY_ADMIN"] },
+      { key: "loginEmployees", label: "Login Employees", href: "/employees/login", roles: ["PLATFORM_ADMIN","COMPANY_ADMIN"] },
+
+      { key: "jobs", label: "Jobs", href: "/jobs", roles: ["PLATFORM_ADMIN","COMPANY_ADMIN"] },
+      { key: "mySchedule", label: "My Schedule", href: "/my-schedule", roles: ["PLATFORM_ADMIN","COMPANY_ADMIN","STAFF"] },
+    ],
+  },
+  {
+    group: "Clients",
+    items: [
+      { key: "clients", label: "Clients", roles: ["PLATFORM_ADMIN", "COMPANY_ADMIN"] },
+      { key: "quoteClient", label: "Quote Client", roles: ["PLATFORM_ADMIN", "COMPANY_ADMIN"] },
+      { key: "employeeSchedules", label: "Employee Schedules", roles: ["PLATFORM_ADMIN", "COMPANY_ADMIN"] },
+    ],
+  },
+  {
+    group: "About",
+    items: [
+      { key: "about", label: "About", roles: ["PLATFORM_ADMIN", "COMPANY_ADMIN", "STAFF"] },
+    ],
+  },
+];
 
 
+
+
+
+
+export const NAVIGATIONS = [
+  {
+    "group": "Home",
+    "items": [
+      { "key": "home", "label": "Home", "href": "/" }
+    ]
+  },
+  {
+    "group": "Workforce",
+    "items": [
+      { "key": "profile", "label": "Profile", "href": "/profile" },
+      { "key": "company", "label": "Company", "href": "/company" },
+      { "key": "viewEmployees", "label": "View Employees", "href": "/employees" },
+      { "key": "loginEmployees", "label": "Login Employees", "href": "/employees/login" }
+    ]
+  },
+  {
+    "group": "Clients",
+    "items": [
+      { "key": "clients", "label": "Clients", "href": "/clients" },
+      { "key": "quoteClient", "label": "Quote Client", "href": "/quoteClient" },
+      { "key": "employeeSchedules", "label": "Employee Schedules", "href": "/employeeSchedules" },
+    ],
+  },
+  {
+    "group": "About",
+    "items": [
+      { "key": "about", "label": "About", "href": "/about" },
+    ],
+  },
+]

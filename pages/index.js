@@ -9,7 +9,6 @@ import SocialProofAndIndustries from "../components/layout/SocialProofAndIndustr
 const HomePageContent = () => {
   return (
     <main className="w-full flex flex-col overflow-x-hidden ">
-      {/* --- HERO SECTION --- */}
       <section className="">
         <Hero />
       </section>
