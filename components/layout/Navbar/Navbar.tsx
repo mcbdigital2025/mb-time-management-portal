@@ -236,45 +236,58 @@ export default function Navbar({ user, nav = [], handleLogout }: NavbarProps) {
             </button>
             <div className="px-4 py-4 space-y-2">
               {/* top links */}
-              <div className="border-b border-gray-200 pb-2">
-                {home?.items?.map((item) => (
+              {!user ? (
+                <nav className="border-b border-gray-200 pb-2">
                   <Link
-                    key={item.key}
-                    href={hrefForKey(item.key)}
+                    href="/"
                     className="block px-2 pt-2 py-3 text-center text-base font-medium hover:bg-[#008080] rounded-lg border-b border-gray-200"
-                    onClick={closeAll}
                   >
-                    {item.label}
+                    Home
                   </Link>
-                ))}
-
-                {conv?.items?.map((item) => (
                   <Link
-                    key={item.key}
-                    href={hrefForKey(item.key)}
-                    className="block px-2 text-center py-3 text-base font-medium hover:bg-[#008080] rounded-lg border-b border-gray-200"
-                    onClick={closeAll}
+                    href="/about"
+                    className="block px-2 pt-2 py-3 text-center text-base font-medium hover:bg-[#008080] rounded-lg border-b border-gray-200"
                   >
-                    {item.label}
+                    About
                   </Link>
-                ))}
+                </nav>
+              ) : (
+                <div className="border-b border-gray-200 pb-2">
+                  {home?.items?.map((item) => (
+                    <Link
+                      key={item.key}
+                      href={hrefForKey(item.key)}
+                      className="block px-2 pt-2 py-3 text-center text-base font-medium hover:bg-[#008080] rounded-lg border-b border-gray-200"
+                      onClick={closeAll}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
 
-                {about?.items?.map((item) => (
-                  <Link
-                    key={item.key}
-                    href={hrefForKey(item.key)}
-                    className="block px-2 text-center py-2 text-base font-medium hover:bg-[#008080] rounded-lg"
-                    onClick={closeAll}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
+                  {conv?.items?.map((item) => (
+                    <Link
+                      key={item.key}
+                      href={hrefForKey(item.key)}
+                      className="block px-2 text-center py-3 text-base font-medium hover:bg-[#008080] rounded-lg border-b border-gray-200"
+                      onClick={closeAll}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
 
-              {/* groups */}
-              {/* {renderMobileGroup(workforce)} */}
-              {/* {renderMobileGroup(clients)} */}
-              {/* // mobile */}
+                  {about?.items?.map((item) => (
+                    <Link
+                      key={item.key}
+                      href={hrefForKey(item.key)}
+                      className="block px-2 text-center py-2 text-base font-medium hover:bg-[#008080] rounded-lg"
+                      onClick={closeAll}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+
               <NavGroup
                 variant="mobile"
                 section={workforce}
