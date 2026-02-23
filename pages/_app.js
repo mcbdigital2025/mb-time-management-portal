@@ -102,7 +102,7 @@ function MyApp({ Component, pageProps }) {
         throw new Error(`Navigation fetch failed: ${res.status}`);
       }
 
-      const nav = await res.json();
+      const nav = await response.json();
       setAccessPages(nav);
       setError(null);
     } catch (err) {
