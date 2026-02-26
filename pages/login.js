@@ -253,6 +253,17 @@ export default function Login() {
           LOGIN
         </button>
 
+        <p className="mt-6 text-center text-sm text-zinc-700">
+          Don't have an account?{" "}
+          <button
+            type="button"
+            onClick={() => router.push("/registration")}
+            className="text-base font-semibold text-zinc-900 underline-offset-2 hover:underline cursor-pointer"
+          >
+            Register
+          </button>
+        </p>
+
         {/* Error */}
         {error && (
           <p className="mt-4 text-red-600 text-[14px] font-semibold text-center">
@@ -263,5 +274,3 @@ export default function Login() {
     </div>
   );
 }
-
-

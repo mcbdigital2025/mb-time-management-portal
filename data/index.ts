@@ -156,7 +156,9 @@ export const NAVIGATIONS = [
       { "key": "profile", "label": "Profile", "href": "/profile" },
       { "key": "company", "label": "Company", "href": "/company" },
       { "key": "viewEmployees", "label": "View Employees", "href": "/employees" },
-      { "key": "loginEmployees", "label": "Login Employees", "href": "/employees/login" }
+      { "key": "loginEmployees", "label": "Login Employees", "href": "/employees/login" },
+      { "key": "jobs", "label": "Jobs", "href": "/jobs" },
+      { "key": "mySchedule", "label": "My Schedule", "href": "/my-schedule" },
     ]
   },
   {

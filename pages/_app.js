@@ -79,13 +79,13 @@ function MyApp({ Component, pageProps }) {
       }
 
       // Note: Ensure your API expects "Bearer " or just the token string
+      // `http://localhost:3001/api/v1/user/managerref`,
       const response = await fetch(
         `${baseUrl}/mcbtt/api/timesheet/userLogin/accessPages?email=${encodeURIComponent(storedUser.email)}&companyId=${encodeURIComponent(storedUser.companyId)}`,
         {
-          method: "POST",
+          method: "GET",
           headers: {
             Accept: "application/json",
-            "Content-Type": "application/json",
             Authorization: token.startsWith("Bearer ")
               ? token
               : `Bearer ${token}`,
@@ -99,7 +99,8 @@ function MyApp({ Component, pageProps }) {
       }
 
       if (!response.ok) {
-        throw new Error(`Navigation fetch failed: ${res.status}`);
+        // throw new Error(`Navigation fetch failed: ${response.status}`);
+        console.log("🚀 ~ fetchAccessPages ~ response.status:", response.status)
       }
 
       const nav = await response.json();

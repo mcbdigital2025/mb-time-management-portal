@@ -131,6 +131,8 @@ If the user role is `STAFF`, the backend may return:
         "label": "Login Employees",
         "href": "/employees/login"
       }
+      { "key": "jobs", "label": "Jobs", "href": "/jobs" },
+      { "key": "mySchedule", "label": "My Schedule", "href": "/my-schedule" },
     ]
   },
   {
