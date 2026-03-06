@@ -53,10 +53,12 @@ function MyApp({ Component, pageProps }) {
       }
 
       const storedUser = JSON.parse(userStr);
+      console.log("🚀 ~ handleAuth ~ storedUser:", storedUser)
       setUser(storedUser);
       setAuthorized(true);
 
       if (accessPages.length === 0) {
+        console.log("🚀 ~ handleAuth ~ accessPages:", accessPages)
         await fetchAccessPages(storedUser, token);
       }
     };
@@ -77,21 +79,24 @@ function MyApp({ Component, pageProps }) {
         );
         return;
       }
-
+      
+      console.log("🚀 ~ fetchAccessPages ~ baseUrl:", baseUrl)
       // Note: Ensure your API expects "Bearer " or just the token string
-      // `http://localhost:3001/api/v1/user/managerref`,
+      console.log("🚀 ~ fetchAccessPages ~ storedUser.email:", storedUser.email)
+      console.log("🚀 ~ fetchAccessPages ~ storedUser.companyId:", storedUser.companyId)
       const response = await fetch(
         `${baseUrl}/mcbtt/api/timesheet/userLogin/accessPages?email=${encodeURIComponent(storedUser.email)}&companyId=${encodeURIComponent(storedUser.companyId)}`,
         {
           method: "GET",
           headers: {
             Accept: "application/json",
-            Authorization: token.startsWith("Bearer ")
-              ? token
-              : `Bearer ${token}`,
+            // Authorization: token.startsWith("Bearer ")
+            //   ? token
+            //   : `Bearer ${token}`,
           },
         },
       );
+      console.log("🚀 ~ fetchAccessPages ~ response:", response)
 
       if (response.status === 401) {
         handleLogout(new Event("click"));

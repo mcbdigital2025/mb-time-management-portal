@@ -66,7 +66,7 @@ export default function Navbar({ user, nav = [], handleLogout }: NavbarProps) {
   };
 
   return (
-    <header className="relative w-full bg-white/70 backdrop-blur-md z-50">
+    <header className="relative w-full bg-white/70 border-b border-b-[#008080]/10 backdrop-blur-md z-50">
       <div className="w-full h-17.5 md:px-29 py-3.75 px-4 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex w-35 h-20 overflow-hidden items-center">
