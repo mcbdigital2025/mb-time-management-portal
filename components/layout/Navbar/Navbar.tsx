@@ -291,16 +291,13 @@ export default function Navbar({ user, nav = [], handleLogout }: NavbarProps) {
                 </nav>
               ) : (
                 <div className="border-b border-gray-200 pb-2">
-                  {home?.items?.map((item) => (
-                    <Link
-                      key={item.key}
-                      href={item.href ?? hrefForKey(item.key)}
-                      className="block px-2 pt-2 py-3 text-center text-base font-medium hover:bg-[#008080] rounded-lg border-b border-gray-200"
+                 <Link
+                      href="/"
+                      className="block px-2 text-center py-2 text-base font-medium hover:bg-[#008080] rounded-lg"
                       onClick={closeAll}
                     >
-                      {item.label}
+                      Home
                     </Link>
-                  ))}
 
                   {conv?.items?.map((item) => (
                     <Link
@@ -313,16 +310,21 @@ export default function Navbar({ user, nav = [], handleLogout }: NavbarProps) {
                     </Link>
                   ))}
 
-                  {about?.items?.map((item) => (
                     <Link
-                      key={item.key}
-                      href={item.href ?? hrefForKey(item.key)}
+                      href="/contact"
                       className="block px-2 text-center py-2 text-base font-medium hover:bg-[#008080] rounded-lg"
                       onClick={closeAll}
                     >
-                      {item.label}
+                      Contact
                     </Link>
-                  ))}
+                    <Link
+                      href="/about"
+                      className="block px-2 text-center py-2 text-base font-medium hover:bg-[#008080] rounded-lg"
+                      onClick={closeAll}
+                    >
+                      About
+                    </Link>
+                  
                 </div>
               )}
 
