@@ -1,3 +1,32 @@
+ export const badgeClasses = (status) => {
+    switch (status) {
+      case "Confirmed":
+        return "bg-emerald-50 text-emerald-700 ring-emerald-200";
+      case "Canceled":
+        return "bg-rose-50 text-rose-700 ring-rose-200";
+      case "Postponed":
+      default:
+        return "bg-amber-50 text-amber-700 ring-amber-200";
+    }
+  };
+
+  export const noticeClasses = (status) => {
+    switch (status) {
+      case "Canceled":
+        return "bg-rose-50 text-black ring-rose-200";
+      case "Postponed":
+      default:
+        return "bg-amber-50 text-amber-950 ring-amber-200";
+    }
+  };
+
+
+
+
+
+
+
+  //? Dummy Data for Daily Schedules and Dummy Departments/Jobs
 export const dailySchedules = [
   {
     id: 1,
