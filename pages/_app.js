@@ -1,10 +1,18 @@
 // pages/_app.js
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
-import Head from 'next/head';
-import Script from 'next/script';
-import Footer from './footer';
-import '../styles/globals.css';
+import { Roboto } from "next/font/google";
+import Navbar from "../components/layout/Navbar/Navbar";
+import Head from "next/head";
+import Script from "next/script";
+import Footer from "./footer";
+import "../styles/globals.css";
+
+const roboto = Roboto({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "700", "900"],
+  display: "swap",
+});
 
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
@@ -16,18 +24,19 @@ function MyApp({ Component, pageProps }) {
 
   // 1. Authentication & Menu Fetching
   useEffect(() => {
-    const handleAuth = () => {
+    const handleAuth = async () => {
       const userStr = localStorage.getItem("user");
       const token = localStorage.getItem("jwtToken");
-      const protectedRoutes = ["/landing", "/employee", "/client", "/bookservice"];
+
+      const protectedRoutes = [
+        "/landing",
+        "/employee",
+        "/client",
+        "/bookservice",
+      ];
       const isProtectedRoute = protectedRoutes.includes(router.pathname);
 
-      if (userStr && token) {
-        const storedUser = JSON.parse(userStr);
-        setUser(storedUser);
-        setAuthorized(true);
-        if (accessPages.length === 0) fetchAccessPages(storedUser, token);
-      } else {
+      if (!userStr || !token) {
         setUser(null);
         setAccessPages([]);
         if (isProtectedRoute) {
@@ -36,9 +45,24 @@ function MyApp({ Component, pageProps }) {
         } else {
           setAuthorized(true);
         }
+        return;
+      }
+
+      const storedUser = JSON.parse(userStr);
+      console.log("🚀 ~ handleAuth ~ storedUser:", storedUser);
+      setUser(storedUser);
+      setAuthorized(true);
+
+      if (accessPages.length === 0) {
+        await fetchAccessPages(storedUser, token);
       }
     };
-    handleAuth();
+
+    handleAuth().catch((err) => {
+      console.error("handleAuth failed:", err);
+      setError(err?.message || "Auth init failed");
+      setAuthorized(true);
+    });
   }, [router.pathname]);
 
   // 2. Click Outside Listener (Auto-Collapse)
@@ -59,16 +83,33 @@ function MyApp({ Component, pageProps }) {
         {
           method: "POST",
           headers: {
-            "Accept": "application/json",
+            Accept: "application/json",
             "Content-Type": "application/json",
-            "Authorization": token.startsWith("Bearer ") ? token : `Bearer ${token}`
+            Authorization: token.startsWith("Bearer ")
+              ? token
+              : `Bearer ${token}`,
           },
-        }
+        },
       );
-      if (response.ok) {
-        setAccessPages(await response.json());
+
+      if (response.status === 401) {
+        handleLogout(new Event("click"));
+        return;
       }
-    } catch (err) { console.error("Menu fetch error:", err); }
+
+      if (!response.ok) {
+        console.log(
+          "🚀 ~ fetchAccessPages ~ response.status:",
+          response.status,
+        );
+      }
+
+      const nav = await response.json();
+      setAccessPages(nav);
+      setError(null);
+    } catch (err) {
+      console.error("Menu fetch error:", err);
+    }
   };
 
   const handleLogout = (e) => {
@@ -101,88 +142,23 @@ function MyApp({ Component, pageProps }) {
       </Head>
 
       {!authorized && !isPublicPage ? (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "100vh",
+          }}
+        >
           <div className="text-block">Loading...</div>
         </div>
       ) : (
-        <div className="body" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-
-          <div role="banner" className="navbar w-nav">
-            <a href="/" className="brand w-nav-brand">
-              <img src="/images/Screenshot---logo-2025-12-23-at-11.39.16-pm.png" alt="Logo" className="image-2" />
-            </a>
-
-            <div className="container w-container">
-              {/* Added gap: 25px for spacing between Home, Workforce, Customer, etc. */}
-              <nav role="navigation" className="nav-menu w-nav-menu" ref={menuRef} style={{ display: 'flex', alignItems: 'center', gap: '25px' }}>
-
-                {/* 1. Home */}
-                <a href="/" className="nav-link w-nav-link" style={{ margin: 0 }}>Home</a>
-
-                {/* 2. Dynamic Categories */}
-                {user && accessPages.map((category, idx) => {
-                  const isOpen = openCategory === category.categoryName;
-                  return (
-                    <div key={idx} style={{ position: 'relative' }}>
-                      <button
-                        onClick={() => toggleCategory(category.categoryName)}
-                        className="nav-link"
-                        style={{
-                          background: 'none', border: 'none', fontWeight: 'bold', padding: '0',
-                          cursor: 'pointer', color: '#389E0D', display: 'flex', alignItems: 'center'
-                        }}
-                      >
-                        {category.categoryName}
-                        <span style={{ fontSize: '9px', marginLeft: '6px' }}>{isOpen ? '▲' : '▼'}</span>
-                      </button>
-
-                      {isOpen && (
-                        <div style={{
-                          position: 'absolute', top: '40px', left: '-10px', background: '#fff',
-                          boxShadow: '0 8px 16px rgba(0,0,0,0.1)', borderRadius: '6px',
-                          zIndex: 1000, minWidth: '200px', padding: '12px 0', border: '1px solid #ddd'
-                        }}>
-                          {category.subMenus.map((subMenu, sIdx) => (
-                            <a
-                              key={sIdx}
-                              href="#"
-                              onClick={(e) => handlePageClick(e, subMenu)}
-                              style={{
-                                display: 'block', padding: '10px 20px', color: '#333',
-                                textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f9f9f9'
-                              }}
-                              onMouseEnter={(e) => e.target.style.backgroundColor = '#f6ffed'}
-                              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                            >
-                              {subMenu}
-                            </a>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {/* 3. Contact & About */}
-                <a href="/contact" className="nav-link w-nav-link" style={{ margin: 0 }}>Contact</a>
-                <a href="/about" className="nav-link w-nav-link" style={{ margin: 0 }}>About</a>
-              </nav>
-            </div>
-
-            <div className="right-nav-button-link-div">
-              {user ? (
-                <>
-                  <span style={{ marginRight: '15px', fontSize: '14px' }}>Hi, <strong>{user.firstName}</strong></span>
-                  <a onClick={handleLogout} href="#" className="log-in-link">Log Out</a>
-                </>
-              ) : (
-                <a href="/login" className="log-in-link">Log In</a>
-              )}
-              <a href="#" className="green-button w-inline-block">
-                <div className="text-block">Book a Demo</div>
-              </a>
-            </div>
-          </div>
+        <div className={roboto.className}>
+          <Navbar
+            user={user}
+            nav={accessPages}
+            handleLogout={handleLogout}
+          />
 
           <main className="flex-1">
             <Component {...pageProps} user={user} />
@@ -191,7 +167,10 @@ function MyApp({ Component, pageProps }) {
         </div>
       )}
 
-      <Script src="https://d3e54v103j8qbb.cloudfront.net/js/jquery-3.5.1.min.dc5e7f18c8.js" strategy="beforeInteractive" />
+      <Script
+        src="https://d3e54v103j8qbb.cloudfront.net/js/jquery-3.5.1.min.dc5e7f18c8.js"
+        strategy="beforeInteractive"
+      />
       <Script src="/js/webflow.js" strategy="afterInteractive" />
     </>
   );
