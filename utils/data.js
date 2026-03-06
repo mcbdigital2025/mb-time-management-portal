@@ -20,6 +20,36 @@
     }
   };
 
+  export const formatDateTime = (value) => {
+    if (!value) return "-";
+  
+    try {
+      const isoValue = String(value).replace(" ", "T");
+      const date = new Date(isoValue);
+  
+      if (Number.isNaN(date.getTime())) return value;
+  
+      const pad = (n) => String(n).padStart(2, "0");
+  
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+        date.getDate()
+      )} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(
+        date.getSeconds()
+      )}`;
+    } catch {
+      return value;
+    }
+  };
+  
+  export const getCompanyInitials = (companyName) =>
+    companyName
+      ?.split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase() || "CO";
+
 
 
 
