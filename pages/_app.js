@@ -17,53 +17,53 @@ const roboto = Roboto({
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
   const menuRef = useRef(null); // Ref to detect clicks outside the menu
-  const [authorized, setAuthorized] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
   const [user, setUser] = useState(null);
   const [accessPages, setAccessPages] = useState([]);
   const [openCategory, setOpenCategory] = useState(null);
 
   // 1. Authentication & Menu Fetching
-  // useEffect(() => {
-  //   const handleAuth = async () => {
-  //     const userStr = localStorage.getItem("user");
-  //     const token = localStorage.getItem("jwtToken");
+  useEffect(() => {
+    const handleAuth = async () => {
+      const userStr = localStorage.getItem("user");
+      const token = localStorage.getItem("jwtToken");
 
-  //     const protectedRoutes = [
-  //       "/landing",
-  //       "/employee",
-  //       "/client",
-  //       "/bookservice",
-  //     ];
-  //     const isProtectedRoute = protectedRoutes.includes(router.pathname);
+      const protectedRoutes = [
+        "/landing",
+        "/employee",
+        "/client",
+        "/bookservice",
+      ];
+      const isProtectedRoute = protectedRoutes.includes(router.pathname);
 
-  //     if (!userStr || !token) {
-  //       setUser(null);
-  //       setAccessPages([]);
-  //       if (isProtectedRoute) {
-  //         setAuthorized(false);
-  //         router.push("/login");
-  //       } else {
-  //         setAuthorized(true);
-  //       }
-  //       return;
-  //     }
+      if (!userStr || !token) {
+        setUser(null);
+        setAccessPages([]);
+        if (isProtectedRoute) {
+          setAuthorized(false);
+          router.push("/login");
+        } else {
+          setAuthorized(true);
+        }
+        return;
+      }
 
-  //     const storedUser = JSON.parse(userStr);
-  //     console.log("🚀 ~ handleAuth ~ storedUser:", storedUser);
-  //     setUser(storedUser);
-  //     setAuthorized(true);
+      const storedUser = JSON.parse(userStr);
+      console.log("🚀 ~ handleAuth ~ storedUser:", storedUser);
+      setUser(storedUser);
+      setAuthorized(true);
 
-  //     if (accessPages.length === 0) {
-  //       await fetchAccessPages(storedUser, token);
-  //     }
-  //   };
+      if (accessPages.length === 0) {
+        await fetchAccessPages(storedUser, token);
+      }
+    };
 
-  //   handleAuth().catch((err) => {
-  //     console.error("handleAuth failed:", err);
-  //     setError(err?.message || "Auth init failed");
-  //     setAuthorized(true);
-  //   });
-  // }, [router.pathname]);
+    handleAuth().catch((err) => {
+      console.error("handleAuth failed:", err);
+      setError(err?.message || "Auth init failed");
+      setAuthorized(true);
+    });
+  }, [router.pathname]);
 
   // 2. Click Outside Listener (Auto-Collapse)
   useEffect(() => {
@@ -91,6 +91,7 @@ function MyApp({ Component, pageProps }) {
           },
         },
       );
+      console.log("🚀 ~ fetchAccessPages ~ response:", response)
 
       if (response.status === 401) {
         handleLogout(new Event("click"));
@@ -105,8 +106,9 @@ function MyApp({ Component, pageProps }) {
       }
 
       const nav = await response.json();
+      console.log("🚀 ~ fetchAccessPages ~ nav:", nav)
       setAccessPages(nav);
-      setError(null);
+      // setError(null);
     } catch (err) {
       console.error("Menu fetch error:", err);
     }

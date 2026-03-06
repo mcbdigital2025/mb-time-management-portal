@@ -46,6 +46,7 @@ export default function Login() {
 
     try {
       const { email, companyId, password } = formData;
+      console.log("🚀 ~ handleLogin ~ email, companyId, password:", email, companyId, password)
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/login?email=${encodeURIComponent(email)}&companyId=${encodeURIComponent(companyId)}&password=${encodeURIComponent(password)}`,
@@ -57,6 +58,7 @@ export default function Login() {
           credentials: "include",
         },
       );
+      console.log("🚀 ~ handleLogin ~ response:", response)
 
       if (!response.ok) {
         let message = "Login failed due to server error.";
@@ -89,6 +91,7 @@ export default function Login() {
 
       router.push("/landing");
     } catch (err) {
+      console.log("🚀 ~ handleLogin ~ err:", err)
       setError(`Invalid credentials. Please try again. Error: ${err.message}`);
     } finally {
       setIsSubmitting(false);

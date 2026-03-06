@@ -22,13 +22,10 @@ export function NavGroup({
 }: {
   section?: NavSection;
   variant: Variant;
-
   isOpen: boolean;
   onToggle: () => void;
   onItemClick: () => void;
-
   rootRef?: React.Ref<HTMLDivElement>;
-
   classes?: Partial<{
     root: string;
     trigger: string;
@@ -43,7 +40,7 @@ export function NavGroup({
 
   const isDesktop = variant === "desktop";
 
-  const defaultClasses: Required<NonNullable<typeof classes>> = {
+  const defaultClasses = {
     root: isDesktop ? "relative" : "border-b border-gray-200 py-2",
     trigger: isDesktop
       ? "px-3 py-2 font-medium text-sm rounded-2xl hover:bg-[#008080] inline-flex items-center gap-1 cursor-pointer"
@@ -51,10 +48,12 @@ export function NavGroup({
     triggerLabel: isDesktop ? "" : "-mr-5",
     triggerIcon: isDesktop ? "" : "transition-transform",
     panel: isDesktop
-      ? "absolute left-0 top-full mt-1 w-56 bg-white border border-gray-200 shadow-md z-50"
+      ? "absolute left-0 top-full mt-1 w-[28rem] bg-white border border-gray-200 shadow-md z-50 grid grid-cols-2"
       : "pl-2 pb-2 border-t border-gray-200",
-    item: "block px-4 py-2 text-sm font-medium text-gray-800 hover:bg-[#008080] hover:text-gray-900",
-    itemDivider: "border-b border-gray-200",
+    item: isDesktop
+      ? "block px-4 py-3 text-sm font-medium text-gray-800 hover:bg-[#008080] hover:text-gray-900 border-b border-r border-gray-200"
+      : "block px-4 py-2 text-sm font-medium text-gray-800 hover:bg-[#008080] hover:text-gray-900",
+    itemDivider: "",
   };
 
   const cx = (slot: keyof typeof defaultClasses) =>
@@ -64,7 +63,6 @@ export function NavGroup({
     <div className={cx("root")} ref={rootRef}>
       <button type="button" className={cx("trigger")} onClick={onToggle}>
         {!isDesktop && <span />}
-
         <span className={cx("triggerLabel")}>{section.group}</span>
 
         <ChevronDown
@@ -81,22 +79,15 @@ export function NavGroup({
 
       {isOpen && (
         <div className={cx("panel")}>
-          {section.items.map((item, idx) => {
+          {section.items.map((item) => {
             const href = item.href ?? hrefForKey(item.key);
 
             return (
               <Link
                 key={item.key}
                 href={href}
-                className={[
-                  cx("item"),
-                  idx !== section.items.length - 1 ? cx("itemDivider") : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                onClick={() => {
-                  setTimeout(onItemClick, 0);
-                }}
+                className={cx("item")}
+                onClick={() => setTimeout(onItemClick, 0)}
               >
                 {item.label}
               </Link>
