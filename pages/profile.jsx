@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { authenticatedFetch } from "../utils/api"; // Assuming api.js is in a 'utils' folder one level up
+import EmployeeProfileSkeleton from "../components/loaders/EmployeeProfileSkeleton";
 
 const EmployeeProfile = () => {
   const [user, setUser] = useState(null);
@@ -8,71 +9,87 @@ const EmployeeProfile = () => {
   const [employee, setEmployee] = useState(null);
 
   const [formData, setFormData] = useState({
-    firstName: employee?.firstName || "John",
-    lastName: employee?.lastName || "Doe",
-    timeZone: employee?.timeZone || "GMT +5",
-    phoneNumber: employee?.phoneNumber || "+1 234 567 8901",
-    email: employee?.email || "john.doe@company.com",
-    dateOfBirth: employee?.dateOfBirth || "1995-06-15",
-    gender: employee?.gender || "Male",
-    jobTitle: employee?.jobTitle || "Software Engineer",
-    hireDate: employee?.hireDate || "2022-01-10",
-    departmentId: employee?.departmentId || "DPT-001",
-    status: employee?.status || "Active",
-    employeeId: employee?.employeeId || "EMP-1001",
-    companyId: user?.companyId || "CMP-5001",
+    firstName: employee?.firstName,
+    lastName: employee?.lastName,
+    timeZone: employee?.timeZone,
+    phoneNumber: employee?.phoneNumber,
+    email: employee?.email,
+    dateOfBirth: employee?.dateOfBirth,
+    gender: employee?.gender,
+    jobTitle: employee?.jobTitle,
+    hireDate: employee?.hireDate,
+    departmentId: employee?.departmentId,
+    status: employee?.status,
+    employeeId: employee?.employeeId,
+    companyId: user?.companyId,
   });
   const [error, setError] = useState(null);
   const router = useRouter();
 
-  // useEffect(() => {
-  //     const storedUser = JSON.parse(localStorage.getItem("user"));
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
 
-  //     // ✅ Check for JWT token in storedUser
-  //     if (!storedUser || !storedUser.companyId || !storedUser.email || !storedUser.jwtToken) {
-  //         setError("User session or token is missing. Please log in again.");
-  //         setTimeout(() => {
-  //             router.replace("/login");
-  //         }, 500);
-  //         return; // Exit early if user data is incomplete
-  //     }
+    // ✅ Check for JWT token in storedUser
+    if (!storedUser || !storedUser.companyId || !storedUser.email || !storedUser.jwtToken) {
+      setError("User session or token is missing. Please log in again.");
+      setTimeout(() => {
+        router.replace("/login");
+      }, 500);
+      return; // Exit early if user data is incomplete
+    }
 
-  //     setUser(storedUser);
+    setUser(storedUser);
 
-  //     const fetchEmployee = async () => {
-  //         try {
-  //             // ✅ Use authenticatedFetch instead of direct fetch
-  //             // authenticatedFetch automatically adds the Authorization header with the JWT token
-  //             const response = await authenticatedFetch(
-  //                 `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/employee/email/${encodeURIComponent(storedUser.companyId)}/${encodeURIComponent(storedUser.email)}`,
-  //                 {
-  //                     method: "GET",
-  //                     headers: { Accept: "application/json" },
-  //                     // ✅ Removed credentials: "include" as JWT is stateless and doesn't rely on cookies
-  //                 }
-  //             );
+    const fetchEmployee = async () => {
+      try {
+        // ✅ Use authenticatedFetch instead of direct fetch
+        // authenticatedFetch automatically adds the Authorization header with the JWT token
+        const response = await authenticatedFetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/employee/email/${encodeURIComponent(storedUser.companyId)}/${encodeURIComponent(storedUser.email)}`,
+          {
+            method: "GET",
+            headers: { Accept: "application/json" },
+            // ✅ Removed credentials: "include" as JWT is stateless and doesn't rely on cookies
+          }
+        );
 
-  //             if (!response.ok) {
-  //                 const errorText = await response.text(); // Get raw text for more info
-  //                 throw new Error(`Failed to fetch employee data: ${response.status} ${response.statusText} - ${errorText}`);
-  //             }
-  //             const data = await response.json();
-  //             setEmployee(data);
-  //         } catch (err) {
-  //             console.error("Error in fetchEmployee:", err);
-  //             setError(err.message);
-  //             // If fetching fails due to token issues (e.g., token expired/invalid),
-  //             // consider redirecting to login after a delay.
-  //             if (err.message.includes("Authentication token missing") || err.message.includes("401 Unauthorized")) {
-  //                  setTimeout(() => {
-  //                      router.replace("/login");
-  //                  }, 1500); // Give user a moment to see the error before redirect
-  //             }
-  //         }
-  //     };
+        if (!response.ok) {
+          const errorText = await response.text(); // Get raw text for more info
+          throw new Error(`Failed to fetch employee data: ${response.status} ${response.statusText} - ${errorText}`);
+        }
+        const data = await response.json();
+        console.log("🚀 ~ fetchEmployee ~ data:", data)
+        setEmployee(data);
+        setFormData({
+          firstName: data?.firstName || "",
+          lastName: data?.lastName || "",
+          timeZone: data?.timeZone || "",
+          phoneNumber: data?.phoneNumber || "",
+          email: data?.email || "",
+          dateOfBirth: data?.dateOfBirth || "",
+          gender: data?.gender || "",
+          jobTitle: data?.jobTitle || "",
+          hireDate: data?.hireDate || "",
+          departmentId: data?.departmentId || "",
+          status: data?.status || "",
+          employeeId: data?.employeeId || "",
+          companyId: data?.companyId || storedUser.companyId || "",
+        });
+      } catch (err) {
+        console.error("Error in fetchEmployee:", err);
+        setError(err.message);
+        // If fetching fails due to token issues (e.g., token expired/invalid),
+        // consider redirecting to login after a delay.
+        if (err.message.includes("Authentication token missing") || err.message.includes("401 Unauthorized")) {
+          setTimeout(() => {
+            router.replace("/login");
+          }, 1500); // Give user a moment to see the error before redirect
+        }
+      }
+    };
 
-  //     fetchEmployee();
-  // }, []); // Dependency array can be empty as storedUser is accessed inside the effect
+    fetchEmployee();
+  }, []); // Dependency array can be empty as storedUser is accessed inside the effect
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -87,12 +104,11 @@ const EmployeeProfile = () => {
 
     if (!isEditing) return;
 
-    // send formData to API
     console.log("Submitting formData:", formData);
 
-    // example:
     // await updateEmployee(formData);
 
+    setEmployee(formData); // optional: keep UI in sync after save
     setIsEditing(false);
   };
 
@@ -102,10 +118,12 @@ const EmployeeProfile = () => {
         email: employee.email,
         companyId: user.companyId,
       };
+
       sessionStorage.setItem(
         "changePasswordEmployee",
-        JSON.stringify(passwordInfo),
+        JSON.stringify(passwordInfo)
       );
+
       router.push("/changeLoginEmployeePassword");
     }
   };
@@ -113,10 +131,11 @@ const EmployeeProfile = () => {
   if (error) {
     return <div className="text-red-500 text-center mt-10">Error: {error}</div>;
   }
+  const image = formData?.gender === "Male" ? "/male_employee.jpg" : "/female_employee.jpg";
 
-  // if (!employee) {
-  //     return <div className="text-center mt-10">Loading employee data...</div>;
-  // }
+  if (!employee) {
+    return <EmployeeProfileSkeleton/>;
+  }
 
   return (
     <div className="min-h-screen w-full  py-10 hero-radial-background bg-[radial-gradient(12%_14.08%_at_9.42%_89.81%,#D1E5FF,#F8FAFC),radial-gradient(13.98%_18.61%_at_186.74%_119.73%,rgba(110,178,188,0.4),rgba(217,217,217,0.4))]">
@@ -128,11 +147,10 @@ const EmployeeProfile = () => {
               <div className="md:w-1/3 flex flex-col items-center">
                 <img
                   src={
-                    employee?.profileImage ||
-                    "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=1200&auto=format&fit=crop"
+                    employee?.profileImage || image
                   }
                   alt="Profile"
-                  className="w-38 h-38 rounded-full object-cover border shadow-sm md:mt-6"
+                  className="w-38 h-38 rounded-full object-cover  shadow-sm md:mt-6"
                 />
 
                 <button
@@ -149,7 +167,7 @@ const EmployeeProfile = () => {
                   <div className="flex items-center justify-between mb-6">
                     <h2 className=" text-base sm:text-2xl font-semibold  bg-linear-to-r from-[#008080] via-cyan-600 to-[#008080] bg-clip-text text-transparent ">
                       Employee {" "}
-                      <br className="sm:hidden block"/>
+                      <br className="sm:hidden block" />
                       Profile
                     </h2>
 
@@ -307,11 +325,10 @@ const ProfileField = ({ label, name, value, isEditing, onChange, full }) => (
       value={value || ""}
       onChange={onChange}
       disabled={!isEditing}
-      className={`w-full rounded border  border-gray-200 px-3 py-2 text-gray-800 transition
-        ${
-          isEditing
-            ? "bg-black/10 focus:outline-none focus:ring-2 focus:ring-teal-500"
-            : "bg-black/10 cursor-not-allowed"
+      className={`w-full rounded-xl border  border-gray-200 px-3 py-3 text-gray-800 transition
+        ${isEditing
+          ? "bg-black/10 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          : "bg-black/10 cursor-not-allowed"
         }`}
     />
   </div>
