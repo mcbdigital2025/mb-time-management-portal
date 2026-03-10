@@ -1,14 +1,12 @@
 // pages/_app.js
-import { Roboto } from "next/font/google";
-import Head from "next/head";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
-import Script from "next/script";
-import { useEffect, useState } from "react";
+import { Roboto } from "next/font/google";
 import Navbar from "../components/layout/Navbar/Navbar";
-import { NAVIGATIONS } from "../data";
-import { dummyJWT, dummyUser } from "../data/mockdata";
-import "../styles/globals.css";
+import Head from "next/head";
+import Script from "next/script";
 import Footer from "./footer";
+import "../styles/globals.css";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -16,28 +14,26 @@ const roboto = Roboto({
   display: "swap",
 });
 
-// FOR TESTING
-// const nav = NAVIGATIONS;
-
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
+  const menuRef = useRef(null); // Ref to detect clicks outside the menu
   const [authorized, setAuthorized] = useState(false);
   const [user, setUser] = useState(null);
   const [accessPages, setAccessPages] = useState([]);
-  const [error, setError] = useState(null);
+  const [openCategory, setOpenCategory] = useState(null);
 
+  // 1. Authentication & Menu Fetching
   useEffect(() => {
     const handleAuth = async () => {
-      //?  THIS IS USE FOR TESTING/SIMULATION
-      // if (process.env.NEXT_PUBLIC_USE_DUMMY_AUTH === "true") {
-      //   localStorage.setItem("user", JSON.stringify(dummyUser));
-      //   localStorage.setItem("jwtToken", dummyJWT);
-      // }
-
       const userStr = localStorage.getItem("user");
       const token = localStorage.getItem("jwtToken");
 
-      const protectedRoutes = ["/landing", "/employee", "/client"];
+      const protectedRoutes = [
+        "/landing",
+        "/employee",
+        "/client",
+        "/bookservice",
+      ];
       const isProtectedRoute = protectedRoutes.includes(router.pathname);
 
       if (!userStr || !token) {
@@ -53,7 +49,7 @@ function MyApp({ Component, pageProps }) {
       }
 
       const storedUser = JSON.parse(userStr);
-      console.log("🚀 ~ handleAuth ~ storedUser:", storedUser)
+      console.log("🚀 ~ handleAuth ~ storedUser:", storedUser);
       setUser(storedUser);
       setAuthorized(true);
 
@@ -70,29 +66,29 @@ function MyApp({ Component, pageProps }) {
     });
   }, [router.pathname]);
 
+  // 2. Click Outside Listener (Auto-Collapse)
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpenCategory(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const fetchAccessPages = async (storedUser, token) => {
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-      if (!baseUrl) {
-        setError(
-          "No API base URL set. Enable mock access pages in .env.local.",
-        );
-        return;
-      }
-      
-      console.log("🚀 ~ fetchAccessPages ~ baseUrl:", baseUrl)
-      // Note: Ensure your API expects "Bearer " or just the token string
-      console.log("🚀 ~ fetchAccessPages ~ storedUser.email:", storedUser.email)
-      console.log("🚀 ~ fetchAccessPages ~ storedUser.companyId:", storedUser.companyId)
       const response = await fetch(
-        `${baseUrl}/mcbtt/api/timesheet/userLogin/accessPages?email=${encodeURIComponent(storedUser.email)}&companyId=${encodeURIComponent(storedUser.companyId)}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/accessPages?email=${encodeURIComponent(storedUser.email)}&companyId=${encodeURIComponent(storedUser.companyId)}`,
         {
-          method: "GET",
+          method: "POST",
           headers: {
             Accept: "application/json",
-            // Authorization: token.startsWith("Bearer ")
-            //   ? token
-            //   : `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Authorization: token.startsWith("Bearer ")
+              ? token
+              : `Bearer ${token}`,
           },
         },
       );
@@ -104,15 +100,18 @@ function MyApp({ Component, pageProps }) {
       }
 
       if (!response.ok) {
-        // throw new Error(`Navigation fetch failed: ${response.status}`);
-        console.log("🚀 ~ fetchAccessPages ~ response.status:", response.status)
+        console.log(
+          "🚀 ~ fetchAccessPages ~ response.status:",
+          response.status,
+        );
       }
 
       const nav = await response.json();
+      console.log("🚀 ~ fetchAccessPages ~ nav:", nav)
       setAccessPages(nav);
-      setError(null);
+      // setError(null);
     } catch (err) {
-      console.error("Network error:", err);
+      console.error("Menu fetch error:", err);
     }
   };
 
@@ -125,10 +124,15 @@ function MyApp({ Component, pageProps }) {
     router.push("/login");
   };
 
+  const toggleCategory = (categoryName) => {
+    setOpenCategory(openCategory === categoryName ? null : categoryName);
+  };
+
   const handlePageClick = (e, page) => {
     e.preventDefault();
     const formattedPage = page.replace(/\s+/g, "").toLowerCase();
     router.push(formattedPage === "home" ? "/" : `/${formattedPage}`);
+    setOpenCategory(null);
   };
 
   const isPublicPage = ["/", "/login"].includes(router.pathname);
@@ -152,29 +156,20 @@ function MyApp({ Component, pageProps }) {
           <div className="text-block">Loading...</div>
         </div>
       ) : (
-        <div
-          className={roboto.className}
-        >
-          
+        <div className={roboto.className}>
           <Navbar
             user={user}
             nav={accessPages}
-            // nav={nav}
             handleLogout={handleLogout}
           />
 
-          <main className="flex-1 flex flex-col items-center justify-center p-">
-            {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                {error}
-              </div>
-            )}
+          <main className="flex-1">
             <Component {...pageProps} user={user} />
           </main>
-
           <Footer />
         </div>
       )}
+
       <Script
         src="https://d3e54v103j8qbb.cloudfront.net/js/jquery-3.5.1.min.dc5e7f18c8.js"
         strategy="beforeInteractive"

@@ -1,3 +1,65 @@
+<<<<<<< HEAD
+=======
+ export const badgeClasses = (status) => {
+    switch (status) {
+      case "Confirmed":
+        return "bg-emerald-50 text-emerald-700 ring-emerald-200";
+      case "Canceled":
+        return "bg-rose-50 text-rose-700 ring-rose-200";
+      case "Postponed":
+      default:
+        return "bg-amber-50 text-amber-700 ring-amber-200";
+    }
+  };
+
+  export const noticeClasses = (status) => {
+    switch (status) {
+      case "Canceled":
+        return "bg-rose-50 text-black ring-rose-200";
+      case "Postponed":
+      default:
+        return "bg-amber-50 text-amber-950 ring-amber-200";
+    }
+  };
+
+  export const formatDateTime = (value) => {
+    if (!value) return "-";
+  
+    try {
+      const isoValue = String(value).replace(" ", "T");
+      const date = new Date(isoValue);
+  
+      if (Number.isNaN(date.getTime())) return value;
+  
+      const pad = (n) => String(n).padStart(2, "0");
+  
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+        date.getDate()
+      )} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(
+        date.getSeconds()
+      )}`;
+    } catch {
+      return value;
+    }
+  };
+  
+  export const getCompanyInitials = (companyName) =>
+    companyName
+      ?.split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase() || "CO";
+
+
+
+
+
+
+
+  //? Dummy Data for Daily Schedules and Dummy Departments/Jobs
+>>>>>>> main
 export const dailySchedules = [
   {
     id: 1,
@@ -253,4 +315,8 @@ export const dummyLogins = [
     lastLogin: "2026-02-28 13:11:30",
     failedLoginAttempts: 0,
   },
+<<<<<<< HEAD
 ];
+=======
+];
+>>>>>>> main

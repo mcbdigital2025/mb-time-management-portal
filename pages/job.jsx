@@ -132,7 +132,11 @@ const Job = () => {
       <div className="bg-white/80 backdrop-blur-sm w-full rounded-xl shadow-lg px-4 sm:px-6 md:px-8 py-4 md:py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <h1 className="text-xl sm:text-2xl font-bold">Job Management</h1>
 
+<<<<<<< HEAD
         <div className="w-full md:w-[420px]">
+=======
+        <div className="w-full md:w-105">
+>>>>>>> main
           <label className="font-semibold text-sm sm:text-base mr-2 block md:inline">
             Select Job Type:
           </label>

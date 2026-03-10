@@ -37,9 +37,15 @@ const Conversations = ({ user }) => {
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
 
+<<<<<<< HEAD
   // useEffect(() => {
   //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   // }, [messages]);
+=======
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+>>>>>>> main
 
   const sendMessage = (e, type = "staff") => {
     e.preventDefault();
@@ -105,6 +111,7 @@ const Conversations = ({ user }) => {
               >
                 📞
               </button>
+<<<<<<< HEAD
               {/* <button
                 type="button"
                 title="Video"
@@ -112,6 +119,8 @@ const Conversations = ({ user }) => {
               >
                 🎥
               </button> */}
+=======
+>>>>>>> main
               <button
                 type="button"
                 title="More"
@@ -260,6 +269,7 @@ const Conversations = ({ user }) => {
   );
 };
 
+<<<<<<< HEAD
 export default Conversations;
 
 
@@ -380,3 +390,6 @@ export default Conversations;
 // };
 
 // export default Conversations;
+=======
+export default Conversations;
+>>>>>>> main
