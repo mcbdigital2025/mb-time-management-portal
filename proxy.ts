@@ -1,64 +1,59 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_PATHS = [
-  '/login',
-  '/signup',
-  '/forgot-password',
-]
+const PUBLIC_ROUTES = [
+  "/login",
+  "/forgot-password",
+  "/reset-password",
+];
 
-const PRIVATE_PATH_PREFIXES = [
-  '/dashboard',
-  '/account',
-  '/settings',
-  '/employees',
-]
+// function isPublicPath(pathname: string) {
+//   return (
+//     PUBLIC_ROUTES.some((route) => pathname.startsWith(route)) ||
+//     pathname.startsWith("/_next") ||
+//     pathname.startsWith("/favicon.ico") ||
+//     pathname.startsWith("/images") ||
+//     pathname.startsWith("/assets")
+//   );
+// }
 
 function isPublicPath(pathname: string) {
-  return PUBLIC_PATHS.includes(pathname)
-}
-
-function isPrivatePath(pathname: string) {
-  return PRIVATE_PATH_PREFIXES.some((path) => pathname.startsWith(path))
+  return (
+    pathname === "/login" ||
+    pathname === "/" ||
+    pathname === "/contact" ||
+    pathname === "/about" ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password" ||
+    pathname.startsWith("/_next/") ||
+    pathname === "/favicon.ico"
+  );
 }
 
 export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const { pathname, search } = request.nextUrl;
 
-  // Ignore Next internals and static files
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api/public') ||
-    pathname === '/favicon.ico'
-  ) {
-    return NextResponse.next()
+//   const token = request.cookies.get('auth_token')?.value;
+  const token = request.cookies.get("jwtToken")?.value;
+  console.log("🚀 ~ proxy ~ token:", token)
+  const publicPath = isPublicPath(pathname);
+
+  // logged in user should not revisit login page
+  if (token && pathname === "/login") {
+    return NextResponse.redirect(new URL("/landing", request.url));
   }
 
-  const sessionCookie = request.cookies.get('session')?.value
-  const isAuthenticated = Boolean(sessionCookie)
-
-  // Protect private pages
-  if (isPrivatePath(pathname) && !isAuthenticated) {
-    const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('from', pathname)
-    return NextResponse.redirect(loginUrl)
+  // block unauthenticated access to private pages
+  if (!publicPath && !token) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("from", `${pathname}${search}`);
+    return NextResponse.redirect(loginUrl);
   }
 
-  // Stop logged-in users from visiting auth pages
-  if (isPublicPath(pathname) && isAuthenticated) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
-
-  return NextResponse.next()
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    /*
-      Run on all routes except:
-      - api routes you don't want checked
-      - Next internals
-      - static assets
-    */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)',
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
-}
+};

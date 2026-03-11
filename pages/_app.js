@@ -7,6 +7,7 @@ import Head from "next/head";
 import Script from "next/script";
 import Footer from "./footer";
 import "../styles/globals.css";
+import { isTokenExpired } from "../utils/api";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -25,6 +26,21 @@ function MyApp({ Component, pageProps }) {
   // 1. Authentication & Menu Fetching
   useEffect(() => {
     const handleAuth = async () => {
+      const tokenCookie = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("jwtToken="));
+      console.log("🚀 ~ handleAuth ~ tokenCookie:", tokenCookie)
+
+      if (!tokenCookie) return;
+
+      const tokens = tokenCookie.split("=")[1];
+
+      if (isTokenExpired(tokens)) {
+        localStorage.removeItem("user");
+        document.cookie = "jwtToken=; path=/; max-age=0";
+        router.push("/login");
+      }
+
       const userStr = localStorage.getItem("user");
       const token = localStorage.getItem("jwtToken");
 
@@ -66,17 +82,6 @@ function MyApp({ Component, pageProps }) {
     });
   }, [router.pathname]);
 
-  // 2. Click Outside Listener (Auto-Collapse)
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setOpenCategory(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   const fetchAccessPages = async (storedUser, token) => {
     try {
       const response = await fetch(
@@ -92,7 +97,7 @@ function MyApp({ Component, pageProps }) {
           },
         },
       );
-      console.log("🚀 ~ fetchAccessPages ~ response:", response)
+      console.log("🚀 ~ fetchAccessPages ~ response:", response);
 
       if (response.status === 401) {
         handleLogout(new Event("click"));
@@ -107,7 +112,7 @@ function MyApp({ Component, pageProps }) {
       }
 
       const nav = await response.json();
-      console.log("🚀 ~ fetchAccessPages ~ nav:", nav)
+      console.log("🚀 ~ fetchAccessPages ~ nav:", nav);
       setAccessPages(nav);
       // setError(null);
     } catch (err) {
@@ -119,20 +124,10 @@ function MyApp({ Component, pageProps }) {
     if (e) e.preventDefault();
     localStorage.removeItem("user");
     localStorage.removeItem("jwtToken");
+    document.cookie = "jwtToken=; path=/; max-age=0";
     setUser(null);
     setAccessPages([]);
     router.push("/login");
-  };
-
-  const toggleCategory = (categoryName) => {
-    setOpenCategory(openCategory === categoryName ? null : categoryName);
-  };
-
-  const handlePageClick = (e, page) => {
-    e.preventDefault();
-    const formattedPage = page.replace(/\s+/g, "").toLowerCase();
-    router.push(formattedPage === "home" ? "/" : `/${formattedPage}`);
-    setOpenCategory(null);
   };
 
   const isPublicPage = ["/", "/login"].includes(router.pathname);
@@ -144,37 +139,22 @@ function MyApp({ Component, pageProps }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      {!authorized && !isPublicPage ? (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "100vh",
-          }}
-        >
-          <div className="text-block">Loading...</div>
-        </div>
-      ) : (
+    
         <div className={roboto.className}>
-          <Navbar
-            user={user}
-            nav={accessPages}
-            handleLogout={handleLogout}
-          />
+          <Navbar user={user} nav={accessPages} handleLogout={handleLogout} />
 
           <main className="flex-1">
             <Component {...pageProps} user={user} />
           </main>
           <Footer />
         </div>
-      )}
+    
 
       <Script
         src="https://d3e54v103j8qbb.cloudfront.net/js/jquery-3.5.1.min.dc5e7f18c8.js"
         strategy="beforeInteractive"
       />
-      <Script src="/js/webflow.js" strategy="afterInteractive" />
+      <Script src="" strategy="afterInteractive" />
     </>
   );
 }

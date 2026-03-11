@@ -1,3 +1,5 @@
+import { jwtDecode } from "jwt-decode";
+
 // utils/api.js
 // This file would be imported and used by other components that need to make authenticated requests.
 
@@ -36,4 +38,19 @@ export async function authenticatedFetch(url, options = {}) {
     // delete options.credentials; // Uncomment this line for pure JWT authentication
 
     return fetch(url, options);
+}
+
+
+
+export function isTokenExpired(token) {
+  try {
+    const decoded = jwtDecode(token);
+
+    if (!decoded.exp) return false;
+
+    const currentTime = Date.now() / 1000;
+    return decoded.exp < currentTime;
+  } catch {
+    return true;
+  }
 }
