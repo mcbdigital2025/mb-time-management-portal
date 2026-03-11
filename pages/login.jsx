@@ -46,19 +46,26 @@ export default function Login() {
 
     try {
       const { email, companyId, password } = formData;
-      console.log("🚀 ~ handleLogin ~ email, companyId, password:", email, companyId, password)
+
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/login?email=${encodeURIComponent(email)}&companyId=${encodeURIComponent(companyId)}&password=${encodeURIComponent(password)}`,
+        // `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/login?email=${encodeURIComponent(email)}&companyId=${encodeURIComponent(companyId)}&password=${encodeURIComponent(password)}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/login`,
         {
           method: "POST",
           headers: {
             Accept: "application/json",
+            "Content-Type": "application/json",
           },
+          body: JSON.stringify({
+            email: email,
+            companyId: companyId,
+            password: password
+          }),
           credentials: "include",
         },
       );
-      console.log("🚀 ~ handleLogin ~ response:", response)
+
 
       if (!response.ok) {
         let message = "Login failed due to server error.";
@@ -78,8 +85,20 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(data));
 
       if (data.jwtToken) {
+        // const maxAge = 60 * 60 * 24; // 1 day
+        const maxAge = 60 * 30; // 30 minutes
+        const secure = window.location.protocol === "https:" ? "; Secure" : "";
+
+        document.cookie =
+          `jwtToken=${encodeURIComponent(data.jwtToken)}; ` +
+          `Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`;
         localStorage.setItem("jwtToken", data.jwtToken);
       }
+
+      // if (data.jwtToken) {
+      //   document.cookie = `jwtToken=${data.jwtToken}; path=/; max-age=86400; SameSite=Lax`;
+      //   localStorage.setItem("jwtToken", data.jwtToken);
+      // }
 
       if (rememberMe) {
         localStorage.setItem("rememberedEmail", formData.email);

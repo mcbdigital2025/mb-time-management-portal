@@ -123,6 +123,12 @@ export default function Navbar({ user, nav = [], handleLogout }: NavbarProps) {
               Home
             </Link>
             <Link
+              href="/contact"
+              className="px-1 md:px-3 py-2 font-medium text-base rounded-2xl hover:bg-[#008080]"
+            >
+              Contact
+            </Link>
+            <Link
               href="/about"
               className="px-1 md:px-3 py-2 font-medium text-base rounded-2xl hover:bg-[#008080]"
             >
@@ -281,6 +287,12 @@ export default function Navbar({ user, nav = [], handleLogout }: NavbarProps) {
                     className="block px-2 pt-2 py-3 text-center text-base font-medium hover:bg-[#008080] rounded-lg border-b border-gray-200"
                   >
                     Home
+                  </Link>
+                  <Link
+                    href="/contact"
+                    className="block px-2 pt-2 py-3 text-center text-base font-medium hover:bg-[#008080] rounded-lg border-b border-gray-200"
+                  >
+                    Contact
                   </Link>
                   <Link
                     href="/about"
