@@ -11,7 +11,11 @@ import { jwtDecode } from "jwt-decode";
  * @throws {Error} If no JWT token is found in localStorage.
  */
 export async function authenticatedFetch(url, options = {}) {
-    const jwtToken = localStorage.getItem("jwtToken"); // Retrieve the stored JWT token
+    // const jwtToken = localStorage.getItem("jwtToken"); // Retrieve the stored JWT token
+    const tokenCookie = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("jwtToken="));
+        const jwtToken = tokenCookie.split("=")[1];
 
     if (!jwtToken) {
         // Handle case where token is missing (e.g., redirect to login)

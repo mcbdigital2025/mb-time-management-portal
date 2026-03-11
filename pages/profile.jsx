@@ -58,7 +58,6 @@ const EmployeeProfile = () => {
           throw new Error(`Failed to fetch employee data: ${response.status} ${response.statusText} - ${errorText}`);
         }
         const data = await response.json();
-        console.log("🚀 ~ fetchEmployee ~ data:", data)
         setEmployee(data);
         setFormData({
           firstName: data?.firstName || "",
@@ -104,7 +103,7 @@ const EmployeeProfile = () => {
 
     if (!isEditing) return;
 
-    console.log("Submitting formData:", formData);
+    // console.log("Submitting formData:", formData);
 
     // await updateEmployee(formData);
 
