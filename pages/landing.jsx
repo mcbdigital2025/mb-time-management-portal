@@ -6,7 +6,6 @@ import LandingOverview from "../components/LandingOverview";
 import { badgeClasses, dailySchedules, noticeClasses } from "../utils/data";
 
 const LandingPage = ({ user }) => {
-  console.log("🚀 ~ LandingPage ~ user:", user)
   const today = useMemo(() => new Date().toLocaleDateString("en-GB"), []);
 
   const summary = useMemo(() => {

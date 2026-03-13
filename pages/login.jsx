@@ -81,6 +81,7 @@ export default function Login() {
       }
 
       const data = await response.json();
+      console.log("🚀 ~ handleLogin ~ data:", data)
 
       localStorage.setItem("user", JSON.stringify(data));
 
@@ -92,13 +93,10 @@ export default function Login() {
         document.cookie =
           `jwtToken=${encodeURIComponent(data.jwtToken)}; ` +
           `Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`;
-        localStorage.setItem("jwtToken", data.jwtToken);
+        // localStorage.setItem("jwtToken", data.jwtToken);
       }
 
-      // if (data.jwtToken) {
-      //   document.cookie = `jwtToken=${data.jwtToken}; path=/; max-age=86400; SameSite=Lax`;
-      //   localStorage.setItem("jwtToken", data.jwtToken);
-      // }
+     
 
       if (rememberMe) {
         localStorage.setItem("rememberedEmail", formData.email);

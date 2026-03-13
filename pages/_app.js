@@ -29,7 +29,6 @@ function MyApp({ Component, pageProps }) {
       const tokenCookie = document.cookie
         .split("; ")
         .find((row) => row.startsWith("jwtToken="));
-      console.log("🚀 ~ handleAuth ~ tokenCookie:", tokenCookie)
 
       if (!tokenCookie) return;
 
@@ -42,7 +41,7 @@ function MyApp({ Component, pageProps }) {
       }
 
       const userStr = localStorage.getItem("user");
-      const token = localStorage.getItem("jwtToken");
+      // const token = localStorage.getItem("jwtToken");
 
       const protectedRoutes = [
         "/landing",
@@ -52,7 +51,7 @@ function MyApp({ Component, pageProps }) {
       ];
       const isProtectedRoute = protectedRoutes.includes(router.pathname);
 
-      if (!userStr || !token) {
+      if (!userStr) {
         setUser(null);
         setAccessPages([]);
         if (isProtectedRoute) {
@@ -65,13 +64,11 @@ function MyApp({ Component, pageProps }) {
       }
 
       const storedUser = JSON.parse(userStr);
-      console.log("🚀 ~ handleAuth ~ storedUser:", storedUser);
       setUser(storedUser);
       setAuthorized(true);
 
       if (accessPages.length === 0) {
-        console.log("🚀 ~ handleAuth ~ accessPages:", accessPages)
-        await fetchAccessPages(storedUser, token);
+        await fetchAccessPages(storedUser);
       }
     };
 
@@ -82,7 +79,12 @@ function MyApp({ Component, pageProps }) {
     });
   }, [router.pathname]);
 
-  const fetchAccessPages = async (storedUser, token) => {
+  const fetchAccessPages = async (storedUser) => {
+    const tokenCookie = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("jwtToken="));
+        const token = tokenCookie.split("=")[1];
+        console.log("🚀 ~ fetchAccessPages ~ token:", token)
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/accessPages?email=${encodeURIComponent(storedUser.email)}&companyId=${encodeURIComponent(storedUser.companyId)}`,
@@ -123,14 +125,13 @@ function MyApp({ Component, pageProps }) {
   const handleLogout = (e) => {
     if (e) e.preventDefault();
     localStorage.removeItem("user");
-    localStorage.removeItem("jwtToken");
+    // localStorage.removeItem("jwtToken");
     document.cookie = "jwtToken=; path=/; max-age=0";
     setUser(null);
     setAccessPages([]);
     router.push("/login");
   };
 
-  const isPublicPage = ["/", "/login"].includes(router.pathname);
 
   return (
     <>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { authenticatedFetch } from '../utils/api'; // Import authenticatedFetch
+import { authenticatedFetch } from '../utils/api';
 
 const ChangeLoginEmployeePassword = () => {
   const router = useRouter();
@@ -8,33 +8,32 @@ const ChangeLoginEmployeePassword = () => {
   const [companyId, setCompanyId] = useState("");
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [error, setError] = useState(""); // State for error messages
-  const [success, setSuccess] = useState(""); // State for success messages
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     const stored = sessionStorage.getItem("changePasswordEmployee");
     if (stored) {
       const emp = JSON.parse(stored);
       setEmail(emp.email);
-      setCompanyId(emp.companyId.toString()); // Ensure BigInt preserved
-      setOldPassword(""); // Ensure old password is blank on load
+      setCompanyId(emp.companyId.toString());
+      setOldPassword("");
     } else {
       setError("No employee data found. Redirecting to login.");
       setTimeout(() => {
         router.replace("/login");
       }, 500);
     }
-  }, []);
+  }, [router]);
 
   const validatePassword = (password) => {
-    const regex =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&^()\-_=+{};:,<.>]).{8,}$/;
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&^()\-_=+{};:,<.>]).{8,}$/;
     return regex.test(password);
   };
 
   const handleSave = async () => {
-    setError(""); // Clear previous errors
-    setSuccess(""); // Clear previous success messages
+    setError("");
+    setSuccess("");
 
     if (!validatePassword(newPassword)) {
       setError("New password must be at least 8 characters, include upper/lowercase letters, a number, and a symbol.");
@@ -42,47 +41,45 @@ const ChangeLoginEmployeePassword = () => {
     }
 
     try {
-      // ✅ Use authenticatedFetch instead of direct fetch
+      // ✅ Updated to use JSON Request Body for security
       const response = await authenticatedFetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/changePassword?email=${encodeURIComponent(
-          email
-        )}&companyId=${encodeURIComponent(
-          companyId
-        )}&oldPassword=${encodeURIComponent(
-          oldPassword
-        )}&newPassword=${encodeURIComponent(newPassword)}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/changePassword`,
         {
           method: "POST",
           headers: {
-            Accept: "application/json",
-            // 'Content-Type': 'application/json' // Add if sending a JSON body
+            "Accept": "application/json",
+            "Content-Type": "application/json" // ✅ Inform backend we are sending JSON
           },
-          // ✅ Removed credentials: "include"
+          body: JSON.stringify({
+            email: email,
+            companyId: companyId,
+            password: oldPassword,   // ✅ Maps to 'password' in UserLogin model
+            newPassword: newPassword // ✅ Maps to 'newPassword' in UserLogin model
+          })
         }
       );
 
       if (!response.ok) {
+        // Try to parse error text from the backend
         const errorText = await response.text();
-        console.error("Failed to change password:", response.status, response.statusText, errorText);
-        throw new Error(`Failed to change password: ${response.status} ${response.statusText} - ${errorText}`);
+        console.error("Failed to change password:", response.status, errorText);
+        throw new Error(errorText || "Invalid credentials or server error.");
       }
 
       setSuccess("Password changed successfully!");
 
-      // Navigate after short delay
       setTimeout(() => {
-        router.replace("/employee"); // Or wherever you want to redirect after success
-      }, 1500); // Give user a moment to see the success message
+        router.replace("/employee");
+      }, 1500);
 
     } catch (err) {
       console.error("Error changing password:", err);
-      setError("Failed to change password: " + err.message);
-      // If fetching fails due to token issues (e.g., token expired/invalid),
-      // consider redirecting to login after a delay.
-      if (err.message.includes("Authentication token missing") || err.message.includes("401 Unauthorized")) {
+      setError(err.message);
+
+      if (err.message.includes("401") || err.message.includes("token")) {
            setTimeout(() => {
                router.replace("/login");
-           }, 1500); // Give user a moment to see the error before redirect
+           }, 1500);
       }
     }
   };
@@ -98,7 +95,7 @@ const ChangeLoginEmployeePassword = () => {
       {error && <p className="text-red-500 text-center mb-4">{error}</p>}
       {success && <p className="text-green-500 text-center mb-4">{success}</p>}
 
-      {!error && ( // Only show form if no critical error (like no employee data)
+      {!error && (
         <form
           autoComplete="off"
           onSubmit={(e) => {
@@ -133,7 +130,7 @@ const ChangeLoginEmployeePassword = () => {
               value={oldPassword}
               onChange={(e) => setOldPassword(e.target.value)}
               required
-              autoComplete="new-password"
+              autoComplete="current-password"
               className="w-full border px-3 py-2 rounded"
             />
           </div>
