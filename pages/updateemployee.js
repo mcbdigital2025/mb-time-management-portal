@@ -82,10 +82,10 @@ const UpdateEmployee = () => {
     setError(null);
 
     try {
-      // ✅ Re-adding 'ROLE_' prefix for backend compatibility
+
       const submissionData = {
         ...form,
-        accessLevel: form.accessLevel ? `ROLE_${form.accessLevel}` : null
+        accessLevel: form.accessLevel ? `${form.accessLevel}` : null
       };
 
       const response = await authenticatedFetch(
