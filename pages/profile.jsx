@@ -8,21 +8,7 @@ import EmployeeProfileSkeleton from "../components/loaders/EmployeeProfileSkelet
 const EmployeeProfile = () => {
   const [user, setUser] = useState(null);
   const [employee, setEmployee] = useState(null);
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    timeZone: "",
-    phoneNumber: "",
-    email: "",
-    dateOfBirth: "",
-    gender: "",
-    jobTitle: "",
-    hireDate: "",
-    departmentId: "",
-    status: "",
-    employeeId: "",
-    companyId: "",
-  });
+  const [skills, setSkills] = useState([]);
   const [error, setError] = useState(null);
   const router = useRouter();
 
@@ -31,132 +17,140 @@ const EmployeeProfile = () => {
 
     if (!storedUser || !storedUser.companyId || !storedUser.email || !storedUser.jwtToken) {
       setError("User session or token is missing. Please log in again.");
-      setTimeout(() => {
-        router.replace("/login");
-      }, 500);
+      setTimeout(() => router.replace("/login"), 500);
       return;
     }
 
     setUser(storedUser);
 
-    const fetchEmployee = async () => {
+    const fetchData = async () => {
       try {
-        const response = await authenticatedFetch(
+        // 1. Fetch Full Employee Profile
+        const empRes = await authenticatedFetch(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/employee/email/${encodeURIComponent(storedUser.companyId)}/${encodeURIComponent(storedUser.email)}`,
-          {
-            method: "GET",
-            headers: { Accept: "application/json" },
-          }
+          { method: "GET", headers: { Accept: "application/json" } }
         );
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Failed to fetch employee data: ${response.status}`);
+        if (!empRes.ok) throw new Error(`Failed to fetch profile: ${empRes.status}`);
+        const empData = await empRes.json();
+        setEmployee(empData);
+
+        // 2. Fetch Skills using the employeeId from the profile
+        if (empData?.employeeId) {
+          const skillRes = await authenticatedFetch(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/employee/skill/${encodeURIComponent(storedUser.companyId)}/${encodeURIComponent(empData.employeeId)}`,
+            { method: "GET", headers: { Accept: "application/json" } }
+          );
+
+          if (skillRes.ok) {
+            const skillData = await skillRes.json();
+            setSkills(Array.isArray(skillData) ? skillData : []);
+          }
         }
-        const data = await response.json();
-        setEmployee(data);
-        setFormData({
-          firstName: data?.firstName || "",
-          lastName: data?.lastName || "",
-          timeZone: data?.timeZone || "",
-          phoneNumber: data?.phoneNumber || "",
-          email: data?.email || "",
-          dateOfBirth: data?.dateOfBirth || "",
-          gender: data?.gender || "",
-          jobTitle: data?.jobTitle || "",
-          hireDate: data?.hireDate || "",
-          departmentId: data?.departmentId || "",
-          status: data?.status || "",
-          employeeId: data?.employeeId || "",
-          companyId: data?.companyId || storedUser.companyId || "",
-        });
       } catch (err) {
-        console.error("Error in fetchEmployee:", err);
+        console.error("Error:", err);
         setError(err.message);
-        if (err.message.includes("401")) {
-          setTimeout(() => router.replace("/login"), 1500);
-        }
       }
     };
 
-    fetchEmployee();
+    fetchData();
   }, [router]);
 
-  const handleChangePassword = () => {
-    if (employee && user) {
-      const passwordInfo = {
-        email: employee.email,
-        companyId: user.companyId,
-      };
-      sessionStorage.setItem("changePasswordEmployee", JSON.stringify(passwordInfo));
-      router.push("/changeLoginEmployeePassword");
-    }
-  };
+  if (error) return <div className="text-red-500 text-center mt-10">Error: {error}</div>;
+  if (!employee) return <EmployeeProfileSkeleton />;
 
-  if (error) {
-    return <div className="text-red-500 text-center mt-10">Error: {error}</div>;
-  }
-
-  if (!employee) {
-    return <EmployeeProfileSkeleton />;
-  }
-
-  const defaultImage = formData?.gender === "Male" ? "/male_employee.jpg" : "/female_employee.jpg";
+  const defaultImage = employee?.gender === "Male" ? "/male_employee.jpg" : "/female_employee.jpg";
 
   return (
-    <div className="min-h-screen w-full py-10 hero-radial-background bg-[radial-gradient(12%_14.08%_at_9.42%_89.81%,#D1E5FF,#F8FAFC),radial-gradient(13.98%_18.61%_at_186.74%_119.73%,rgba(110,178,188,0.4),rgba(217,217,217,0.4))]">
-      <div className="max-w-5xl mx-auto px-4">
-        <div className="bg-white/20 backdrop-blur-xl shadow-[0_10px_10px_rgba(0,0,0,0.15)] rounded-lg overflow-hidden">
+    <div className="min-h-screen w-full py-10 bg-[radial-gradient(12%_14.08%_at_9.42%_89.81%,#D1E5FF,#F8FAFC),radial-gradient(13.98%_18.61%_at_186.74%_119.73%,rgba(110,178,188,0.4),rgba(217,217,217,0.4))]">
+      <div className="max-w-6xl mx-auto px-4 space-y-6">
+
+        {/* TOP CARD: PRIMARY INFO */}
+        <div className="bg-white/30 backdrop-blur-2xl shadow-xl rounded-2xl overflow-hidden border border-white/40">
           <div className="p-8">
-            <div className="flex flex-col md:flex-row gap-10">
-              {/* LEFT: Avatar */}
-              <div className="md:w-1/3 flex flex-col items-center">
+            <div className="flex flex-col md:flex-row gap-10 items-start">
+
+              {/* Avatar Section */}
+              <div className="md:w-1/4 flex flex-col items-center">
                 <img
                   src={employee?.profileImage || defaultImage}
                   alt="Profile"
-                  className="w-38 h-38 rounded-full object-cover shadow-sm md:mt-6 border-4 border-white/30"
+                  className="w-40 h-40 rounded-full border-4 border-white shadow-lg object-cover"
                 />
+                <div className="mt-4 text-center">
+                  <h2 className="text-xl font-bold text-gray-800">{employee.firstName} {employee.lastName}</h2>
+                  <p className="text-teal-600 font-medium">{employee.jobTitle}</p>
+                </div>
               </div>
 
-              {/* RIGHT: Profile fields */}
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-base sm:text-2xl font-semibold bg-gradient-to-r from-[#008080] via-cyan-600 to-[#008080] bg-clip-text text-transparent">
-                    Employee Profile
-                  </h2>
-
+              {/* Fields Section */}
+              <div className="flex-1 w-full">
+                <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
+                  <h3 className="text-lg font-semibold text-gray-700">Personal & Employment Details</h3>
                   <button
-                    type="button"
-                    onClick={handleChangePassword}
-                    className="px-4 py-2 bg-teal-500 text-xs sm:text-sm text-white font-semibold rounded-lg hover:bg-teal-600 cursor-pointer transition-all"
+                    onClick={() => router.push("/changeLoginEmployeePassword")}
+                    className="text-xs bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-all"
                   >
-                    Change Password
+                    Security Settings
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <ProfileField label="First Name" value={formData.firstName} />
-                  <ProfileField label="Last Name" value={formData.lastName} />
-                  <ProfileField label="Company Id" value={formData.companyId} />
-                  <ProfileField label="Phone Number" value={formData.phoneNumber} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                  <DetailItem label="Employee ID" value={employee.employeeId} />
+                  <DetailItem label="Company ID" value={employee.companyId} />
+                  <DetailItem label="Email" value={employee.email} />
+                  <DetailItem label="Phone" value={employee.phoneNumber} />
+                  <DetailItem label="Gender" value={employee.gender} />
+                  <DetailItem label="Date of Birth" value={employee.dateOfBirth} />
+                  <DetailItem label="Hire Date" value={employee.hireDate} />
+                  <DetailItem label="Department" value={employee.departmentId} />
+                  <DetailItem label="Status" value={employee.status} highlight />
                 </div>
-
-                <div className="mt-6">
-                  <ProfileField label="Email Address" value={formData.email} full />
-                </div>
-
-                <div className="mt-8 mb-3 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <ProfileField label="Date of Birth" value={formData.dateOfBirth} />
-                  <ProfileField label="Gender" value={formData.gender} />
-                  <ProfileField label="Job Title" value={formData.jobTitle} />
-                  <ProfileField label="Hire Date" value={formData.hireDate} />
-                  <ProfileField label="Department Id" value={formData.departmentId} />
-                  <ProfileField label="Status" value={formData.status} />
-                </div>
-
-                <ProfileField label="Employee Id" value={formData.employeeId} />
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* BOTTOM CARD: SKILLS TABLE */}
+        <div className="bg-white/50 backdrop-blur-xl shadow-lg rounded-2xl border border-white/20 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+            <h3 className="text-lg font-bold text-teal-900">Professional Skills & Certifications</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-teal-50 text-teal-800 text-xs uppercase tracking-wider">
+                <tr>
+                  <th className="px-6 py-4 font-semibold">Skill Name</th>
+                  <th className="px-6 py-4 font-semibold">Level</th>
+                  <th className="px-6 py-4 font-semibold">Experience</th>
+                  <th className="px-6 py-4 font-semibold">Certification</th>
+                  <th className="px-6 py-4 font-semibold">Expiry Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {skills.length > 0 ? (
+                  skills.map((skill) => (
+                    <tr key={skill.employeeSkillId} className="hover:bg-teal-50/30 transition-colors">
+                      <td className="px-6 py-4 text-sm font-bold text-gray-800">{skill.skillName}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase ${getLevelBadge(skill.skillLevel)}`}>
+                          {skill.skillLevel}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{skill.yearsExperience} Years</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{skill.certificationName || "General Practice"}</td>
+                      <td className="px-6 py-4 text-xs font-mono text-gray-500">{skill.expiryDate || "Indefinite"}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-12 text-center text-gray-400 italic">
+                      No skills or certifications currently on file.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -164,17 +158,23 @@ const EmployeeProfile = () => {
   );
 };
 
-// Simplified ProfileField as Read Only
-const ProfileField = ({ label, value, full }) => (
-  <div className={`flex flex-col ${full ? "col-span-2" : ""}`}>
-    <label className="text-sm font-medium text-gray-700 mb-1">{label}</label>
-    <input
-      type="text"
-      value={value || ""}
-      readOnly
-      className="w-full rounded-xl border border-gray-200 px-3 py-3 text-gray-800 bg-white/40 cursor-default outline-none"
-    />
+// UI Helper Components
+const DetailItem = ({ label, value, highlight }) => (
+  <div className="flex flex-col space-y-1">
+    <span className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">{label}</span>
+    <span className={`text-sm font-semibold ${highlight ? 'text-teal-600' : 'text-gray-700'}`}>
+      {value || "Not Set"}
+    </span>
   </div>
 );
+
+const getLevelBadge = (level) => {
+  switch (level?.toUpperCase()) {
+    case 'EXPERT': return 'bg-indigo-100 text-indigo-700 border border-indigo-200';
+    case 'ADVANCED': return 'bg-emerald-100 text-emerald-700 border border-emerald-200';
+    case 'INTERMEDIATE': return 'bg-amber-100 text-amber-700 border border-amber-200';
+    default: return 'bg-slate-100 text-slate-700 border border-slate-200';
+  }
+};
 
 export default EmployeeProfile;
