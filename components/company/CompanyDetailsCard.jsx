@@ -86,7 +86,7 @@ const CompanyDetailsCard = ({ company, onEditCompany }) => {
             <dt className="text-xs font-semibold text-zinc-700 md:text-base">
               Description:
             </dt>
-            <dd className="mt-1 break-words text-sm text-zinc-700 md:text-base">
+            <dd className="mt-1 wrap-break-words text-sm text-zinc-700 md:text-base">
               {company?.companyDescription || "No description provided."}
             </dd>
           </div>
