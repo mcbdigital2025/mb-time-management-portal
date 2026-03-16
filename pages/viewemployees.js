@@ -119,10 +119,14 @@ const ViewEmployees = () => {
         <table className="min-w-full border-collapse table-auto">
           <thead>
             <tr>
-              <th className={thClasses}>ID</th>
+              <th className={thClasses}>Employee ID</th>
               <th className={thClasses}>Name</th>
               <th className={thClasses}>Email</th>
+              <th className={thClasses}>Department</th>
+              <th className={thClasses}>Job Title</th>
+               <th className={thClasses}>Access Level</th>
               <th className={thClasses}>Status</th>
+
             </tr>
           </thead>
           <tbody>
@@ -135,7 +139,14 @@ const ViewEmployees = () => {
                 <td className={tdClasses}>{emp.employeeId?.toString()}</td>
                 <td className={tdClasses}>{`${emp.firstName} ${emp.lastName}`}</td>
                 <td className={tdClasses}>{emp.email}</td>
-                <td className={tdClasses}>{emp.status}</td>
+                <td className={tdClasses}>{emp.departmentId}</td>
+                <td className={tdClasses}>{emp.jobTitle}</td>
+                <td className={tdClasses}>{emp.accessLevel}</td>
+                <td className={tdClasses}>
+                   <span className={emp.status === "Active" ? "text-green-600 font-semibold" : "text-red-500 font-semibold"}>
+                    {emp.status}
+                   </span>
+                </td>
               </tr>
             ))}
           </tbody>
