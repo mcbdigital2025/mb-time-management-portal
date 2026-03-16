@@ -4,7 +4,10 @@ import React from "react";
 import Image from "next/image";
 import { badgeClasses } from "../utils/data";
 
+
 const LandingOverview = ({ user, today, notifications }) => {
+  const defaultImage = user?.gender !== "Male" ? "/male_employee.jpg" : "/female_employee.jpg";
+  
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <div className="lg:col-span-2 rounded-2xl bg-white/90 px-6 py-6 ring-1 ring-slate-200 shadow-sm">
@@ -26,13 +29,18 @@ const LandingOverview = ({ user, today, notifications }) => {
           </div>
 
           <div className="hidden rounded-2xl bg-white/40 ring-1 ring-white/50 shadow-sm sm:flex">
-            <Image
+            {/* <Image
               src="/imag.png"
               alt="Scheduling calendar on laptop"
               width={160}
               height={120}
               className="h-full w-40 object-cover"
-            />
+            /> */}
+            <img
+                  src={user?.profileImage || defaultImage}
+                  alt="Profile"
+                  className="w-36 h-36 rounded-full border-4 border-white shadow-lg object-cover"
+                />
           </div>
         </div>
       </div>

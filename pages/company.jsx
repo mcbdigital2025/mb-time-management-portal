@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
-import { useRouter } from "next/router";
 import JSONbig from "json-bigint";
+import { useRouter } from "next/router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import CompanyDetailsCard from "../components/company/CompanyDetailsCard";
+import CompanyHeader from "../components/company/CompanyHeader";
+import ConfirmModal from "../components/company/ConfirmModal";
+import DepartmentFormModal from "../components/DepartmentFormModal";
+import DepartmentsSection from "../components/DepartmentsSection";
 import { authenticatedFetch } from "../utils/api";
 import {
   dummyDepartments,
   formatDateTime,
   getCompanyInitials,
 } from "../utils/data";
-import DepartmentsSection from "../components/DepartmentsSection";
-import CompanyHeader from "../components/company/CompanyHeader";
-import CompanyDetailsCard from "../components/company/CompanyDetailsCard";
-import CompanySidebar from "../components/company/CompanySidebar";
-import ConfirmModal from "../components/company/ConfirmModal";
+import { toast } from "react-toastify";
 
 const Company = () => {
   const router = useRouter();
@@ -21,15 +22,19 @@ const Company = () => {
   const [company, setCompany] = useState(null);
   const [departments, setDepartments] = useState(dummyDepartments || []);
   const [selectedDept, setSelectedDept] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const [deptSearch, setDeptSearch] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+
 
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
   const [confirmMessage, setConfirmMessage] = useState(null);
-  const [confirmAction, setConfirmAction] = useState(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -81,37 +86,61 @@ const Company = () => {
       }
     };
 
-    const fetchDepartments = async () => {
-      try {
-        const response = await authenticatedFetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/group/${encodeURIComponent(
-            companyId
-          )}`,
-          {
-            method: "GET",
-            headers: { Accept: "application/json" },
-          }
-        );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(
-            `Failed to fetch departments: ${response.status} ${response.statusText} - ${errorText}`
-          );
-        }
-
-        const text = await response.text();
-        const data = JSONbig.parse(text);
-        setDepartments(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("Error fetching departments:", err);
-        setError(err.message);
-      }
-    };
-
     fetchCompany();
     fetchDepartments();
   }, [router]);
+
+
+  const fetchDepartments = async () => {
+    const storedUser = localStorage.getItem("user");
+
+    if (!storedUser) {
+      router.replace("/login");
+      return;
+    }
+
+    let user;
+    try {
+      user = JSON.parse(storedUser);
+      console.log("🚀 ~ Company ~ user:", user)
+    } catch {
+      setError("Invalid user session data.");
+      return;
+    }
+
+    if (!user?.companyId || !user?.jwtToken) {
+      setError("Incomplete user information.");
+      return;
+    }
+
+    const companyId = user.companyId;
+
+    try {
+      const response = await authenticatedFetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/group/${encodeURIComponent(
+          companyId
+        )}`,
+        {
+          method: "GET",
+          headers: { Accept: "application/json" },
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to fetch departments: ${response.status} ${response.statusText} - ${errorText}`
+        );
+      }
+
+      const text = await response.text();
+      const data = JSONbig.parse(text);
+      setDepartments(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error fetching departments:", err);
+      setError(err.message);
+    }
+  };
 
   useEffect(() => {
     if (!successMessage) return;
@@ -139,22 +168,9 @@ const Company = () => {
     [company?.companyName]
   );
 
-  const stats = useMemo(
-    () => [
-      { label: "Departments", value: departments.length },
-      { label: "Client Booking", value: company?.clientBooking ? "Yes" : "No" },
-      {
-        label: "Assigned Schedule",
-        value: company?.employeeAssignedSchedule ? "Yes" : "No",
-      },
-      { label: "Daily Notes", value: company?.logDailyNote ? "Yes" : "No" },
-    ],
-    [company, departments.length]
-  );
 
   const closeConfirmModal = useCallback(() => {
     setConfirmMessage(null);
-    setConfirmAction(null);
   }, []);
 
   const handleEditCompany = useCallback(() => {
@@ -175,85 +191,60 @@ const Company = () => {
     router.push("/editCompany");
   }, [company, router]);
 
-  const handleAddDepartment = useCallback(() => {
-    if (!company) {
-      setError("Company data not loaded. Cannot add department.");
-      return;
-    }
 
-    sessionStorage.setItem(
-      "companyInfo",
-      JSON.stringify({
-        companyId: String(company.companyId),
-        companyCode: company.companyCode,
-      })
-    );
+  const handleAddDepartment = () => {
+    setSelectedDept(null);
+    setIsCreateOpen(true);
+  };
 
-    router.push("/createDepartment");
-  }, [company, router]);
+  const openEditModal = (dept) => {
+    setSelectedDept(dept);
+    setIsEditOpen(true);
+  };
+  const openConfirmationModal = useCallback((dept) => {
+    setSelectedDept(dept);
+    setConfirmMessage(`Are you sure you want to remove ${dept?.departmentName}?`);
+  }, []);
 
-  const handleEditDepartment = useCallback(() => {
-    if (!selectedDept) {
-      setError("Please select a department to edit.");
-      return;
-    }
-
-    sessionStorage.setItem("editDepartment", JSON.stringify(selectedDept));
-    router.push("/editDepartment");
-  }, [selectedDept, router]);
-
-  const handleRemoveDepartment = useCallback(() => {
+  const handleRemoveDepartment = useCallback(async () => {
+    setIsLoading(true);
     if (!selectedDept) {
       setError("Please select a department to remove.");
       return;
     }
 
-    const storedUser = localStorage.getItem("user");
-    const user = storedUser ? JSON.parse(storedUser) : null;
+    try {
+      const res = await authenticatedFetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/group/delete/${encodeURIComponent(
+          selectedDept.companyId
+        )}/${encodeURIComponent(selectedDept.departmentId)}`,
+        { method: "DELETE" }
+      );
 
-    if (!user?.jwtToken) {
-      setError("User session or token is missing.");
-      setTimeout(() => router.replace("/login"), 500);
-      return;
+      if (!res.ok) {
+        const errorText = await res.text();
+        toast.error(`Failed to remove department: ${res.status} ${res.statusText} - ${errorText}`);
+
+      }
+
+      setDepartments((prev) =>
+        prev.filter((d) => d.departmentId !== selectedDept.departmentId)
+      );
+      setSelectedDept(null);
+      setError(null);
+      setIsLoading(false);
+      closeConfirmModal();
+      toast.success("Department removed successfully.");
+      setSuccessMessage("Department removed successfully.");
+    } catch (err) {
+      toast.error(`An error occurred while removing the department: ${err.message}`);
+      setError(`An error occurred while removing the department: ${err.message}`);
+    } finally {
+      setIsLoading(false);
     }
 
-    setConfirmMessage(
-      `Are you sure you want to remove ${selectedDept.departmentName}?`
-    );
+  }, [selectedDept, closeConfirmModal]);
 
-    setConfirmAction(() => async () => {
-      try {
-        const res = await authenticatedFetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/group/delete/${encodeURIComponent(
-            selectedDept.companyId
-          )}/${encodeURIComponent(selectedDept.departmentId)}`,
-          { method: "DELETE" }
-        );
-
-        if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(
-            `Failed to remove department: ${res.status} ${res.statusText} - ${errorText}`
-          );
-        }
-
-        setDepartments((prev) =>
-          prev.filter((d) => d.departmentId !== selectedDept.departmentId)
-        );
-        setSelectedDept(null);
-        setError(null);
-        setSuccessMessage("Department removed successfully.");
-      } catch (err) {
-        setError(`An error occurred while removing the department: ${err.message}`);
-      } finally {
-        closeConfirmModal();
-      }
-    });
-  }, [selectedDept, router, closeConfirmModal]);
-
-  const handleConfirm = useCallback(() => {
-    if (confirmAction) confirmAction();
-  }, [confirmAction]);
 
   const handleResetFilter = useCallback(() => {
     setDeptSearch("");
@@ -266,7 +257,7 @@ const Company = () => {
 
   if (error) {
     return (
-      <div className="mx-auto mt-10 max-w-5xl rounded bg-gray-50 p-6 shadow">
+      <div className="mx-auto h-screen mt-10 max-w-5xl rounded bg-gray-50 p-6 shadow">
         <div className="text-center text-lg font-semibold text-red-600">
           Error: {error}
         </div>
@@ -275,7 +266,7 @@ const Company = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-0px)] w-full bg-linear-to-b from-zinc-50 via-white to-zinc-50 hero-radial-background">
+    <div className="min-h-screen w-full bg-linear-to-b from-zinc-50 via-white to-zinc-50 hero-radial-background">
       <CompanyHeader
         company={company}
         companyInitials={companyInitials}
@@ -286,34 +277,57 @@ const Company = () => {
         <ConfirmModal
           open={Boolean(confirmMessage)}
           message={confirmMessage}
+          isLoading={isLoading}
           onCancel={closeConfirmModal}
-          onConfirm={handleConfirm}
+          onConfirm={handleRemoveDepartment}
         />
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.55fr_0.95fr]">
+        <div className="grid grid-cols-1 gap-6 ">
           <CompanyDetailsCard
             company={company}
             onEditCompany={handleEditCompany}
           />
 
-          <CompanySidebar
+          {/* <CompanySidebar
             stats={stats}
             onAddDepartment={handleAddDepartment}
             onEditDepartment={handleEditDepartment}
             onRemoveDepartment={handleRemoveDepartment}
-          />
+          /> */}
         </div>
 
         <DepartmentsSection
-          departments={filteredDepartments}
+          departments={departments}
           selectedDept={selectedDept}
           onSelectDept={setSelectedDept}
+          onEditDepartment={openEditModal}
+          onRemoveDepartment={openConfirmationModal}
+          onAddDepartment={handleAddDepartment}
           deptSearch={deptSearch}
           onDeptSearchChange={setDeptSearch}
           isFilterOpen={isFilterOpen}
-          onToggleFilter={toggleFilter}
+          onToggleFilter={() => setIsFilterOpen((prev) => !prev)}
           onResetFilter={handleResetFilter}
           formatDateTime={formatDateTime}
+        />
+
+        <DepartmentFormModal
+          isOpen={isCreateOpen}
+          mode="create"
+          companyId={company?.companyId}
+          companyCode={company?.companyCode}
+          onClose={() => setIsCreateOpen(false)}
+          onSuccess={fetchDepartments}
+        />
+
+        <DepartmentFormModal
+          isOpen={isEditOpen}
+          mode="edit"
+          department={selectedDept}
+          companyId={company?.companyId}
+          companyCode={company?.companyCode}
+          onClose={() => setIsEditOpen(false)}
+          onSuccess={fetchDepartments}
         />
 
         {successMessage && (

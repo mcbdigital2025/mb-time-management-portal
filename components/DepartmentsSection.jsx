@@ -4,6 +4,9 @@ const DepartmentsSection = ({
   departments,
   selectedDept,
   onSelectDept,
+  onEditDepartment,
+  onRemoveDepartment,
+  onAddDepartment,
   deptSearch,
   onDeptSearchChange,
   isFilterOpen,
@@ -15,11 +18,12 @@ const DepartmentsSection = ({
     <section className="mt-6 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-zinc-200 bg-zinc-50/60 px-5 py-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-sm font-extrabold text-zinc-900">Departments</h2>
-          <p className="mt-1 text-xs text-zinc-600">Click a row to select it.</p>
+          <h2 className="text-base font-extrabold text-zinc-900">Departments</h2>
+
         </div>
 
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+
           <div className="relative w-full sm:w-[320px]">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
               🔎
@@ -34,12 +38,21 @@ const DepartmentsSection = ({
 
           <button
             type="button"
+            onClick={onAddDepartment}
+            className="inline-flex h-10 items-center justify-center cursor-pointer rounded-xl bg-[#055c38] px-4 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#024228]"
+          >
+            Create Department
+          </button>
+
+          <button
+            type="button"
             onClick={onToggleFilter}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-bold text-zinc-900 shadow-sm transition hover:bg-zinc-50"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-bold text-zinc-900 shadow-sm transition hover:bg-zinc-50 cursor-pointer"
           >
             <span>⛭</span>
             Filter
           </button>
+
         </div>
       </div>
 
@@ -72,7 +85,7 @@ const DepartmentsSection = ({
             <div className="flex items-end gap-2">
               <button
                 type="button"
-                className="h-10 w-full rounded-xl bg-zinc-900 px-4 text-sm font-extrabold text-white hover:bg-zinc-800"
+                className="h-10 w-full rounded-xl bg-zinc-900 px-4 text-sm font-extrabold text-white hover:bg-zinc-800 cursor-pointer"
                 onClick={onToggleFilter}
               >
                 Apply
@@ -80,7 +93,7 @@ const DepartmentsSection = ({
 
               <button
                 type="button"
-                className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-4 text-sm font-extrabold text-zinc-900 hover:bg-zinc-50"
+                className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-4 text-sm font-extrabold text-zinc-900 hover:bg-zinc-50 cursor-pointer"
                 onClick={onResetFilter}
               >
                 Reset
@@ -101,7 +114,7 @@ const DepartmentsSection = ({
                 <th className="px-5 py-3">Description</th>
                 <th className="px-5 py-3">Created</th>
                 <th className="px-5 py-3">Updated</th>
-                <th className="px-5 py-3">Select</th>
+                <th className="px-5 py-3">Actions</th>
               </tr>
             </thead>
 
@@ -113,9 +126,9 @@ const DepartmentsSection = ({
                 return (
                   <tr
                     key={dept?.departmentId}
-                    onClick={() => onSelectDept(dept)}
+                    onClick={() => onSelectDept?.(dept)}
                     className={[
-                      "cursor-pointer transition",
+                      "transition",
                       isActive ? "bg-zinc-900/5" : "hover:bg-zinc-50",
                     ].join(" ")}
                   >
@@ -143,13 +156,30 @@ const DepartmentsSection = ({
                       {formatDateTime(dept?.updatedDate)}
                     </td>
 
-                    <td className="px-5 py-3 text-zinc-700">
-                      <input
-                        type="checkbox"
-                        checked={isActive}
-                        onChange={() => onSelectDept(dept)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditDepartment(dept);
+                          }}
+                          className="rounded-lg bg-[#008080] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#054e4e] cursor-pointer"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRemoveDepartment(dept);
+                          }}
+                          className="rounded-lg bg-[#F75D42] px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700 cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

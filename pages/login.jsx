@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import AuthLayout from "../components/auth/AuthLayout";
 import FormField from "../components/auth/FormField";
+import { Loader2 } from "lucide-react";
+import { toast } from "react-toastify";
 import {
   EmailIcon,
   CompanyIcon,
   PasswordIcon,
 } from "../components/auth/icons";
+import { getJwtExpiryInSeconds } from "../utils/getJwtExpiryInSeconds";
 
 export default function Login() {
   const router = useRouter();
@@ -49,7 +52,6 @@ export default function Login() {
 
 
       const response = await fetch(
-        // `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/login?email=${encodeURIComponent(email)}&companyId=${encodeURIComponent(companyId)}&password=${encodeURIComponent(password)}`,
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/login`,
         {
           method: "POST",
@@ -86,17 +88,18 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(data));
 
       if (data.jwtToken) {
-        // const maxAge = 60 * 60 * 24; // 1 day
-        const maxAge = 60 * 30; // 30 minutes
+        const maxAge = getJwtExpiryInSeconds(data.jwtToken);
+        console.log("🚀 ~ handleLogin ~ maxAge:", maxAge)
         const secure = window.location.protocol === "https:" ? "; Secure" : "";
 
         document.cookie =
           `jwtToken=${encodeURIComponent(data.jwtToken)}; ` +
-          `Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`;
-        // localStorage.setItem("jwtToken", data.jwtToken);
+          `Path=/; SameSite=Lax${secure}`;
+        // `Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`;
       }
 
-     
+
+
 
       if (rememberMe) {
         localStorage.setItem("rememberedEmail", formData.email);
@@ -105,11 +108,13 @@ export default function Login() {
         localStorage.removeItem("rememberedEmail");
         localStorage.removeItem("rememberedCompanyId");
       }
-
+      toast.success("Login successful");
       router.push("/landing");
     } catch (err) {
-      console.log("🚀 ~ handleLogin ~ err:", err)
-      setError(`Invalid credentials. Please try again. Error: ${err.message}`);
+      console.log("🚀 ~ handleLogin ~ err:", err);
+      const message = err.message || "Invalid credentials. Please try again.";
+      setError(`Invalid credentials. Please try again. Error: ${message}`);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -186,9 +191,16 @@ export default function Login() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="mt-6 w-full rounded-full bg-[#008080] py-3 text-[15px] font-semibold text-white shadow-[0_10px_25px_rgba(0,128,128,0.25)] transition-colors hover:bg-[#025050] active:bg-[#00b6b6] disabled:cursor-not-allowed disabled:opacity-70"
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-[#008080] py-3 text-[15px] font-semibold text-white shadow-[0_10px_25px_rgba(0,128,128,0.25)] transition-colors hover:bg-[#025050] active:bg-[#00b6b6] disabled:cursor-not-allowed disabled:opacity-70 cursor-pointer"
         >
-          {isSubmitting ? "Logging in..." : "LOGIN"}
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Logging in...
+            </>
+          ) : (
+            "LOGIN"
+          )}
         </button>
 
         <p className="mt-6 text-center text-sm text-zinc-700">

@@ -8,6 +8,8 @@ import Script from "next/script";
 import Footer from "./footer";
 import "../styles/globals.css";
 import { isTokenExpired } from "../utils/api";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -81,10 +83,9 @@ function MyApp({ Component, pageProps }) {
 
   const fetchAccessPages = async (storedUser) => {
     const tokenCookie = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("jwtToken="));
-        const token = tokenCookie.split("=")[1];
-        console.log("🚀 ~ fetchAccessPages ~ token:", token)
+      .split("; ")
+      .find((row) => row.startsWith("jwtToken="));
+    const token = tokenCookie.split("=")[1];
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/accessPages?email=${encodeURIComponent(storedUser.email)}&companyId=${encodeURIComponent(storedUser.companyId)}`,
@@ -99,7 +100,6 @@ function MyApp({ Component, pageProps }) {
           },
         },
       );
-      console.log("🚀 ~ fetchAccessPages ~ response:", response);
 
       if (response.status === 401) {
         handleLogout(new Event("click"));
@@ -114,7 +114,6 @@ function MyApp({ Component, pageProps }) {
       }
 
       const nav = await response.json();
-      console.log("🚀 ~ fetchAccessPages ~ nav:", nav);
       setAccessPages(nav);
       // setError(null);
     } catch (err) {
@@ -132,7 +131,6 @@ function MyApp({ Component, pageProps }) {
     router.push("/login");
   };
 
-
   return (
     <>
       <Head>
@@ -140,16 +138,23 @@ function MyApp({ Component, pageProps }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-    
-        <div className={roboto.className}>
-          <Navbar user={user} nav={accessPages} handleLogout={handleLogout} />
+      <div className={roboto.className}>
+        <Navbar user={user} nav={accessPages} handleLogout={handleLogout} />
 
-          <main className="flex-1">
-            <Component {...pageProps} user={user} />
-          </main>
-          <Footer />
-        </div>
-    
+        <main className="flex-1">
+          <Component {...pageProps} user={user} />
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            toastStyle={{
+              background: "#111827",
+              color: "#fff",
+              borderRadius: "10px",
+            }}
+          />
+        </main>
+        <Footer />
+      </div>
 
       <Script
         src="https://d3e54v103j8qbb.cloudfront.net/js/jquery-3.5.1.min.dc5e7f18c8.js"

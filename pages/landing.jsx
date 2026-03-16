@@ -77,6 +77,7 @@ const LandingPage = ({ user }) => {
             today={today}
             notifications={notifications}
           />
+          
 
           <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
             {stats.map((stat) => (
