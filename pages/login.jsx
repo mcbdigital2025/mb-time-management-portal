@@ -83,7 +83,6 @@ export default function Login() {
       }
 
       const data = await response.json();
-      console.log("🚀 ~ handleLogin ~ data:", data)
 
       localStorage.setItem("user", JSON.stringify(data));
 
