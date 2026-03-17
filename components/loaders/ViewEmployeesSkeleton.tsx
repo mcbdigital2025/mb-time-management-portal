@@ -3,7 +3,7 @@
 const SkeletonBlock = ({ className = "" }) => {
   return (
     <div
-      className={`animate-pulse rounded-lg bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 ${className}`}
+      className={`animate-pulse rounded-lg bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 ${className}`}
     />
   );
 };

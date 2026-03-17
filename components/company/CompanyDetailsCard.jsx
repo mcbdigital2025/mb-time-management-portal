@@ -70,7 +70,7 @@ const CompanyDetailsCard = ({ company, onEditCompany }) => {
 
         <button
           onClick={onEditCompany}
-          className="hidden rounded-xl border border-zinc-200 bg-[#008080] px-4 py-2 text-sm font-bold text-zinc-100 hover:bg-[#006d6d] md:inline-flex"
+          className="hidden rounded-xl border border-zinc-200 bg-[#008080] px-4 py-2 text-sm font-bold text-zinc-100 hover:bg-[#006d6d] md:inline-flex cursor-pointer"
         >
           Edit
         </button>

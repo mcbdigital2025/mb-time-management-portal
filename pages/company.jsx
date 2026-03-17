@@ -14,7 +14,8 @@ import {
   formatDateTime,
   getCompanyInitials,
 } from "../utils/data";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
+import EditCompanyModal from "../components/EditCompanyModal";
 
 const Company = () => {
   const router = useRouter();
@@ -23,6 +24,7 @@ const Company = () => {
   const [departments, setDepartments] = useState(dummyDepartments || []);
   const [selectedDept, setSelectedDept] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isEditCompanyOpen, setIsEditCompanyOpen] = useState(false);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -36,7 +38,8 @@ const Company = () => {
 
   const [confirmMessage, setConfirmMessage] = useState(null);
 
-  useEffect(() => {
+
+  const fetchCompany = useCallback(async () => {
     const storedUser = localStorage.getItem("user");
 
     if (!storedUser) {
@@ -59,36 +62,36 @@ const Company = () => {
 
     const companyId = user.companyId;
 
-    const fetchCompany = async () => {
-      try {
-        const response = await authenticatedFetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/company/${encodeURIComponent(
-            companyId
-          )}`,
-          {
-            method: "GET",
-            headers: { Accept: "application/json" },
-          }
-        );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(
-            `Failed to fetch company data: ${response.status} ${response.statusText} - ${errorText}`
-          );
+    try {
+      const response = await authenticatedFetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/company/${encodeURIComponent(
+          companyId
+        )}`,
+        {
+          method: "GET",
+          headers: { Accept: "application/json" },
         }
+      );
 
-        const data = await response.json();
-        setCompany({ ...data, companyId });
-      } catch (err) {
-        console.error("Error fetching company:", err);
-        setError(err.message);
+      if (!response.ok) {
+        const errorText = await response.text();
+        ToastContainer.error(
+          `Failed to fetch company data: ${response.status} ${response.statusText} - ${errorText}`
+        );
       }
-    };
 
+      const data = await response.json();
+      setCompany({ ...data, companyId });
+    } catch (err) {
+      console.error("Error fetching company:", err);
+      setError(err.message);
+    }
+  }, [router]);
+
+  useEffect(() => {
     fetchCompany();
     fetchDepartments();
-  }, [router]);
+  }, [fetchCompany]);
 
 
   const fetchDepartments = async () => {
@@ -141,6 +144,8 @@ const Company = () => {
       setError(err.message);
     }
   };
+  
+  
 
   useEffect(() => {
     if (!successMessage) return;
@@ -168,28 +173,21 @@ const Company = () => {
     [company?.companyName]
   );
 
-
-  const closeConfirmModal = useCallback(() => {
-    setConfirmMessage(null);
-  }, []);
-
   const handleEditCompany = useCallback(() => {
     if (!company) {
       setError("No company data to edit.");
       return;
     }
 
-    sessionStorage.setItem(
-      "editCompany",
-      JSON.stringify({
-        ...company,
-        companyId: String(company.companyId),
-        status: company.status || "Active",
-      })
-    );
+    setIsEditCompanyOpen(true);
+  }, [company]);
 
-    router.push("/editCompany");
-  }, [company, router]);
+
+  const closeConfirmModal = useCallback(() => {
+    setConfirmMessage(null);
+  }, []);
+
+
 
 
   const handleAddDepartment = () => {
@@ -328,6 +326,16 @@ const Company = () => {
           companyCode={company?.companyCode}
           onClose={() => setIsEditOpen(false)}
           onSuccess={fetchDepartments}
+        />
+
+        <EditCompanyModal
+          isOpen={isEditCompanyOpen}
+          company={company}
+          onClose={() => setIsEditCompanyOpen(false)}
+          onSuccess={async () => {
+            await fetchCompany();
+            setSuccessMessage("Company updated successfully.");
+          }}
         />
 
         {successMessage && (

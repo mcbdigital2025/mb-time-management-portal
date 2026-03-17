@@ -303,13 +303,13 @@ export default function Navbar({ user, nav = [], handleLogout }: NavbarProps) {
                 </nav>
               ) : (
                 <div className="border-b border-gray-200 pb-2">
-                 <Link
-                      href="/"
-                      className="block px-2 text-center py-2 text-base font-medium hover:bg-[#008080] rounded-lg"
-                      onClick={closeAll}
-                    >
-                      Home
-                    </Link>
+                  <Link
+                    href="/"
+                    className="block px-2 text-center py-2 text-base font-medium hover:bg-[#008080] rounded-lg"
+                    onClick={closeAll}
+                  >
+                    Home
+                  </Link>
 
                   {conv?.items?.map((item) => (
                     <Link
@@ -322,21 +322,20 @@ export default function Navbar({ user, nav = [], handleLogout }: NavbarProps) {
                     </Link>
                   ))}
 
-                    <Link
-                      href="/contact"
-                      className="block px-2 text-center py-2 text-base font-medium hover:bg-[#008080] rounded-lg"
-                      onClick={closeAll}
-                    >
-                      Contact
-                    </Link>
-                    <Link
-                      href="/about"
-                      className="block px-2 text-center py-2 text-base font-medium hover:bg-[#008080] rounded-lg"
-                      onClick={closeAll}
-                    >
-                      About
-                    </Link>
-                  
+                  <Link
+                    href="/contact"
+                    className="block px-2 text-center py-2 text-base font-medium hover:bg-[#008080] rounded-lg"
+                    onClick={closeAll}
+                  >
+                    Contact
+                  </Link>
+                  <Link
+                    href="/about"
+                    className="block px-2 text-center py-2 text-base font-medium hover:bg-[#008080] rounded-lg"
+                    onClick={closeAll}
+                  >
+                    About
+                  </Link>
                 </div>
               )}
 

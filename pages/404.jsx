@@ -15,7 +15,7 @@ export default function Custom404() {
           <img
             src="/imag.png"
             alt="404 illustration"
-            className="h-auto w-full max-w-[320px] object-contain sm:max-w-[380px] md:max-w-[460px]"
+            className="h-auto w-full max-w-[320px] object-contain sm:max-w-95 md:max-w-115"
           />
         </div>
 
@@ -35,7 +35,7 @@ export default function Custom404() {
 
           <Link
             href="/"
-            className="hidden md:inline-flex w-full items-center justify-center rounded-[14px] bg-gradient-to-b from-[#7b63ff] to-[#6c52f7] px-6 py-3 text-base font-bold text-white shadow-[0_10px_20px_rgba(108,82,247,0.25)] transition hover:opacity-95 sm:w-auto sm:px-7 sm:py-4 sm:text-lg"
+            className="hidden md:inline-flex w-full items-center justify-center rounded-[14px] bg-linear-to-b from-[#7b63ff] to-[#6c52f7] px-6 py-3 text-base font-bold text-white shadow-[0_10px_20px_rgba(108,82,247,0.25)] transition hover:opacity-95 sm:w-auto sm:px-7 sm:py-4 sm:text-lg"
           >
             Start Exploring <span className="ml-2">→</span>
           </Link>

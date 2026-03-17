@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { authenticatedFetch } from '../utils/api'; // Import authenticatedFetch
+import ViewEmployeesSkeleton from "../components/loaders/ViewEmployeesSkeleton";
 
 const STATUS_OPTIONS = ["Active", "Inactive"];
 
@@ -105,15 +106,17 @@ const EditCompany = () => {
   };
 
   if (error) {
-    return <div className="text-red-500 text-center mt-10">Error: {error}</div>;
+    return <div className="text-red-500 h-screen text-center mt-10">Error: {error}</div>;
   }
 
   if (!form) {
-    return <div className="text-center mt-10">Loading company data...</div>;
+    return <div className="text-center mt-10"><ViewEmployeesSkeleton/></div>;
   }
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 p-6 bg-white rounded shadow">
+    <div className="hero-radial-background bg-[radial-gradient(12%_14.08%_at_9.42%_89.81%,#D1E5FF,#F8FAFC),radial-gradient(13.98%_18.61%_at_186.74%_119.73%,rgba(110,178,188,0.4),rgba(217,217,217,0.4))] py-8">
+
+    <div className="max-w-2xl mx-auto  p-6  bg-white/20 backdrop-blur-xl shadow-[0_10px_10px_rgba(0,0,0,0.15)] rounded-xl ">
       <h2 className="text-2xl font-bold text-center mb-6">Edit Company</h2>
 
       {successMessage && <p className="text-green-500 text-center mb-4">{successMessage}</p>}
@@ -185,7 +188,7 @@ const EditCompany = () => {
         <div className="flex justify-center gap-4 mt-6">
           <button
             onClick={() => router.push("/company")}
-            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            className="px-4 py-2 bg-[#F75D42] cursor-pointer text-gray-100 font-bold  rounded-lg hover:bg-[#f53918] "
           >
             Cancel
           </button>
@@ -197,6 +200,7 @@ const EditCompany = () => {
           </button>
         </div>
       </div>
+    </div>
     </div>
   );
 };

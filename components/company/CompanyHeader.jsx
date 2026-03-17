@@ -37,7 +37,7 @@ const CompanyHeader = ({ company, companyInitials, onEditCompany }) => {
 
         <button
           onClick={onEditCompany}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#008080] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#006d6d]"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#008080] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#006d6d] cursor-pointer"
         >
           <span className="text-base">✎</span>
           Edit company
