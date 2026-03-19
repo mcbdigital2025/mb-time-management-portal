@@ -144,12 +144,7 @@ const Job = () => {
             </h2>
 
             <div className="flex gap-2">
-               <button
-                onClick={() => router.push("/home")}
-                className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
-              >
-                Home
-              </button>
+
               <button
                 onClick={() => router.push("/createJob")}
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-[#008080] text-white hover:bg-teal-700 transition"
