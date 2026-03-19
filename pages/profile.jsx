@@ -4,10 +4,12 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { authenticatedFetch } from "../utils/api"; 
 import EmployeeProfileSkeleton from "../components/loaders/EmployeeProfileSkeleton";
+import { toast } from "react-toastify";
 
 const EmployeeProfile = () => {
   const [user, setUser] = useState(null);
   const [employee, setEmployee] = useState(null);
+  console.log("🚀 ~ EmployeeProfile ~ employee:", employee)
   const [skills, setSkills] = useState([]);
   const [error, setError] = useState(null);
   const router = useRouter();
@@ -31,7 +33,7 @@ const EmployeeProfile = () => {
           { method: "GET", headers: { Accept: "application/json" } }
         );
 
-        if (!empRes.ok) throw new Error(`Failed to fetch profile: ${empRes.status}`);
+        if (!empRes.ok) toast.error(`Failed to fetch profile: ${empRes.status}`);
         const empData = await empRes.json();
         setEmployee(empData);
 
@@ -56,7 +58,7 @@ const EmployeeProfile = () => {
     fetchData();
   }, [router]);
 
-  if (error) return <div className="text-red-500 text-center mt-10">Error: {error}</div>;
+  if (error) return <div className="text-red-500 h-[80vh] flex justify-center items-center font-bold text-center mt-10">Error: {error}</div>;
   if (!employee) return <EmployeeProfileSkeleton />;
 
   const defaultImage = employee?.gender === "Male" ? "/male_employee.jpg" : "/female_employee.jpg";

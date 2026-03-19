@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import JSONbig from "json-bigint";
 import { authenticatedFetch } from '../utils/api';
 
-const Conversations = ({ user: initialUser }) => {
+const Conversations = () => {
   // --- HYDRATION CONTROL ---
   const [hasMounted, setHasMounted] = useState(false);
   const [userData, setUserData] = useState(null);
@@ -18,7 +18,7 @@ const Conversations = ({ user: initialUser }) => {
   const [newMessage, setNewMessage] = useState("");
   const [newGroupName, setNewGroupName] = useState("");
   const [error, setError] = useState(null);
-
+ 
   // --- MODAL & UI STATE ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [employees, setEmployees] = useState([]);

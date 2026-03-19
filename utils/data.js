@@ -284,32 +284,4 @@ export const dummyLogins = [
     lastLogin: "2026-03-03 08:45:12",
     failedLoginAttempts: 0,
   },
-  {
-    email: "jane.smith@acme.com",
-    companyId: 1001,
-    accessLevel: "SUPERVISOR",
-    lastLogin: "2026-03-02 17:21:45",
-    failedLoginAttempts: 1,
-  },
-  {
-    email: "samuel.okafor@acme.com",
-    companyId: 1001,
-    accessLevel: "USER",
-    lastLogin: "2026-03-01 10:05:02",
-    failedLoginAttempts: 3,
-  },
-  {
-    email: "fatima.yusuf@acme.com",
-    companyId: 1001,
-    accessLevel: "USER",
-    lastLogin: null,
-    failedLoginAttempts: 0,
-  },
-  {
-    email: "support@acme.com",
-    companyId: 1001,
-    accessLevel: "AUDITOR",
-    lastLogin: "2026-02-28 13:11:30",
-    failedLoginAttempts: 0,
-  },
 ];

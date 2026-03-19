@@ -6,9 +6,6 @@ import JSONbig from "json-bigint";
 import { authenticatedFetch } from "../utils/api";
 
 const Conversations = () => {
-  const [hasMounted, setHasMounted] = useState(false);
-  const [userData, setUserData] = useState(null);
-
   const [chatGroups, setChatGroups] = useState([]);
   const [selectedChatGroup, setSelectedChatGroup] = useState(null);
   const [chatMembers, setChatMembers] = useState([]);
@@ -16,6 +13,8 @@ const Conversations = () => {
   const [newMessage, setNewMessage] = useState("");
   const [newGroupName, setNewGroupName] = useState("");
   const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loggedInAs, setLoginUser] = useState("");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [employees, setEmployees] = useState([]);
@@ -23,41 +22,67 @@ const Conversations = () => {
 
   const messagesEndRef = useRef(null);
   const router = useRouter();
-
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
   const POLLING_INTERVAL =
     Number(process.env.NEXT_PUBLIC_CHAT_POLLING_INTERVAL) || 10000;
 
+  const storedUser =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("user") || "{}")
+      : {};
+
+  const selectedGroupObject = useMemo(() => {
+    return (
+      chatGroups.find(
+        (g) => g.chatGroupId?.toString() === selectedChatGroup?.toString(),
+      ) || null
+    );
+  }, [chatGroups, selectedChatGroup]);
+
+  const clientName = selectedGroupObject?.chatGroupName || "No group selected";
+
+  const initials = useMemo(() => {
+    if (!clientName || clientName === "No group selected") return "CG";
+    const words = clientName.trim().split(/\s+/);
+    return words
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase())
+      .join("");
+  }, [clientName]);
+
   useEffect(() => {
-    setHasMounted(true);
-
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-
-    if (!storedUser || !storedUser.jwtToken || !storedUser.companyId) {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (user) {
+      const firstName = storedUser?.firstName || "";
+      const lastName = storedUser?.lastName || "";
+      const email = storedUser?.email || "";
+      setLoginUser(
+        `${firstName} ${lastName}`.trim() || email || "Unknown User",
+      );
+    }
+    if (!user || !user.jwtToken || !user.companyId) {
       router.replace("/login");
       return;
     }
-
-    setUserData(storedUser);
-    loadChatGroups(storedUser);
-    fetchEmployees(storedUser);
-  }, [router]);
+    loadChatGroups(user);
+    fetchEmployees(user);
+  }, []);
 
   useEffect(() => {
     let intervalId;
 
-    if (selectedChatGroup && userData) {
+    if (selectedChatGroup) {
       loadMessages(selectedChatGroup);
-      intervalId = setInterval(
-        () => loadMessages(selectedChatGroup),
-        POLLING_INTERVAL
-      );
+
+      intervalId = setInterval(() => {
+        loadMessages(selectedChatGroup);
+      }, POLLING_INTERVAL);
     }
 
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [selectedChatGroup, userData, POLLING_INTERVAL]);
+  }, [selectedChatGroup]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -66,7 +91,8 @@ const Conversations = () => {
   const fetchEmployees = async (user) => {
     try {
       const response = await authenticatedFetch(
-        `${API_BASE}/mcbtt/api/timesheet/employee/company/${user.companyId}`
+        `${API_BASE}/mcbtt/api/timesheet/employee/company/${user.companyId}`,
+        { method: "GET", headers: { Accept: "application/json" } },
       );
 
       if (response.ok) {
@@ -74,88 +100,135 @@ const Conversations = () => {
         setEmployees(Array.isArray(data) ? data : []);
       }
     } catch (err) {
-      console.error("Employee fetch failed", err);
+      console.error("Failed to fetch employees", err);
     }
   };
 
   const loadChatGroups = async (user) => {
     try {
       const response = await authenticatedFetch(
-        `${API_BASE}/mcbtt/api/timesheet/chat/company/${user.companyId}/${user.employeeId}`
+        `${API_BASE}/mcbtt/api/timesheet/chat/company/${user.companyId}/${user.employeeId}`,
+        { method: "GET", headers: { Accept: "application/json" } },
       );
+
+      if (!response.ok) throw new Error(`Error: ${response.status}`);
 
       const text = await response.text();
       const data = text ? JSONbig.parse(text) : [];
       setChatGroups(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || "Failed to load chat groups");
+      setError(err.message);
     }
   };
 
   const loadChatMembers = async (chatGroupId) => {
-    if (!chatGroupId || !userData) return;
+    if (!chatGroupId) {
+      setChatMembers([]);
+      return;
+    }
+
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
 
     try {
       const response = await authenticatedFetch(
-        `${API_BASE}/mcbtt/api/timesheet/chat/chatMember/${userData.companyId}/${chatGroupId}`
+        `${API_BASE}/mcbtt/api/timesheet/chat/chatMember/${user.companyId}/${chatGroupId}`,
+        { method: "GET", headers: { Accept: "application/json" } },
       );
+
+      if (!response.ok) throw new Error(`Error: ${response.status}`);
 
       const text = await response.text();
       const data = text ? JSONbig.parse(text) : [];
+      const memberList = Array.isArray(data)
+        ? data.map((m) => m.employeeId || m)
+        : [];
 
-      setChatMembers(Array.isArray(data) ? data.map((m) => m.employeeId || m) : []);
+      setChatMembers(memberList);
     } catch (err) {
-      console.error("Member load failed", err);
+      console.error("Failed to load members", err);
     }
   };
 
   const loadMessages = async (chatGroupId) => {
-    if (!userData) return;
+    if (!chatGroupId) return;
 
     try {
       const response = await authenticatedFetch(
-        `${API_BASE}/mcbtt/api/timesheet/chat/message/${chatGroupId}`
+        `${API_BASE}/mcbtt/api/timesheet/chat/message/${chatGroupId}`,
       );
 
       if (!response.ok) return;
 
       const text = await response.text();
       const data = text ? JSONbig.parse(text) : [];
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
 
       const formatted = data.map((msg) => ({
         id: msg.chatMessageId?.toString() || Math.random().toString(),
         sender: msg.senderEmployeeId?.toString(),
         text: msg.messageText,
-        timestamp: msg.messageTime
-          ? new Date(msg.messageTime).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : "",
+        timestamp: new Date(msg.messageTime).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
         type:
-          msg.senderEmployeeId?.toString() === userData.employeeId?.toString()
+          msg.senderEmployeeId?.toString() === user.employeeId?.toString()
             ? "staff"
             : "client",
       }));
 
-      setMessages((prev) => {
-        const prevSerialized = JSON.stringify(prev);
-        const nextSerialized = JSON.stringify(formatted);
-        return prevSerialized !== nextSerialized ? formatted : prev;
-      });
+      setMessages((prev) =>
+        prev.length !== formatted.length ? formatted : prev,
+      );
     } catch (err) {
-      console.error("Polling error", err);
+      console.error("Polling error:", err);
+    }
+  };
+
+  const addChatMember = async () => {
+    if (!selectedChatGroup || !selectedEmployee) return;
+
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+    const payload = {
+      chatGroupId: selectedChatGroup,
+      companyId: user.companyId,
+      employeeId: selectedEmployee,
+      joinedDate: new Date().toISOString(),
+    };
+
+    try {
+      const res = await authenticatedFetch(
+        `${API_BASE}/mcbtt/api/timesheet/chat/createMemmber`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      if (res.ok) {
+        alert("Member added successfully!");
+        setIsModalOpen(false);
+        setSelectedEmployee("");
+        loadChatMembers(selectedChatGroup);
+      }
+    } catch (err) {
+      console.error("Error adding member:", err);
     }
   };
 
   const createChatGroup = async (e) => {
     e.preventDefault();
-    if (!newGroupName.trim() || !userData) return;
+    if (!newGroupName.trim()) return;
+    setIsLoading(true);
+
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
 
     const payload = {
-      companyId: userData.companyId,
-      chatGroupName: newGroupName.trim(),
-      createdByEmployeeId: userData.employeeId?.toString(),
+      companyId: user.companyId,
+      chatGroupName: newGroupName,
+      createdByEmployeeId: user.employeeId?.toString(),
       createdDate: new Date().toISOString(),
     };
 
@@ -166,27 +239,32 @@ const Conversations = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
-        }
+        },
       );
 
       if (res.ok) {
         setNewGroupName("");
-        loadChatGroups(userData);
+        loadChatGroups(user);
       }
     } catch (err) {
-      console.error("Create group failed", err);
+      console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedChatGroup || !userData) return;
+
+    if (!newMessage.trim() || !selectedChatGroup) return;
+
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
 
     const payload = {
       chatGroupId: selectedChatGroup,
-      companyId: userData.companyId,
-      senderEmployeeId: userData.employeeId,
-      messageText: newMessage.trim(),
+      companyId: user.companyId,
+      senderEmployeeId: user.employeeId,
+      messageText: newMessage,
     };
 
     try {
@@ -196,7 +274,7 @@ const Conversations = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
-        }
+        },
       );
 
       if (res.ok) {
@@ -204,70 +282,13 @@ const Conversations = () => {
         loadMessages(selectedChatGroup);
       }
     } catch (err) {
-      console.error("Send failed", err);
+      console.error(err);
     }
   };
-
-  const addChatMember = async () => {
-    if (!selectedEmployee || !selectedChatGroup || !userData) return;
-
-    const payload = {
-      companyId: userData.companyId,
-      chatGroupId: selectedChatGroup,
-      employeeId: selectedEmployee,
-      createdByEmployeeId: userData.employeeId?.toString(),
-      createdDate: new Date().toISOString(),
-    };
-
-    try {
-      const res = await authenticatedFetch(
-        `${API_BASE}/mcbtt/api/timesheet/chat/chatMember/create`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (res.ok) {
-        setSelectedEmployee("");
-        setIsModalOpen(false);
-        loadChatMembers(selectedChatGroup);
-      }
-    } catch (err) {
-      console.error("Add member failed", err);
-    }
-  };
-
-  const selectedGroup = useMemo(() => {
-    return (
-      chatGroups.find(
-        (g) => g.chatGroupId?.toString() === selectedChatGroup?.toString()
-      ) || null
-    );
-  }, [chatGroups, selectedChatGroup]);
-
-  const clientName = selectedGroup?.chatGroupName || "No Group Selected";
-
-  const loggedInAs = userData?.firstName
-    ? `${userData.firstName} (Support Staff)`
-    : "Staff Member";
-
-  const initials = useMemo(() => {
-    const source = selectedGroup?.chatGroupName || userData?.firstName || "CH";
-    return source
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((word) => word[0]?.toUpperCase())
-      .join("");
-  }, [selectedGroup, userData]);
-
-  if (!hasMounted) return null;
 
   return (
     <div className="min-h-[calc(100vh-0px)] w-full bg-[radial-gradient(1200px_600px_at_20%_0%,#f4f1ff_0%,#f7f7fb_40%,#f3f4f6_100%)] p-2">
-      <div className="mx-auto grid h-[90vh] w-full max-w-350 grid-cols-1 gap-4 lg:grid-cols-[1.6fr_0.95fr]">
+      <div className="mx-auto grid h-[90vh] w-full max-w-6xl grid-cols-1 gap-4 lg:grid-cols-[1.6fr_0.95fr] lg:gap-4.5">
         {/* LEFT: CHAT */}
         <section className="flex min-w-0 flex-col overflow-hidden rounded-[18px] border border-black/5 bg-white/50 shadow-[0_18px_45px_rgba(17,24,39,0.08)]">
           {/* TOP CONTROL BAR */}
@@ -285,10 +306,9 @@ const Conversations = () => {
                 />
                 <button
                   type="submit"
-                  disabled={!newGroupName.trim()}
-                  className="rounded-xl bg-[#008080] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-xl bg-[#008080] px-4 py-2.5 text-sm font-bold text-white cursor-pointer"
                 >
-                  Create
+                  {isLoading ? "Creating..." : "Create"}
                 </button>
               </form>
 
@@ -296,13 +316,13 @@ const Conversations = () => {
                 type="button"
                 onClick={() => setIsModalOpen(true)}
                 disabled={!selectedChatGroup}
-                className="rounded-xl bg-[#F75D42] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl bg-[#F75D42] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
               >
                 + Add Member
               </button>
             </div>
 
-            <div className="flex flex-col gap-2 md:flex-row">
+            <div className="flex gap-2">
               <select
                 value={selectedChatGroup || ""}
                 onChange={(e) => {
@@ -310,7 +330,7 @@ const Conversations = () => {
                   setSelectedChatGroup(val);
                   loadChatMembers(val);
                 }}
-                className="h-11 w-full rounded-xl border border-black/10 bg-white px-4 text-sm outline-none md:w-[60%]"
+                className="h-11 w-[60%] rounded-xl border border-black/10 bg-white px-4 text-sm outline-none"
               >
                 <option value="">-- Select a Group --</option>
                 {chatGroups.map((g, idx) => (
@@ -323,11 +343,11 @@ const Conversations = () => {
                 ))}
               </select>
 
-              <div className="w-full rounded-xl border border-black/5 bg-[#f6f7fb] px-4 py-2 md:w-[40%]">
+              <div className="rounded-xl w-[40%] border border-black/5 bg-[#f6f7fb] px-4 py-1">
                 <div className="mb-1 text-xs font-bold uppercase tracking-wide text-zinc-500">
                   Chat Members
                 </div>
-                <div className="break-words text-sm text-zinc-700">
+                <div className="text-sm text-zinc-700 wrap-break-words">
                   {chatMembers.length > 0
                     ? chatMembers.join(", ")
                     : "No members loaded"}
@@ -347,7 +367,7 @@ const Conversations = () => {
                 <h2 className="truncate text-sm font-extrabold text-zinc-900 md:text-base">
                   Group: {clientName}
                 </h2>
-                <div className="mt-1 inline-flex items-center gap-2 text-xs font-semibold text-green-600 md:text-sm">
+                <div className="mt-1 inline-flex items-center gap-2 text-xs font-semibold text-green-600 md:text-base">
                   <span className="relative inline-flex h-2 w-2">
                     <span className="absolute inset-0 rounded-full bg-green-500 opacity-25 ring-4 ring-green-500/15" />
                     <span className="relative h-2 w-2 rounded-full bg-green-500" />
@@ -359,13 +379,15 @@ const Conversations = () => {
               </div>
             </div>
 
-            <button
-              type="button"
-              title="More"
-              className="grid h-9 w-9 place-items-center rounded-xl border border-black/10 bg-white shadow-[0_8px_18px_rgba(17,24,39,0.06)]"
-            >
-              ⋯
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                title="More"
+                className="grid h-9 w-9 place-items-center rounded-xl border border-black/10 bg-white shadow-[0_8px_18px_rgba(17,24,39,0.06)] transition hover:-translate-y-0.5 cursor-pointer"
+              >
+                ⋯
+              </button>
+            </div>
           </header>
 
           {/* BODY */}
@@ -396,13 +418,13 @@ const Conversations = () => {
                   ].join(" ")}
                 >
                   <div className="mx-2 mb-1.5 text-[10px] text-zinc-500/90 md:text-[12px]">
-                    {msg.type === "staff" ? "You" : `Member ${msg.sender}`} •{" "}
+                    {msg.type === "staff" ? "You" : msg.sender} •{" "}
                     {msg.timestamp}
                   </div>
 
                   <div
                     className={[
-                      "max-w-[min(72%,620px)] break-words rounded-2xl border px-3.5 py-3 text-[12px] font-medium leading-[1.45] shadow-[0_10px_22px_rgba(17,24,39,0.08)] md:text-base",
+                      "max-w-[min(72%,620px)] wrap-break-words rounded-2xl border px-3.5 py-3 text-[12px] font-medium leading-[1.45] shadow-[0_10px_22px_rgba(17,24,39,0.08)] md:text-base",
                       isLeft
                         ? "rounded-tl-lg border-black/5 bg-white text-zinc-900"
                         : "rounded-tr-lg border-violet-500/25 bg-[#008080] text-white",
@@ -419,11 +441,6 @@ const Conversations = () => {
 
           {/* FOOTER */}
           <footer className="flex flex-col gap-2.5 border-t border-black/5 bg-white px-3.5 pb-3.5 pt-3">
-            <div className="text-xs font-medium text-zinc-500 md:text-sm">
-              Logged in as:{" "}
-              <span className="font-bold text-zinc-900">{loggedInAs}</span>
-            </div>
-
             <form
               onSubmit={sendMessage}
               className="flex items-center gap-2.5 rounded-[18px] border border-black/5 bg-[#f6f7fb] p-1 md:p-2.5"
@@ -431,7 +448,7 @@ const Conversations = () => {
               <button
                 type="button"
                 title="Emoji"
-                className="grid h-8.5 w-8.5 place-items-center rounded-xl border border-black/5 bg-white"
+                className="grid h-8.5 w-8.5 place-items-center rounded-xl border border-black/5 bg-white cursor-pointer"
               >
                 🙂
               </button>
@@ -452,11 +469,31 @@ const Conversations = () => {
                 type="submit"
                 title="Send"
                 disabled={!selectedChatGroup || !newMessage.trim()}
-                className="grid place-items-center rounded-[14px] bg-[#008080] px-5 py-2 text-white shadow-[0_14px_28px_rgba(124,58,237,0.25)] disabled:cursor-not-allowed disabled:opacity-50"
+                className="grid px-5 py-2 place-items-center rounded-[14px] bg-[#008080] text-white shadow-[0_14px_28px_rgba(124,58,237,0.25)] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
               >
                 send ➤
               </button>
             </form>
+
+            <div className=" hidden  grid-cols-1 gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={(e) => sendMessage(e)}
+                disabled={!selectedChatGroup || !newMessage.trim()}
+                className="rounded-[14px] bg-[#008080] px-3 py-2 text-sm font-extrabold text-white shadow-[0_14px_30px_rgba(124,58,237,0.22)] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer md:py-2.5"
+              >
+                Send to Group
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                disabled={!selectedChatGroup}
+                className="rounded-[14px] border border-amber-500/35 bg-[#F75D42] px-3 py-2 text-sm font-extrabold text-amber-100 shadow-[0_14px_30px_rgba(245,158,11,0.12)] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer md:py-2.5"
+              >
+                Manage Members 📋
+              </button>
+            </div>
           </footer>
         </section>
 
@@ -485,19 +522,21 @@ const Conversations = () => {
 
             <div className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-2 text-[13px]">
               <div className="font-bold text-zinc-500/90">Logged in as:</div>
-              <div className="break-words font-bold text-zinc-900">
+              <div className="wrap-break-words font-bold text-zinc-900">
                 {loggedInAs}
               </div>
 
               <div className="font-bold text-zinc-500/90">Members:</div>
-              <div className="break-words text-zinc-900">
+              <div className="wrap-break-words text-zinc-900">
                 {chatMembers.length > 0
                   ? chatMembers.join(", ")
                   : "No members loaded"}
               </div>
 
               <div className="font-bold text-zinc-500/90">Groups:</div>
-              <div className="break-words text-zinc-900">{chatGroups.length}</div>
+              <div className="wrap-break-words text-zinc-900">
+                {chatGroups.length}
+              </div>
             </div>
 
             <div className="mt-2 grid grid-cols-3 gap-2">
@@ -511,7 +550,7 @@ const Conversations = () => {
 
       {/* MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-1000 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
             <h3 className="text-lg font-bold text-zinc-900">Add Member</h3>
 
@@ -531,11 +570,8 @@ const Conversations = () => {
             <div className="mt-5 flex justify-end gap-3">
               <button
                 type="button"
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setSelectedEmployee("");
-                }}
-                className="rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold text-zinc-700"
+                onClick={() => setIsModalOpen(false)}
+                className="rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold text-zinc-700 cursor-pointer"
               >
                 Cancel
               </button>
@@ -543,7 +579,7 @@ const Conversations = () => {
                 type="button"
                 onClick={addChatMember}
                 disabled={!selectedEmployee}
-                className="rounded-xl bg-[#008080] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl bg-[#008080] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
               >
                 Add
               </button>

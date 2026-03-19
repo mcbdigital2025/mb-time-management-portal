@@ -85,7 +85,7 @@ function MyApp({ Component, pageProps }) {
     const tokenCookie = document.cookie
       .split("; ")
       .find((row) => row.startsWith("jwtToken="));
-    const token = tokenCookie.split("=")[1];
+    const token = tokenCookie?.split("=")[1];
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/accessPages?email=${encodeURIComponent(storedUser.email)}&companyId=${encodeURIComponent(storedUser.companyId)}`,
@@ -114,6 +114,7 @@ function MyApp({ Component, pageProps }) {
       }
 
       const nav = await response.json();
+      console.log("🚀 ~ fetchAccessPages ~ nav:", nav)
       setAccessPages(nav);
       // setError(null);
     } catch (err) {

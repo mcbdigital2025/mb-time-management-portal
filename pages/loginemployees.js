@@ -9,7 +9,7 @@ import ReusableTable from "../components/ReusableTable";
 
 const LoginEmployees = () => {
   const router = useRouter();
-  const [logins, setLogins] = useState(dummyLogins);
+  const [logins, setLogins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null); // New state for success messages
@@ -85,7 +85,7 @@ const LoginEmployees = () => {
       }
     };
 
-    // fetchLoginData();
+    fetchLoginData();
   }, []);
 
   useEffect(() => {
@@ -280,32 +280,30 @@ const LoginEmployees = () => {
   ];
 
   const employeeActions = [
-    {
-      label: "Edit",
-      icon: "edit",
-      variant: "primary",
-      showLabel: true,
-      onClick: (emp) => {
-        setSelectedEmployee(emp);
-        sessionStorage.setItem("editEmployee", JSON.stringify(emp));
-        handleEdit();
-      },
-    },
-    {
-      label: "Remove",
-      icon: "trash",
-      variant: "danger",
-      showLabel: false,
-      onClick: (emp) => {
-        setSelectedEmployee(emp);
-        sessionStorage.setItem("editEmployee", JSON.stringify(emp));
-        handleRemove();
-      },
-    },
+    // {
+    //   label: "Edit",
+    //   icon: "edit",
+    //   variant: "primary",
+    //   showLabel: true,
+    //   onClick: (emp) => {
+    //     setSelectedEmployee(emp);
+    //     sessionStorage.setItem("editEmployee", JSON.stringify(emp));
+    //     handleEdit();
+    //   },
+    // },
+    // {
+    //   label: "Remove",
+    //   icon: "trash",
+    //   variant: "danger",
+    //   showLabel: false,
+    //   onClick: (emp) => {
+    //     setSelectedEmployee(emp);
+    //     sessionStorage.setItem("editEmployee", JSON.stringify(emp));
+    //     handleRemove();
+    //   },
+    // },
   ];
 
-  const th = "px-4 py-2 border font-medium text-left";
-  const td = "px-4 py-2 border text-left";
 
   return (
     <div className="relative min-h-[90vh] w-full overflow-x-hidden flex flex-col items-center justify-center hero-radial-background bg-[radial-gradient(12%_14.08%_at_9.42%_89.81%,#D1E5FF,#F8FAFC),radial-gradient(13.98%_18.61%_at_186.74%_119.73%,rgba(110,178,188,0.4),rgba(217,217,217,0.4))] px-3 sm:px-4 md:px-6 py-6 md:py-10">
