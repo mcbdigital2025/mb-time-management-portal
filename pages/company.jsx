@@ -1,558 +1,350 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import { useRouter } from "next/router";
 import JSONbig from "json-bigint";
+import { useRouter } from "next/router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast, ToastContainer } from "react-toastify";
+import CompanyDetailsCard from "../components/company/CompanyDetailsCard";
+import CompanyHeader from "../components/company/CompanyHeader";
+import ConfirmModal from "../components/company/ConfirmModal";
+import DepartmentFormModal from "../components/DepartmentFormModal";
+import DepartmentsSection from "../components/DepartmentsSection";
+import EditCompanyModal from "../components/EditCompanyModal";
 import { authenticatedFetch } from "../utils/api";
+import {
+  formatDateTime,
+  getCompanyInitials
+} from "../utils/data";
 
-const Conversations = () => {
-  const [hasMounted, setHasMounted] = useState(false);
-  const [userData, setUserData] = useState(null);
-
-  const [chatGroups, setChatGroups] = useState([]);
-  const [selectedChatGroup, setSelectedChatGroup] = useState(null);
-  const [chatMembers, setChatMembers] = useState([]);
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState("");
-  const [newGroupName, setNewGroupName] = useState("");
-  const [error, setError] = useState(null);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [employees, setEmployees] = useState([]);
-  const [selectedEmployee, setSelectedEmployee] = useState("");
-
-  const messagesEndRef = useRef(null);
+const Company = () => {
   const router = useRouter();
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
-  const POLLING_INTERVAL =
-    Number(process.env.NEXT_PUBLIC_CHAT_POLLING_INTERVAL) || 10000;
+  const [company, setCompany] = useState(null);
+  const [departments, setDepartments] = useState([]);
+  const [selectedDept, setSelectedDept] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isEditCompanyOpen, setIsEditCompanyOpen] = useState(false);
 
-  useEffect(() => {
-    setHasMounted(true);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
-    const storedUser = JSON.parse(localStorage.getItem("user"));
+  const [deptSearch, setDeptSearch] = useState("");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-    if (!storedUser || !storedUser.jwtToken || !storedUser.companyId) {
+
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+
+  const [confirmMessage, setConfirmMessage] = useState(null);
+
+
+  const fetchCompany = useCallback(async () => {
+    const storedUser = localStorage.getItem("user");
+
+    if (!storedUser) {
       router.replace("/login");
       return;
     }
 
-    setUserData(storedUser);
-    loadChatGroups(storedUser);
-    fetchEmployees(storedUser);
+    let user;
+    try {
+      user = JSON.parse(storedUser);
+    } catch {
+      setError("Invalid user session data.");
+      return;
+    }
+
+    if (!user?.companyId || !user?.jwtToken) {
+      setError("Incomplete user information.");
+      return;
+    }
+
+    const companyId = user.companyId;
+
+    try {
+      const response = await authenticatedFetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/company/${encodeURIComponent(
+          companyId
+        )}`,
+        {
+          method: "GET",
+          headers: { Accept: "application/json" },
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        ToastContainer.error(
+          `Failed to fetch company data: ${response.status} ${response.statusText} - ${errorText}`
+        );
+      }
+
+      const data = await response.json();
+      setCompany({ ...data, companyId });
+    } catch (err) {
+      console.error("Error fetching company:", err);
+      setError(err.message);
+    }
   }, [router]);
 
   useEffect(() => {
-    let intervalId;
+    fetchCompany();
+    fetchDepartments();
+  }, [fetchCompany]);
 
-    if (selectedChatGroup && userData) {
-      loadMessages(selectedChatGroup);
-      intervalId = setInterval(
-        () => loadMessages(selectedChatGroup),
-        POLLING_INTERVAL
-      );
+
+  const fetchDepartments = async () => {
+    const storedUser = localStorage.getItem("user");
+
+    if (!storedUser) {
+      router.replace("/login");
+      return;
     }
 
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [selectedChatGroup, userData, POLLING_INTERVAL]);
+    let user;
+    try {
+      user = JSON.parse(storedUser);
+      console.log("🚀 ~ Company ~ user:", user)
+    } catch {
+      setError("Invalid user session data.");
+      return;
+    }
+
+    if (!user?.companyId || !user?.jwtToken) {
+      setError("Incomplete user information.");
+      return;
+    }
+
+    const companyId = user.companyId;
+
+    try {
+      const response = await authenticatedFetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/group/${encodeURIComponent(
+          companyId
+        )}`,
+        {
+          method: "GET",
+          headers: { Accept: "application/json" },
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to fetch departments: ${response.status} ${response.statusText} - ${errorText}`
+        );
+      }
+
+      const text = await response.text();
+      const data = JSONbig.parse(text);
+      setDepartments(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error fetching departments:", err);
+      setError(err.message);
+    }
+  };
+  
+  
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (!successMessage) return;
+    const timer = setTimeout(() => setSuccessMessage(null), 2500);
+    return () => clearTimeout(timer);
+  }, [successMessage]);
 
-  const fetchEmployees = async (user) => {
-    try {
-      const response = await authenticatedFetch(
-        `${API_BASE}/mcbtt/api/timesheet/employee/company/${user.companyId}`
-      );
+  const filteredDepartments = useMemo(() => {
+    const q = deptSearch.trim().toLowerCase();
 
-      if (response.ok) {
-        const data = await response.json();
-        setEmployees(Array.isArray(data) ? data : []);
-      }
-    } catch (err) {
-      console.error("Employee fetch failed", err);
-    }
-  };
+    if (!q) return departments;
 
-  const loadChatGroups = async (user) => {
-    try {
-      const response = await authenticatedFetch(
-        `${API_BASE}/mcbtt/api/timesheet/chat/company/${user.companyId}/${user.employeeId}`
-      );
-
-      const text = await response.text();
-      const data = text ? JSONbig.parse(text) : [];
-      setChatGroups(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err.message || "Failed to load chat groups");
-    }
-  };
-
-  const loadChatMembers = async (chatGroupId) => {
-    if (!chatGroupId || !userData) return;
-
-    try {
-      const response = await authenticatedFetch(
-        `${API_BASE}/mcbtt/api/timesheet/chat/chatMember/${userData.companyId}/${chatGroupId}`
-      );
-
-      const text = await response.text();
-      const data = text ? JSONbig.parse(text) : [];
-
-      setChatMembers(Array.isArray(data) ? data.map((m) => m.employeeId || m) : []);
-    } catch (err) {
-      console.error("Member load failed", err);
-    }
-  };
-
-  const loadMessages = async (chatGroupId) => {
-    if (!userData) return;
-
-    try {
-      const response = await authenticatedFetch(
-        `${API_BASE}/mcbtt/api/timesheet/chat/message/${chatGroupId}`
-      );
-
-      if (!response.ok) return;
-
-      const text = await response.text();
-      const data = text ? JSONbig.parse(text) : [];
-
-      const formatted = data.map((msg) => ({
-        id: msg.chatMessageId?.toString() || Math.random().toString(),
-        sender: msg.senderEmployeeId?.toString(),
-        text: msg.messageText,
-        timestamp: msg.messageTime
-          ? new Date(msg.messageTime).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : "",
-        type:
-          msg.senderEmployeeId?.toString() === userData.employeeId?.toString()
-            ? "staff"
-            : "client",
-      }));
-
-      setMessages((prev) => {
-        const prevSerialized = JSON.stringify(prev);
-        const nextSerialized = JSON.stringify(formatted);
-        return prevSerialized !== nextSerialized ? formatted : prev;
-      });
-    } catch (err) {
-      console.error("Polling error", err);
-    }
-  };
-
-  const createChatGroup = async (e) => {
-    e.preventDefault();
-    if (!newGroupName.trim() || !userData) return;
-
-    const payload = {
-      companyId: userData.companyId,
-      chatGroupName: newGroupName.trim(),
-      createdByEmployeeId: userData.employeeId?.toString(),
-      createdDate: new Date().toISOString(),
-    };
-
-    try {
-      const res = await authenticatedFetch(
-        `${API_BASE}/mcbtt/api/timesheet/chat/create`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (res.ok) {
-        setNewGroupName("");
-        loadChatGroups(userData);
-      }
-    } catch (err) {
-      console.error("Create group failed", err);
-    }
-  };
-
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !selectedChatGroup || !userData) return;
-
-    const payload = {
-      chatGroupId: selectedChatGroup,
-      companyId: userData.companyId,
-      senderEmployeeId: userData.employeeId,
-      messageText: newMessage.trim(),
-    };
-
-    try {
-      const res = await authenticatedFetch(
-        `${API_BASE}/mcbtt/api/timesheet/chat/message/send`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (res.ok) {
-        setNewMessage("");
-        loadMessages(selectedChatGroup);
-      }
-    } catch (err) {
-      console.error("Send failed", err);
-    }
-  };
-
-  const addChatMember = async () => {
-    if (!selectedEmployee || !selectedChatGroup || !userData) return;
-
-    const payload = {
-      companyId: userData.companyId,
-      chatGroupId: selectedChatGroup,
-      employeeId: selectedEmployee,
-      createdByEmployeeId: userData.employeeId?.toString(),
-      createdDate: new Date().toISOString(),
-    };
-
-    try {
-      const res = await authenticatedFetch(
-        `${API_BASE}/mcbtt/api/timesheet/chat/chatMember/create`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (res.ok) {
-        setSelectedEmployee("");
-        setIsModalOpen(false);
-        loadChatMembers(selectedChatGroup);
-      }
-    } catch (err) {
-      console.error("Add member failed", err);
-    }
-  };
-
-  const selectedGroup = useMemo(() => {
-    return (
-      chatGroups.find(
-        (g) => g.chatGroupId?.toString() === selectedChatGroup?.toString()
-      ) || null
+    return departments.filter((d) =>
+      [
+        d?.departmentId,
+        d?.companyId,
+        d?.departmentName,
+        d?.departmentDescription,
+      ].some((value) => String(value ?? "").toLowerCase().includes(q))
     );
-  }, [chatGroups, selectedChatGroup]);
+  }, [departments, deptSearch]);
 
-  const clientName = selectedGroup?.chatGroupName || "No Group Selected";
+  const companyInitials = useMemo(
+    () => getCompanyInitials(company?.companyName),
+    [company?.companyName]
+  );
 
-  const loggedInAs = userData?.firstName
-    ? `${userData.firstName} (Support Staff)`
-    : "Staff Member";
+  const handleEditCompany = useCallback(() => {
+    if (!company) {
+      setError("No company data to edit.");
+      return;
+    }
 
-  const initials = useMemo(() => {
-    const source = selectedGroup?.chatGroupName || userData?.firstName || "CH";
-    return source
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((word) => word[0]?.toUpperCase())
-      .join("");
-  }, [selectedGroup, userData]);
+    setIsEditCompanyOpen(true);
+  }, [company]);
 
-  if (!hasMounted) return null;
+
+  const closeConfirmModal = useCallback(() => {
+    setConfirmMessage(null);
+  }, []);
+
+
+
+
+  const handleAddDepartment = () => {
+    setSelectedDept(null);
+    setIsCreateOpen(true);
+  };
+
+  const openEditModal = (dept) => {
+    setSelectedDept(dept);
+    setIsEditOpen(true);
+  };
+  const openConfirmationModal = useCallback((dept) => {
+    setSelectedDept(dept);
+    setConfirmMessage(`Are you sure you want to remove ${dept?.departmentName}?`);
+  }, []);
+
+  const handleRemoveDepartment = useCallback(async () => {
+    setIsLoading(true);
+    if (!selectedDept) {
+      setError("Please select a department to remove.");
+      return;
+    }
+
+    try {
+      const res = await authenticatedFetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/group/delete/${encodeURIComponent(
+          selectedDept.companyId
+        )}/${encodeURIComponent(selectedDept.departmentId)}`,
+        { method: "DELETE" }
+      );
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        toast.error(`Failed to remove department: ${res.status} ${res.statusText} - ${errorText}`);
+
+      }
+
+      setDepartments((prev) =>
+        prev.filter((d) => d.departmentId !== selectedDept.departmentId)
+      );
+      setSelectedDept(null);
+      setError(null);
+      setIsLoading(false);
+      closeConfirmModal();
+      toast.success("Department removed successfully.");
+      setSuccessMessage("Department removed successfully.");
+    } catch (err) {
+      toast.error(`An error occurred while removing the department: ${err.message}`);
+      setError(`An error occurred while removing the department: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+
+  }, [selectedDept, closeConfirmModal]);
+
+
+  const handleResetFilter = useCallback(() => {
+    setDeptSearch("");
+    setIsFilterOpen(false);
+  }, []);
+
+  const toggleFilter = useCallback(() => {
+    setIsFilterOpen((prev) => !prev);
+  }, []);
+
+  if (error) {
+    return (
+      <div className="mx-auto h-screen mt-10 max-w-5xl rounded bg-gray-50 p-6 shadow">
+        <div className="text-center text-lg font-semibold text-red-600">
+          Error: {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-[calc(100vh-0px)] w-full bg-[radial-gradient(1200px_600px_at_20%_0%,#f4f1ff_0%,#f7f7fb_40%,#f3f4f6_100%)] p-2">
-      <div className="mx-auto grid h-[90vh] w-full max-w-350 grid-cols-1 gap-4 lg:grid-cols-[1.6fr_0.95fr]">
-        {/* LEFT: CHAT */}
-        <section className="flex min-w-0 flex-col overflow-hidden rounded-[18px] border border-black/5 bg-white/50 shadow-[0_18px_45px_rgba(17,24,39,0.08)]">
-          {/* TOP CONTROL BAR */}
-          <div className="border-b border-black/5 bg-white px-4 py-4">
-            <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center">
-              <form
-                onSubmit={createChatGroup}
-                className="flex flex-1 items-center gap-2"
-              >
-                <input
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  placeholder="New group name..."
-                  className="h-11 flex-1 rounded-xl border border-black/10 bg-white px-4 text-sm outline-none placeholder:text-zinc-400"
-                />
-                <button
-                  type="submit"
-                  disabled={!newGroupName.trim()}
-                  className="rounded-xl bg-[#008080] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Create
-                </button>
-              </form>
+    <div className="min-h-screen w-full bg-linear-to-b from-zinc-50 via-white to-zinc-50 hero-radial-background">
+      <CompanyHeader
+        company={company}
+        companyInitials={companyInitials}
+        onEditCompany={handleEditCompany}
+      />
 
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(true)}
-                disabled={!selectedChatGroup}
-                className="rounded-xl bg-[#F75D42] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                + Add Member
-              </button>
-            </div>
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        <ConfirmModal
+          open={Boolean(confirmMessage)}
+          message={confirmMessage}
+          isLoading={isLoading}
+          onCancel={closeConfirmModal}
+          onConfirm={handleRemoveDepartment}
+        />
 
-            <div className="flex flex-col gap-2 md:flex-row">
-              <select
-                value={selectedChatGroup || ""}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setSelectedChatGroup(val);
-                  loadChatMembers(val);
-                }}
-                className="h-11 w-full rounded-xl border border-black/10 bg-white px-4 text-sm outline-none md:w-[60%]"
-              >
-                <option value="">-- Select a Group --</option>
-                {chatGroups.map((g, idx) => (
-                  <option
-                    key={g.chatGroupId?.toString() || idx}
-                    value={g.chatGroupId?.toString()}
-                  >
-                    {g.chatGroupName}
-                  </option>
-                ))}
-              </select>
+        <div className="grid grid-cols-1 gap-6 ">
+          <CompanyDetailsCard
+            company={company}
+            onEditCompany={handleEditCompany}
+          />
 
-              <div className="w-full rounded-xl border border-black/5 bg-[#f6f7fb] px-4 py-2 md:w-[40%]">
-                <div className="mb-1 text-xs font-bold uppercase tracking-wide text-zinc-500">
-                  Chat Members
-                </div>
-                <div className="break-words text-sm text-zinc-700">
-                  {chatMembers.length > 0
-                    ? chatMembers.join(", ")
-                    : "No members loaded"}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* HEADER */}
-          <header className="flex items-center justify-between gap-2 border-b border-black/5 bg-white px-4 py-2">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-[14px] border border-violet-500/20 bg-[linear-gradient(135deg,#f0eaff_0%,#e7ddff_60%,#f6f3ff_100%)] font-extrabold text-[#3b2b5a]">
-                {initials}
-              </div>
-
-              <div className="min-w-0">
-                <h2 className="truncate text-sm font-extrabold text-zinc-900 md:text-base">
-                  Group: {clientName}
-                </h2>
-                <div className="mt-1 inline-flex items-center gap-2 text-xs font-semibold text-green-600 md:text-sm">
-                  <span className="relative inline-flex h-2 w-2">
-                    <span className="absolute inset-0 rounded-full bg-green-500 opacity-25 ring-4 ring-green-500/15" />
-                    <span className="relative h-2 w-2 rounded-full bg-green-500" />
-                  </span>
-                  {selectedChatGroup
-                    ? "Active Chat Session"
-                    : "No Group Selected"}
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              title="More"
-              className="grid h-9 w-9 place-items-center rounded-xl border border-black/10 bg-white shadow-[0_8px_18px_rgba(17,24,39,0.06)]"
-            >
-              ⋯
-            </button>
-          </header>
-
-          {/* BODY */}
-          <div className="flex-1 overflow-y-auto bg-[radial-gradient(800px_350px_at_20%_10%,rgba(124,58,237,0.08)_0%,rgba(124,58,237,0)_55%),#f6f7fb] px-3.5 py-4">
-            {error && (
-              <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
-
-            {messages.length === 0 && (
-              <div className="flex h-full items-center justify-center text-sm font-medium text-zinc-500">
-                {selectedChatGroup
-                  ? "No messages yet. Start the conversation."
-                  : "Select a group to view messages."}
-              </div>
-            )}
-
-            {messages.map((msg) => {
-              const isLeft = msg.type === "client";
-
-              return (
-                <div
-                  key={msg.id}
-                  className={[
-                    "mb-3.5 flex max-w-full flex-col",
-                    isLeft ? "items-start" : "items-end",
-                  ].join(" ")}
-                >
-                  <div className="mx-2 mb-1.5 text-[10px] text-zinc-500/90 md:text-[12px]">
-                    {msg.type === "staff" ? "You" : `Member ${msg.sender}`} •{" "}
-                    {msg.timestamp}
-                  </div>
-
-                  <div
-                    className={[
-                      "max-w-[min(72%,620px)] break-words rounded-2xl border px-3.5 py-3 text-[12px] font-medium leading-[1.45] shadow-[0_10px_22px_rgba(17,24,39,0.08)] md:text-base",
-                      isLeft
-                        ? "rounded-tl-lg border-black/5 bg-white text-zinc-900"
-                        : "rounded-tr-lg border-violet-500/25 bg-[#008080] text-white",
-                    ].join(" ")}
-                  >
-                    {msg.text}
-                  </div>
-                </div>
-              );
-            })}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* FOOTER */}
-          <footer className="flex flex-col gap-2.5 border-t border-black/5 bg-white px-3.5 pb-3.5 pt-3">
-            <div className="text-xs font-medium text-zinc-500 md:text-sm">
-              Logged in as:{" "}
-              <span className="font-bold text-zinc-900">{loggedInAs}</span>
-            </div>
-
-            <form
-              onSubmit={sendMessage}
-              className="flex items-center gap-2.5 rounded-[18px] border border-black/5 bg-[#f6f7fb] p-1 md:p-2.5"
-            >
-              <button
-                type="button"
-                title="Emoji"
-                className="grid h-8.5 w-8.5 place-items-center rounded-xl border border-black/5 bg-white"
-              >
-                🙂
-              </button>
-
-              <input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder={
-                  selectedChatGroup
-                    ? "Type a message..."
-                    : "Select a group first"
-                }
-                disabled={!selectedChatGroup}
-                className="h-6 min-w-0 flex-1 bg-transparent text-xs text-zinc-900 outline-none placeholder:text-zinc-400 disabled:cursor-not-allowed md:h-9 md:text-sm"
-              />
-
-              <button
-                type="submit"
-                title="Send"
-                disabled={!selectedChatGroup || !newMessage.trim()}
-                className="grid place-items-center rounded-[14px] bg-[#008080] px-5 py-2 text-white shadow-[0_14px_28px_rgba(124,58,237,0.25)] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                send ➤
-              </button>
-            </form>
-          </footer>
-        </section>
-
-        {/* RIGHT: PROFILE PANEL */}
-        <aside className="hidden min-w-0 md:flex">
-          <div className="flex w-full flex-col gap-3 rounded-[18px] border border-black/5 bg-white p-4 shadow-[0_18px_45px_rgba(17,24,39,0.08)]">
-            <div className="flex items-center gap-3">
-              <div className="grid h-16 w-16 shrink-0 place-items-center rounded-[18px] border border-violet-500/20 bg-[linear-gradient(135deg,#f0eaff_0%,#e7ddff_60%,#f6f3ff_100%)] text-xl font-black text-[#3b2b5a] md:h-18 md:w-18 md:text-4xl">
-                {initials}
-              </div>
-
-              <div className="min-w-0">
-                <div className="truncate text-sm font-black text-zinc-900 md:text-lg">
-                  Group: {clientName}
-                </div>
-                <div className="mt-1 text-xs font-bold text-green-600 md:text-base">
-                  ●{" "}
-                  {selectedChatGroup
-                    ? "Active Chat Session"
-                    : "Waiting for Selection"}
-                </div>
-              </div>
-            </div>
-
-            <div className="h-px w-full bg-black/5" />
-
-            <div className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-2 text-[13px]">
-              <div className="font-bold text-zinc-500/90">Logged in as:</div>
-              <div className="break-words font-bold text-zinc-900">
-                {loggedInAs}
-              </div>
-
-              <div className="font-bold text-zinc-500/90">Members:</div>
-              <div className="break-words text-zinc-900">
-                {chatMembers.length > 0
-                  ? chatMembers.join(", ")
-                  : "No members loaded"}
-              </div>
-
-              <div className="font-bold text-zinc-500/90">Groups:</div>
-              <div className="break-words text-zinc-900">{chatGroups.length}</div>
-            </div>
-
-            <div className="mt-2 grid grid-cols-3 gap-2">
-              <div className="h-14 rounded-xl bg-zinc-100/80" />
-              <div className="h-14 rounded-xl bg-zinc-100/80" />
-              <div className="h-14 rounded-xl bg-zinc-100/80" />
-            </div>
-          </div>
-        </aside>
-      </div>
-
-      {/* MODAL */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-zinc-900">Add Member</h3>
-
-            <select
-              value={selectedEmployee}
-              onChange={(e) => setSelectedEmployee(e.target.value)}
-              className="mt-4 h-11 w-full rounded-xl border border-black/10 bg-white px-4 text-sm outline-none"
-            >
-              <option value="">-- Choose Employee --</option>
-              {employees.map((emp) => (
-                <option key={emp.employeeId} value={emp.employeeId}>
-                  {emp.firstName} {emp.lastName}
-                </option>
-              ))}
-            </select>
-
-            <div className="mt-5 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setSelectedEmployee("");
-                }}
-                className="rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold text-zinc-700"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={addChatMember}
-                disabled={!selectedEmployee}
-                className="rounded-xl bg-[#008080] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Add
-              </button>
-            </div>
-          </div>
+          {/* <CompanySidebar
+            stats={stats}
+            onAddDepartment={handleAddDepartment}
+            onEditDepartment={handleEditDepartment}
+            onRemoveDepartment={handleRemoveDepartment}
+          /> */}
         </div>
-      )}
+
+        <DepartmentsSection
+          departments={departments}
+          selectedDept={selectedDept}
+          onSelectDept={setSelectedDept}
+          onEditDepartment={openEditModal}
+          onRemoveDepartment={openConfirmationModal}
+          onAddDepartment={handleAddDepartment}
+          deptSearch={deptSearch}
+          onDeptSearchChange={setDeptSearch}
+          isFilterOpen={isFilterOpen}
+          onToggleFilter={() => setIsFilterOpen((prev) => !prev)}
+          onResetFilter={handleResetFilter}
+          formatDateTime={formatDateTime}
+        />
+
+        <DepartmentFormModal
+          isOpen={isCreateOpen}
+          mode="create"
+          companyId={company?.companyId}
+          companyCode={company?.companyCode}
+          onClose={() => setIsCreateOpen(false)}
+          onSuccess={fetchDepartments}
+        />
+
+        <DepartmentFormModal
+          isOpen={isEditOpen}
+          mode="edit"
+          department={selectedDept}
+          companyId={company?.companyId}
+          companyCode={company?.companyCode}
+          onClose={() => setIsEditOpen(false)}
+          onSuccess={fetchDepartments}
+        />
+
+        <EditCompanyModal
+          isOpen={isEditCompanyOpen}
+          company={company}
+          onClose={() => setIsEditCompanyOpen(false)}
+          onSuccess={async () => {
+            await fetchCompany();
+            setSuccessMessage("Company updated successfully.");
+          }}
+        />
+
+        {successMessage && (
+          <div className="fixed bottom-4 right-4 z-50 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg">
+            {successMessage}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
-export default Conversations;
+export default Company;

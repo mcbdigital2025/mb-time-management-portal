@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import JSONbig from "json-bigint";
 import { useRouter } from "next/router";
 import { authenticatedFetch } from "../utils/api"; // Import authenticatedFetch
-import { dummyLogins } from "../utils/data";
 import ReusableTable from "../components/ReusableTable";
+import ViewEmployeesSkeleton from "../components/loaders/ViewEmployeesSkeleton";
 
 const LoginEmployees = () => {
   const router = useRouter();
@@ -88,17 +88,6 @@ const LoginEmployees = () => {
     fetchLoginData();
   }, []);
 
-  useEffect(() => {
-    // ✅ Dummy load
-    setLoading(true);
-    setError(null);
-
-    // simulate API delay (optional)
-    setTimeout(() => {
-      setLogins(dummyLogins);
-      setLoading(false);
-    }, 300);
-  }, []);
 
   const handleRowClick = (emp) => {
     setSelectedEmployee(emp);
@@ -380,6 +369,7 @@ const LoginEmployees = () => {
               No login records found.
             </div>
           )}
+          {loading && <ViewEmployeesSkeleton/>}
 
           {!loading && !error && logins.length > 0 && (
             <ReusableTable
