@@ -104,7 +104,6 @@ const Company = () => {
     let user;
     try {
       user = JSON.parse(storedUser);
-      console.log("🚀 ~ Company ~ user:", user)
     } catch {
       setError("Invalid user session data.");
       return;

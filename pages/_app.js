@@ -1,15 +1,15 @@
 // pages/_app.js
-import { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/router";
 import { Roboto } from "next/font/google";
-import Navbar from "../components/layout/Navbar/Navbar";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import Script from "next/script";
-import Footer from "./footer";
-import "../styles/globals.css";
-import { isTokenExpired } from "../utils/api";
+import { useEffect, useRef, useState } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Navbar from "../components/layout/Navbar/Navbar";
+import "../styles/globals.css";
+import { isTokenExpired } from "../utils/api";
+import Footer from "./footer";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -114,7 +114,6 @@ function MyApp({ Component, pageProps }) {
       }
 
       const nav = await response.json();
-      console.log("🚀 ~ fetchAccessPages ~ nav:", nav)
       setAccessPages(nav);
       // setError(null);
     } catch (err) {
