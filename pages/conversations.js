@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/router";
 import JSONbig from "json-bigint";
 import { authenticatedFetch } from "../utils/api";
-import { toast } from "react-toastify";
 
 const Conversations = () => {
   const [chatGroups, setChatGroups] = useState([]);
@@ -92,16 +91,12 @@ const Conversations = () => {
   const fetchEmployees = async (user) => {
     try {
       const response = await authenticatedFetch(
-         `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/employee/${encodeURIComponent(
-          user.companyId
-        )}`,
-        // `${API_BASE}/mcbtt/api/timesheet/employee/company/${user.companyId}`,
+        `${API_BASE}/mcbtt/api/timesheet/employee/company/${user.companyId}`,
         { method: "GET", headers: { Accept: "application/json" } },
       );
 
       if (response.ok) {
         const data = await response.json();
-        console.log("🚀 ~ fetchEmployees ~ data:", data)
         setEmployees(Array.isArray(data) ? data : []);
       }
     } catch (err) {
@@ -201,21 +196,19 @@ const Conversations = () => {
       employeeId: selectedEmployee,
       joinedDate: new Date().toISOString(),
     };
-    console.log("🚀 ~ addChatMember ~ payload:", payload)
 
     try {
       const res = await authenticatedFetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/chat/createMemmber`,
-        // `${API_BASE}/mcbtt/api/timesheet/chat/createMemmber`,
+        `${API_BASE}/mcbtt/api/timesheet/chat/createMemmber`,
         {
           method: "POST",
-          // headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         },
       );
 
       if (res.ok) {
-        toast.success("Member added successfully!");
+        alert("Member added successfully!");
         setIsModalOpen(false);
         setSelectedEmployee("");
         loadChatMembers(selectedChatGroup);
