@@ -68,11 +68,10 @@ const CreateEmployee = () => {
       return;
     }
 
-    // Format for Backend (adding ROLE_ prefix)
     const payload = {
       ...formData,
       companyId: user.companyId,
-      accessLevel: `ROLE_${formData.accessLevel}`,
+      accessLevel: `${formData.accessLevel}`,
     };
 
     try {
