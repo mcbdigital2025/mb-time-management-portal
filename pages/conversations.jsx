@@ -209,7 +209,7 @@ const Conversations = () => {
         // `${API_BASE}/mcbtt/api/timesheet/chat/createMemmber`,
         {
           method: "POST",
-          // headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         },
       );
@@ -505,7 +505,7 @@ const Conversations = () => {
         </section>
 
         {/* RIGHT: PROFILE PANEL */}
-        <aside className="hidden min-w-0 md:flex">
+        <aside className="hidden min-w-0 lg:flex">
           <div className="flex w-full flex-col gap-3 rounded-[18px] border border-black/5 bg-white p-4 shadow-[0_18px_45px_rgba(17,24,39,0.08)]">
             <div className="flex items-center gap-3">
               <div className="grid h-16 w-16 shrink-0 place-items-center rounded-[18px] border border-violet-500/20 bg-[linear-gradient(135deg,#f0eaff_0%,#e7ddff_60%,#f6f3ff_100%)] text-xl font-black text-[#3b2b5a] md:h-18 md:w-18 md:text-4xl">
