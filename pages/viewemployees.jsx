@@ -179,9 +179,18 @@ const ViewEmployees = () => {
     fetchEmployees(storedUser);
   }, [router]);
 
-  const hasEditPermission =
-    user?.accessLevel === "ROLE_Administrator" ||
-    user?.accessLevel === "ROLE_SuperAdministrator";
+  const normalizeRole = (role) => {
+  if (!role) return "";
+  return String(role).replace(/^ROLE_/, "").trim().toLowerCase();
+};
+
+const hasEditPermission = ["administrator", "superadministrator"].includes(
+  normalizeRole(user?.accessLevel)
+);
+
+  // const hasEditPermission =
+  //   user?.accessLevel === "ROLE_Administrator" ||
+  //   user?.accessLevel === "ROLE_SuperAdministrator";
 
   const handleRowClick = async (emp) => {
     setSelectedEmployee(emp);
@@ -608,6 +617,8 @@ const ViewEmployees = () => {
   }
 };
 
+
+
   const employeeColumns = [
     {
       header: "ID",
@@ -629,6 +640,7 @@ const ViewEmployees = () => {
       header: "Access Level",
       render: (emp) => {
         const access = emp.accessLevel || "ROLE_User";
+        console.log("🚀 ~ ViewEmployees ~ emp.accessLevel:", emp.accessLevel)
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ring-1 bg-gray-50 text-gray-700 ring-gray-200">
             {access.replace("ROLE_", "")}
