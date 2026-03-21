@@ -64,7 +64,7 @@ const UpdateEmployee = () => {
         departmentId: selectedEmployee.departmentId || "",
         jobTitle: selectedEmployee.jobTitle || "",
         status: selectedEmployee.status || "",
-        accessLevel: selectedEmployee.accessLevel?.replace("ROLE_", "") || "",
+        accessLevel: selectedEmployee.accessLevel?.replace("ROLE_", "") || "Basic",
       });
     } else {
       router.push("/viewemployees");
@@ -85,7 +85,7 @@ const UpdateEmployee = () => {
 
       const submissionData = {
         ...form,
-        accessLevel: form.accessLevel ? `${form.accessLevel}` : null
+        const finalAccessLevel = form.accessLevel.replace("ROLE_", "").trim();
       };
 
       const response = await authenticatedFetch(
