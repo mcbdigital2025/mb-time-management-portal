@@ -50,11 +50,15 @@ const BookingService = ({ user }) => {
       clientReschedule: false,
       employeeCancel: false,
       status: 'SCHEDULED',
-      // Step 9: ClientBookingRecurring
-          recurrenceType: 'WEEKLY',
-          monday: false, tuesday: false, wednesday: false, thursday: false,
-          friday: false, saturday: false, sunday: false,
-          startDate: '', endDate: '', acceptPublicHoliday: false, skipPublicHoliday: true, isActive: true
+      // Step 9: ClientBookingRecurring (Lean Pattern)
+        monday: false,
+        tuesday: false,
+        wednesday: false,
+        thursday: false,
+        friday: false,
+        saturday: false,
+        sunday: false,
+        isActive: false // Keep this to toggle the rule on/off
 
   });
 
@@ -116,123 +120,119 @@ const BookingService = ({ user }) => {
     }, [user]);
 
 
-  const handleFinalSubmit = async () => {
-    if (!user?.companyId) {
-      toast.error("User session expired. Please log in again.");
-      return;
-    }
+ const handleFinalSubmit = async () => {
+     if (!user?.companyId) {
+       toast.error("User session expired. Please log in again.");
+       return;
+     }
 
-    setLoading(true);
-    try {
-      const companyId = user.companyId;
-      const bookingId = 0; // Backend typically generates this on create
+     setLoading(true);
+     try {
+       const companyId = user.companyId;
 
-      // 1. Construct the Payload following DTO structure
-      const payload = {
-        // Step 8: Main Schedule
-        schedule: {
-          companyId: companyId,
-          clientId: selectedClientId,
-          employeeId: selectedEmpId,
-          jobId: selectedJob?.jobId,
-          facilitiesId: parseInt(formData.facilitiesId) || 0,
-          instructions: formData.instructions,
-          bookingType: formData.bookingType || 'ONE_TIME',
-          workDate: formData.workDate,
-          scheduledStartTime: formData.scheduledStartTime,
-          scheduledEndTime: formData.scheduledEndTime,
-          actualStartTime: formData.actualStartTime || "00:00:00",
-          actualEndTime: formData.actualEndTime || "00:00:00",
-          workLocation: formData.workLocation,
-          breakMinutes: parseInt(formData.breakMinutes) || 0,
-          serviceBonusEnabled: !!formData.serviceBonusEnabled,
-          serviceEndsNextDay: !!formData.serviceEndsNextDay,
-          isPublicHoliday: !!formData.isPublicHoliday,
-          clientCancel: !!formData.clientCancel,
-          clientReschedule: !!formData.clientReschedule,
-          employeeCancel: !!formData.employeeCancel,
-          status: formData.status || 'SCHEDULED'
-        },
+       // Determine if we are updating or creating
+       // If formData.clientBookingId exists, we use it for the PUT request
+       const isUpdate = !!formData.clientBookingId;
+       const bookingId = formData.clientBookingId || 0;
 
-        // Step 9: Recurring Pattern
+       // 1. Construct the Payload following DTO structure
+       const payload = {
+         schedule: {
+           clientBookingId: isUpdate ? formData.clientBookingId : null,
+           companyId: companyId,
+           clientId: selectedClientId,
+           employeeId: selectedEmpId,
+           jobId: selectedJob?.jobId,
+           facilitiesId: parseInt(formData.facilitiesId) || 0,
+           instructions: formData.instructions,
+           bookingType: formData.bookingType || 'ONE_TIME',
+           workDate: formData.workDate,
+           scheduledStartTime: formData.scheduledStartTime,
+           scheduledEndTime: formData.scheduledEndTime,
+           actualStartTime: formData.actualStartTime || "00:00:00",
+           actualEndTime: formData.actualEndTime || "00:00:00",
+           workLocation: formData.workLocation,
+           breakMinutes: parseInt(formData.breakMinutes) || 0,
+           serviceBonusEnabled: !!formData.serviceBonusEnabled,
+           serviceEndsNextDay: !!formData.serviceEndsNextDay,
+           isPublicHoliday: !!formData.isPublicHoliday,
+           clientCancel: !!formData.clientCancel,
+           clientReschedule: !!formData.clientReschedule,
+           employeeCancel: !!formData.employeeCancel,
+           status: formData.status || 'SCHEDULED'
+         },
+
         recurring: {
-          companyId: companyId,
-          clientId: selectedClientId,
-          employeeId: selectedEmpId,
-          jobId: selectedJob?.jobId,
-          recurrenceType: formData.recurrenceType || 'WEEKLY',
-          monday: !!formData.monday,
-          tuesday: !!formData.tuesday,
-          wednesday: !!formData.wednesday,
-          thursday: !!formData.thursday,
-          friday: !!formData.friday,
-          saturday: !!formData.saturday,
-          sunday: !!formData.sunday,
-          startDate: formData.startDate,
-          endDate: formData.endDate || null,
-          acceptPublicHoliday: !!formData.acceptPublicHoliday,
-          skipPublicHoliday: !!formData.skipPublicHoliday,
-          isActive: formData.isActive !== false
-        },
+                companyId: companyId,
+                clientBookingId: bookingId,
+                monday: !!formData.monday,
+                tuesday: !!formData.tuesday,
+                wednesday: !!formData.wednesday,
+                thursday: !!formData.thursday,
+                friday: !!formData.friday,
+                saturday: !!formData.saturday,
+                sunday: !!formData.sunday,
+                isActive: formData.isActive
+         },
 
-        // Step 4: Mileage Data
-        serviceMileage: {
-          companyId: companyId,
-          clientBookingId: bookingId,
-          mileageCap: formData.mileageCap,
-          mileageRate: formData.mileageRate,
-          hasCompanyVehicle: !!formData.hasCompanyVehicle
-        },
+         serviceMileage: {
+           companyId: companyId,
+           clientBookingId: bookingId,
+           mileageCap: formData.mileageCap,
+           mileageRate: formData.mileageRate,
+           hasCompanyVehicle: !!formData.hasCompanyVehicle
+         },
 
-        // Step 5: Allowance Data
-        serviceAllowances: {
-          companyId: companyId,
-          clientBookingId: bookingId,
-          allowanceType: formData.allowanceType,
-          amount: formData.allowanceAmount
-        },
+         serviceAllowances: {
+           companyId: companyId,
+           clientBookingId: bookingId,
+           allowanceType: formData.allowanceType,
+           amount: formData.allowanceAmount
+         },
 
-        // Step 6: Staffing Requirements
-        serviceStaffRequirements: {
-          companyId: companyId,
-          clientBookingId: bookingId,
-          minimumStaffRequired: parseInt(formData.minimumStaffRequired) || 1,
-          smartMatchEnabled: !!formData.smartMatchEnabled
-        },
+         serviceStaffRequirements: {
+           companyId: companyId,
+           clientBookingId: bookingId,
+           minimumStaffRequired: parseInt(formData.minimumStaffRequired) || 1,
+           smartMatchEnabled: !!formData.smartMatchEnabled
+         },
 
-        // Step 7: Signature Requirements
-        serviceScheduleSignatures: {
-          companyId: companyId,
-          clientBookingId: bookingId,
-          requireClientSignature: !!formData.requireClientSignature,
-          requireCarerSignature: !!formData.requireCarerSignature
-        }
-      };
+         serviceScheduleSignatures: {
+           companyId: companyId,
+           clientBookingId: bookingId,
+           requireClientSignature: !!formData.requireClientSignature,
+           requireCarerSignature: !!formData.requireCarerSignature
+         }
+       };
 
-      // 2. Send the combined DTO using JSONbig for Long/BigInt safety
-      const res = await authenticatedFetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/clientschedule/create`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSONbig.stringify(payload)
-        }
-      );
+       // 2. Determine Endpoint and Method
+       const endpoint = isUpdate
+         ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/clientschedule/update`
+         : `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/clientschedule/create`;
 
-      if (res.ok) {
-        toast.success("Complete Booking Service created successfully!");
-        setCurrentStep(1); // Reset wizard on success
-      } else {
-        const errorText = await res.text();
-        toast.error(`Save Failed: ${errorText}`);
-      }
-    } catch (err) {
-      console.error("Submit Error:", err);
-      toast.error("A network error occurred while saving all steps.");
-    } finally {
-      setLoading(false);
-    }
-  };
+       const method = isUpdate ? 'PUT' : 'POST';
+
+       // 3. Send the combined DTO
+       const res = await authenticatedFetch(endpoint, {
+           method: method,
+           headers: { 'Content-Type': 'application/json' },
+           body: JSONbig.stringify(payload)
+       });
+
+       if (res.ok) {
+         toast.success(`Booking ${isUpdate ? 'updated' : 'created'} successfully!`);
+         setCurrentStep(1);
+       } else {
+         const errorText = await res.text();
+         toast.error(`Save Failed: ${errorText}`);
+       }
+     } catch (err) {
+       console.error("Submit Error:", err);
+       toast.error("A network error occurred while saving.");
+     } finally {
+       setLoading(false);
+     }
+   };
 
 
   const handleInputChange = (e) => {
@@ -632,20 +632,6 @@ const BookingService = ({ user }) => {
            <h2>Step 9: Book Recurring Service</h2>
            <div style={{ background: '#f9f9f9', padding: '20px', borderRadius: '8px', border: '1px solid #ddd' }}>
 
-             {/* 1. Recurrence Type Selection */}
-             <div style={{ marginBottom: '15px' }}>
-               <label><strong>Recurrence Type: </strong></label>
-               <select
-                 name="recurrenceType"
-                 value={formData.recurrenceType || 'WEEKLY'}
-                 onChange={handleInputChange}
-                 style={{ padding: '5px', marginLeft: '10px' }}
-               >
-                 <option value="WEEKLY">WEEKLY</option>
-                 <option value="ONE_TIME">ONE_TIME</option>
-               </select>
-             </div>
-
              {/* 2. Weekly Pattern (Monday - Sunday) */}
              <p><strong>Weekly Schedule:</strong></p>
              <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
@@ -675,30 +661,12 @@ const BookingService = ({ user }) => {
                </label>
 
                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                 <label style={{ cursor: 'pointer' }}>
-                   <input type="checkbox" name="acceptPublicHoliday" checked={!!formData.acceptPublicHoliday} onChange={handleInputChange} />
-                   {" "}Accept Public Holiday
-                 </label>
-                 <label style={{ cursor: 'pointer' }}>
-                   <input type="checkbox" name="skipPublicHoliday" checked={!!formData.skipPublicHoliday} onChange={handleInputChange} />
-                   {" "}Skip Public Holiday
-                 </label>
-               </div>
-
-               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <label style={{ cursor: 'pointer' }}>
                    <input type="checkbox" name="isActive" checked={formData.isActive !== false} onChange={handleInputChange} />
                    {" "}Is Active
                  </label>
                </div>
              </div>
-
-             <button
-               onClick={handleFinalSubmit}
-               style={{ marginTop: '20px', padding: '10px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-             >
-               Save Recurring Booking
-             </button>
            </div>
          </section>
        )}
