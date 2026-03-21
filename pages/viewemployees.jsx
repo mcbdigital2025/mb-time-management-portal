@@ -248,7 +248,7 @@ const hasEditPermission = ["administrator", "superadministrator"].includes(
       );
 
       if (!response.ok) throw new Error("Failed to add skill");
-      setSuccess("Skill added successfully!");
+      toast.success("Skill added successfully!");
       handleRowClick(selectedEmployee); // Refresh skills list
     } catch (err) {
       setError(err.message);
