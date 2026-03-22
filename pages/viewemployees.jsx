@@ -5,17 +5,7 @@ import { useRouter } from "next/router";
 import JSONbig from "json-bigint";
 import { authenticatedFetch } from "../utils/api";
 import ReusableTable from "../components/ReusableTable";
-import { toast } from "react-toastify";
 import ViewEmployeesSkeleton from "../components/loaders/ViewEmployeesSkeleton";
-import CreateEmployeeModal from "../components/modal/CreateEmployeeModal";
-import EditEmployeeModal from "../components/modal/EditEmployeeModal";
-import ResetPasswordModal from "../components/modal/ResetPasswordModal";
-import EmployeeSkillsCard from "../components/modal/EmployeeSkillsCard";
-import UpdateSkillModal from "../components/modal/UpdateSkillModal";
-
-
-
-
 const GENDER_OPTIONS = ["Male", "Female", "Other"];
 const STATUS_OPTIONS = ["Active", "Inactive"];
 const ACCESS_LEVEL_OPTIONS = ["Basic", "Administrator", "Supervisor"];
@@ -80,27 +70,18 @@ const ViewEmployees = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [isUpdateSkillModalOpen, setIsUpdateSkillModalOpen] = useState(false);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createFormData, setCreateFormData] = useState(INITIAL_CREATE_FORM_DATA);
   const [createFormError, setCreateFormError] = useState("");
   const [createFormSuccess, setCreateFormSuccess] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-  const [selectedSkill, setSelectedSkill] = useState(null);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editFormData, setEditFormData] = useState(INITIAL_EDIT_FORM_DATA);
   const [editFormError, setEditFormError] = useState("");
   const [editFormSuccess, setEditFormSuccess] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
-  const [skills, setSkills] = useState([]);
-  const [skillsLoading, setSkillsLoading] = useState(false);
-
-  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
-  const [employeeToReset, setEmployeeToReset] = useState(null);
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
-
 
   const fetchEmployees = async (currentUser) => {
     try {
@@ -138,7 +119,7 @@ const ViewEmployees = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        toast.error(
+        throw new Error(
           `Failed to fetch employees: ${response.status} ${response.statusText} - ${errorText}`
         );
       }
@@ -179,80 +160,13 @@ const ViewEmployees = () => {
     fetchEmployees(storedUser);
   }, [router]);
 
-  const normalizeRole = (role) => {
-  if (!role) return "";
-  return String(role).replace(/^ROLE_/, "").trim().toLowerCase();
-};
+  const hasEditPermission =
+    user?.accessLevel === "Administrator";
 
-const hasEditPermission = ["administrator", "superadministrator"].includes(
-  normalizeRole(user?.accessLevel)
-);
-
-  // const hasEditPermission =
-  //   user?.accessLevel === "ROLE_Administrator" ||
-  //   user?.accessLevel === "ROLE_SuperAdministrator";
-
-  const handleRowClick = async (emp) => {
+  const handleRowClick = (emp) => {
     setSelectedEmployee(emp);
     setError("");
     setSuccessMessage("");
-
-    setSkillsLoading(true);
-
-    try {
-      const skillRes = await authenticatedFetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/employee/skill/${encodeURIComponent(user.companyId)}/${encodeURIComponent(emp.employeeId)}`,
-        { method: "GET", headers: { Accept: "application/json" } }
-      );
-      if (skillRes.ok) {
-        const skillData = await skillRes.json();
-        setSkills(Array.isArray(skillData) ? skillData : []);
-      }
-    } catch (err) {
-      console.error("Error fetching skills:", err);
-    } finally {
-      setSkillsLoading(false);
-    }
-  };
-
-  const openUpdateSkillModal = () => {
-    if (!selectedSkill) return;
-    setIsUpdateSkillModalOpen(true);
-  };
-
-  const closeUpdateSkillModal = () => {
-    setIsUpdateSkillModalOpen(false);
-  };
-
-  // Directly invokes the updateEmployeeSkill endpoint
-  const handleAddSkill = async () => {
-    if (!selectedEmployee) return;
-
-    // This is a placeholder for the skill object you want to pass.
-    const newSkill = {
-      companyId: user.companyId,
-      employeeId: selectedEmployee.employeeId,
-      skillName: "New Skill", // Placeholder
-      skillLevel: "BEGINNER",
-      yearsExperience: 0.0
-    };
-
-    try {
-      const response = await authenticatedFetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/employee/updateEmployeeSkill/${encodeURIComponent(user.companyId)}/${encodeURIComponent(selectedEmployee.employeeId)}`,
-        {
-          method: "POST", // or PUT depending on your backend API design
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(newSkill),
-        }
-      );
-
-      if (!response.ok) throw new Error("Failed to add skill");
-      toast.success("Skill added successfully!");
-      handleRowClick(selectedEmployee); // Refresh skills list
-    } catch (err) {
-      setError(err.message);
-    }
   };
 
   const openCreateModal = () => {
@@ -318,14 +232,19 @@ const hasEditPermission = ["administrator", "superadministrator"].includes(
       return;
     }
 
-    if (!employeeToReset) {
-      setError("No employee selected for password reset.");
+    if (!selectedEmployee) {
+      setError("Please select an employee first.");
       return;
     }
 
     setError("");
     setSuccessMessage("");
-    setIsResettingPassword(true);
+
+    const confirmed = window.confirm(
+      `Reset password for ${selectedEmployee.firstName} ${selectedEmployee.lastName}?`
+    );
+
+    if (!confirmed) return;
 
     try {
       const response = await authenticatedFetch(
@@ -335,7 +254,7 @@ const hasEditPermission = ["administrator", "superadministrator"].includes(
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(employeeToReset),
+          body: JSON.stringify(selectedEmployee),
         }
       );
 
@@ -347,43 +266,12 @@ const hasEditPermission = ["administrator", "superadministrator"].includes(
       }
 
       setSuccessMessage(
-        `Password for ${employeeToReset.firstName} ${employeeToReset.lastName} reset successfully.`
+        `Password for ${selectedEmployee.firstName} reset successfully.`
       );
-      toast.success(
-        `Password for ${employeeToReset.firstName} ${employeeToReset.lastName} reset successfully.`
-      );
-
-      closeResetModal();
     } catch (err) {
       console.error("Reset password error:", err);
       setError(err.message || "Failed to reset password.");
-      setSuccessMessage("");
-    } finally {
-      setIsResettingPassword(false);
     }
-  };
-
-  const openResetModal = (emp) => {
-    if (!hasEditPermission) {
-      setError("You do not have permission to reset passwords.");
-      return;
-    }
-
-    if (!emp) {
-      setError("Please select an employee first.");
-      return;
-    }
-
-    setError("");
-    setSuccessMessage("");
-    setEmployeeToReset(emp);
-    setIsResetModalOpen(true);
-  };
-
-  const closeResetModal = () => {
-    if (isResettingPassword) return;
-    setIsResetModalOpen(false);
-    setEmployeeToReset(null);
   };
 
   const handleCreateFormChange = (e) => {
@@ -479,8 +367,6 @@ const hasEditPermission = ["administrator", "superadministrator"].includes(
       setSuccessMessage("Employee updated successfully.");
 
       await fetchEmployees(user);
-
-      toast.success("Employee updated successfully")
 
       setTimeout(() => {
         closeEditModal();
@@ -596,29 +482,6 @@ const hasEditPermission = ["administrator", "superadministrator"].includes(
     return <input type={type} {...commonProps} />;
   };
 
-  const fetchSkills = async (employee) => {
-  if (!employee || !employee.companyId || !employee.employeeId) return;
-
-  try {
-    const response = await authenticatedFetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/employee/skills/${encodeURIComponent(
-        employee.companyId
-      )}/${encodeURIComponent(employee.employeeId)}`
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch skills");
-    }
-
-    const data = await response.json();
-    setSkills(Array.isArray(data) ? data : []);
-  } catch (err) {
-    console.error("Fetch skills error:", err);
-  }
-};
-
-
-
   const employeeColumns = [
     {
       header: "ID",
@@ -640,7 +503,6 @@ const hasEditPermission = ["administrator", "superadministrator"].includes(
       header: "Access Level",
       render: (emp) => {
         const access = emp.accessLevel || "ROLE_User";
-        console.log("🚀 ~ ViewEmployees ~ emp.accessLevel:", emp.accessLevel)
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ring-1 bg-gray-50 text-gray-700 ring-gray-200">
             {access.replace("ROLE_", "")}
@@ -686,9 +548,43 @@ const hasEditPermission = ["administrator", "superadministrator"].includes(
         icon: "key",
         variant: "danger",
         showLabel: true,
-        onClick: (emp) => {
+        onClick: async (emp) => {
           setSelectedEmployee(emp);
-          openResetModal(emp);
+
+          const confirmed = window.confirm(
+            `Reset password for ${emp.firstName} ${emp.lastName}?`
+          );
+
+          if (!confirmed) return;
+
+          try {
+            const response = await authenticatedFetch(
+              `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/employee/resetPassword`,
+              {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(emp),
+              }
+            );
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(
+                `Failed to reset password: ${response.status} ${response.statusText} - ${errorText}`
+              );
+            }
+
+            setSuccessMessage(
+              `Password for ${emp.firstName} reset successfully.`
+            );
+            setError("");
+          } catch (err) {
+            console.error("Reset password error:", err);
+            setError(err.message || "Failed to reset password.");
+            setSuccessMessage("");
+          }
         },
       },
     ]
@@ -734,7 +630,7 @@ const hasEditPermission = ["administrator", "superadministrator"].includes(
             )}
             {successMessage && (
               <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-green-700 text-sm mt-2">
-                {" "}
+                {successMessage}
               </div>
             )}
           </div>
@@ -768,56 +664,159 @@ const hasEditPermission = ["administrator", "superadministrator"].includes(
         </div>
       </div>
 
-      <CreateEmployeeModal
-        isOpen={isCreateModalOpen}
-        onClose={closeCreateModal}
-        isCreating={isCreating}
-        createFormError={createFormError}
-        createFormSuccess={createFormSuccess}
-        createFormData={createFormData}
-        handleCreateEmployeeSubmit={handleCreateEmployeeSubmit}
-        formatLabel={formatLabel}
-        renderCreateInputField={renderCreateInputField}
-        requiredFields={REQUIRED_FIELDS}
-      />
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-xs px-3 py-6">
+          <div className="w-full max-w-4xl max-h-[90vh] hero-radial-background overflow-y-auto rounded-2xl bg-white shadow-2xl border border-teal-200">
+            <div className="sticky top-0 z-10 bg-white/95 backdrop-blur  border-gray-200 px-4 sm:px-6 py-4 flex items-center justify-between">
+              <div className=" flex items-center justify-center mb-2">
+                <h2 className="text-xl md:text-3xl  text-center font-bold bg-linear-to-r from-[#008080] via-cyan-600 to-[#008080] bg-clip-text text-transparent border-b">
+                  Create Employee Profile
+                </h2>
+              </div>
 
-      <EditEmployeeModal
-        isOpen={isEditModalOpen}
-        onClose={closeEditModal}
-        isUpdating={isUpdating}
-        editFormError={editFormError}
-        editFormData={editFormData}
-        handleEditEmployeeSubmit={handleEditEmployeeSubmit}
-        formatLabel={formatLabel}
-        renderEditInputField={renderEditInputField}
-      />
+              <button
+                type="button"
+                onClick={closeCreateModal}
+                disabled={isCreating}
+                className="px-3 py-2 bg-[#F75D42] rounded-lg  text-gray-100 hover:bg-gray-200 transition disabled:opacity-50"
+              >
+                Close
+              </button>
+            </div>
 
-      <ResetPasswordModal
-        isOpen={isResetModalOpen}
-        onClose={closeResetModal}
-        onConfirm={handleResetPassword}
-        isResettingPassword={isResettingPassword}
-        employeeToReset={employeeToReset}
-      />
+            <div className="p-4 sm:p-6">
+              {createFormError && (
+                <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-red-700 text-sm mb-4">
+                  {createFormError}
+                </div>
+              )}
 
-      <EmployeeSkillsCard
-        selectedEmployee={selectedEmployee}
-        skills={skills}
-        selectedSkill={selectedSkill}
-        onSelectSkill={setSelectedSkill}
-        onAddSkill={handleAddSkill}
-        onUpdateSkill={openUpdateSkillModal}
-      />
+              {createFormSuccess && (
+                <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-green-700 text-sm mb-4">
+                  {createFormSuccess}
+                </div>
+              )}
 
-      <UpdateSkillModal
-        isOpen={isUpdateSkillModalOpen}
-        onClose={closeUpdateSkillModal}
-        selectedSkill={selectedSkill}
-        onSuccess={async () => {
-          await fetchSkills(selectedEmployee);
-          setSelectedSkill(null);
-        }}
-      />
+              <form
+                onSubmit={handleCreateEmployeeSubmit}
+                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+              >
+                {Object.entries(createFormData).map(([key, value]) => (
+                  <div key={key} className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      {formatLabel(key)}{" "}
+                      {REQUIRED_FIELDS.includes(key) && (
+                        <span className="text-red-500">*</span>
+                      )}
+                    </label>
+                    {renderCreateInputField(key, value)}
+                  </div>
+                ))}
+
+                <div className="md:col-span-2 flex flex-col sm:flex-row gap-3 mt-4">
+                  <button
+                    type="submit"
+                    disabled={isCreating}
+                    className="flex-1 bg-[#008080] text-white font-semibold py-3 rounded-lg hover:bg-[#035f5f] disabled:bg-gray-400 transition-colors"
+                  >
+                    {isCreating ? "Creating..." : "Create Employee"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={closeCreateModal}
+                    disabled={isCreating}
+                    className="flex-1 bg-[#F75D42] text-white font-semibold py-3 rounded-lg hover:bg-[#f53918] disabled:bg-gray-400 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-3 py-6">
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl border border-amber-200">
+            <div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-gray-200 px-4 sm:px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl md:text-2xl font-semibold text-gray-900">
+                  Edit Employee Details
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Update employee information without leaving this page.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={closeEditModal}
+                disabled={isUpdating}
+                className="px-3 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition disabled:opacity-50"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-6">
+              {editFormError && (
+                <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-red-700 text-sm mb-4">
+                  {editFormError}
+                </div>
+              )}
+
+              {editFormSuccess && (
+                <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-green-700 text-sm mb-4">
+                  {editFormSuccess}
+                </div>
+              )}
+
+              <form
+                onSubmit={handleEditEmployeeSubmit}
+                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+              >
+                {Object.entries(editFormData).map(([key, value]) => (
+                  <div
+                    key={key}
+                    className={key === "status" ? "md:col-span-2 flex flex-col gap-1" : "flex flex-col gap-1"}
+                  >
+                    <label
+                      className={`text-sm font-semibold ${["employeeId", "companyId", "email"].includes(key)
+                        ? "text-gray-400"
+                        : "text-gray-700"
+                        }`}
+                    >
+                      {formatLabel(key)}
+                    </label>
+                    {renderEditInputField(key, value)}
+                  </div>
+                ))}
+
+                <div className="md:col-span-2 flex flex-col sm:flex-row gap-3 mt-4">
+                  <button
+                    type="submit"
+                    disabled={isUpdating}
+                    className="flex-1 bg-amber-500 text-white font-semibold py-3 rounded-lg hover:bg-amber-600 disabled:bg-gray-400 transition-colors"
+                  >
+                    {isUpdating ? "Updating..." : "Update Employee"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={closeEditModal}
+                    disabled={isUpdating}
+                    className="flex-1 bg-gray-200 text-gray-800 font-semibold py-3 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
