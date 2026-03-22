@@ -1,169 +1,170 @@
 "use client";
 
-import React, { useMemo } from "react";
-import { StatCard } from "../components/StatCard";
+import {
+  addWeeks,
+  endOfWeek,
+  format,
+  isWithinInterval,
+  parseISO,
+  startOfWeek,
+  subWeeks
+} from "date-fns";
+import JSONbig from "json-bigint";
+import { Calendar, ChevronLeft, ChevronRight } from "lucide-react"; // Icons for navigation
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "react-toastify";
 import LandingOverview from "../components/LandingOverview";
-import { badgeClasses, dailySchedules, noticeClasses } from "../utils/data";
+import ViewEmployeesSkeleton from "../components/loaders/ViewEmployeesSkeleton";
+import { StatCard } from "../components/StatCard";
+import { authenticatedFetch } from "../utils/api";
+import { badgeClasses } from "../utils/data";
 
 const LandingPage = ({ user }) => {
-  const today = useMemo(() => new Date().toLocaleDateString("en-GB"), []);
+  const [schedules, setSchedules] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  // --- Navigation State ---
+  const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+
+  const weekRangeLabel = useMemo(() => {
+    const end = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
+    return `${format(currentWeekStart, "MMM d")} - ${format(end, "MMM d, yyyy")}`;
+  }, [currentWeekStart]);
+
+  useEffect(() => {
+    if (!user?.companyId || !user?.employeeId) return;
+
+    const loadDashboardData = async () => {
+      setLoading(true);
+      try {
+        const companyId = user.companyId.toString();
+        const empId = user.employeeId.toString();
+
+        const response = await authenticatedFetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/clientschedule/staffid/${companyId}/${encodeURIComponent(empId)}`
+        );
+
+        if (response.ok) {
+          const text = await response.text();
+          const data = JSONbig.parse(text);
+          setSchedules(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error("Session Fetch Error:", err);
+        toast.error("Network error connecting to schedule service.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, [user]);
+
+  // --- Filtering Logic for Current Week ---
+  const filteredSchedules = useMemo(() => {
+    const start = currentWeekStart;
+    const end = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
+
+    return schedules.filter((s) => {
+      const scheduleDate = parseISO(s.workDate);
+      return isWithinInterval(scheduleDate, { start, end });
+    });
+  }, [schedules, currentWeekStart]);
+
+  // --- Stats Logic (Based on Filtered Data) ---
   const summary = useMemo(() => {
-    const total = dailySchedules.length;
-    const confirmed = dailySchedules.filter(
-      (s) => s.status === "Confirmed"
-    ).length;
-    const postponed = dailySchedules.filter(
-      (s) => s.status === "Postponed"
-    ).length;
-    const canceled = dailySchedules.filter(
-      (s) => s.status === "Canceled"
-    ).length;
-
-    return { total, confirmed, postponed, canceled };
-  }, []);
+    return {
+      total: filteredSchedules.length,
+      confirmed: filteredSchedules.filter(s => ["CONFIRM", "SCHEDULED", "COMPLETED"].includes(s.status?.toUpperCase())).length,
+      postponed: filteredSchedules.filter(s => s.status?.toUpperCase() === "POSTPONE").length,
+      canceled: filteredSchedules.filter(s => ["CANCELED", "CANCELLED"].includes(s.status?.toUpperCase())).length,
+    };
+  }, [filteredSchedules]);
 
   const stats = [
-    {
-      title: "Appointments",
-      value: summary.total,
-      subtitle: "Total today",
-    },
-    {
-      title: "Confirmed",
-      value: summary.confirmed,
-      subtitle: "Ready to work",
-    },
-    {
-      title: "Postponed",
-      value: summary.postponed,
-      subtitle: "Needs review",
-    },
-    {
-      title: "Canceled",
-      value: summary.canceled,
-      subtitle: "Not active",
-    },
+    { title: "Weekly Appointments", value: summary.total, subtitle: "Current view" },
+    { title: "Confirmed", value: summary.confirmed, subtitle: "Ready to work" },
+    { title: "Postponed", value: summary.postponed, subtitle: "Rescheduled" },
+    { title: "Canceled", value: summary.canceled, subtitle: "Inactive" },
   ];
 
-  const notifications = useMemo(() => {
-    const items = dailySchedules
-      .filter((s) => s.alert)
-      .map((s) => ({
-        id: s.id,
-        title: s.client,
-        message: s.alert,
-        status: s.status,
-      }));
+  // --- Handlers ---
+  const nextWeek = () => setCurrentWeekStart(prev => addWeeks(prev, 1));
+  const prevWeek = () => setCurrentWeekStart(prev => subWeeks(prev, 1));
+  const goToday = () => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
-    return items.length
-      ? items
-      : [
-        {
-          id: "none",
-          title: "All good",
-          message: "No alerts for today.",
-          status: "Confirmed",
-        },
-      ];
-  }, []);
+  if (loading) {
+    return (
+      <div className="min-h-screen w-full bg-gray-50 py-8 flex justify-center">
+        <div className="w-[90%]"><ViewEmployeesSkeleton /></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-gray-50 py-1 flex justify-center">
-      <div className="hero-radial-background flex w-[96%] justify-center bg-[radial-gradient(12%_14.08%_at_9.42%_89.81%,#D1E5FF,#F8FAFC),radial-gradient(13.98%_18.61%_at_186.74%_119.73%,rgba(110,178,188,0.4),rgba(217,217,217,0.4))] px-1 md:w-[90%] md:px-8">
+      <div className="hero-radial-background flex w-[96%] justify-center bg-[radial-gradient(12%_14.08%_at_9.42%_89.81%,#D1E5FF,#F8FAFC)] px-1 md:w-[90%] md:px-8">
         <div className="w-full px-4 py-8 md:px-6">
-          <LandingOverview
-            user={user}
-            today={today}
-            notifications={notifications}
-          />
-          
 
-          <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <LandingOverview user={user} Week={format(new Date(), "dd/MM/yyyy")} notifications={[]} />
+
+          {/* Navigation Bar */}
+          <div className="mt-6 flex flex-col md:flex-row md:items-center justify-between bg-white/40 p-4 rounded-2xl backdrop-blur-sm border border-white/60 shadow-sm gap-4">
+            <div className="flex items-center gap-3">
+              <Calendar className="text-emerald-600 w-5 h-5" />
+              <h2 className="text-lg font-bold text-slate-800">{weekRangeLabel}</h2>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button onClick={goToday} className="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition">Week</button>
+              <div className="flex bg-white border border-slate-200 rounded-lg overflow-hidden">
+                <button onClick={prevWeek} className="p-2 hover:bg-slate-50 border-r border-slate-200"><ChevronLeft size={18} /></button>
+                <button onClick={nextWeek} className="p-2 hover:bg-slate-50"><ChevronRight size={18} /></button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
             {stats.map((stat) => (
-              <StatCard
-                key={stat.title}
-                title={stat.title}
-                value={stat.value}
-                subtitle={stat.subtitle}
-              />
+              <StatCard key={stat.title} title={stat.title} value={stat.value} subtitle={stat.subtitle} />
             ))}
           </div>
 
-          <div className="relative mt-6 overflow-hidden rounded-3xl bg-linear-to-br from-white/80 via-white/70 to-transparent p-6">
-            <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Daily Schedule
-                </h2>
-                <p className="text-sm text-slate-700">
-                  Today’s shifts and status updates.
-                </p>
-              </div>
-
-              <div className="text-xs font-medium text-slate-800">
-                {dailySchedules.length} appointments total
-              </div>
+          <div className="relative mt-6 overflow-hidden rounded-3xl bg-white/80 p-6 shadow-sm border border-white">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-semibold text-slate-900">Weekly Shift Details</h2>
+              <span className="text-xs font-medium bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md">
+                {filteredSchedules.length} shifts this week
+              </span>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              {dailySchedules.map((shift) => (
-                <div
-                  key={shift.id}
-                  className="relative rounded-2xl border border-white/40 bg-white/15 p-5 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] transition hover:bg-white/25"
-                >
-                  <div className="pointer-events-none absolute inset-0 rounded-2xl bg-linear-to-br from-white/40 via-white/10 to-transparent" />
-
-                  <div className="relative z-10">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-800">
-                          {shift.type}
-                        </p>
-                        <h3 className="mt-1 truncate text-lg font-semibold text-slate-900">
-                          {shift.client}
-                        </h3>
-                      </div>
-
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${badgeClasses(
-                          shift.status
-                        )}`}
-                      >
-                        {shift.status}
-                      </span>
+              {filteredSchedules.length > 0 ? (
+                filteredSchedules.sort((a,b) => new Date(a.workDate) - new Date(b.workDate)).map((shift) => (
+                <div key={shift.clientBookingId} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition hover:shadow-md">
+                  <div className="flex justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">{format(parseISO(shift.workDate), "EEEE, MMM d")}</p>
+                      <h3 className="text-md font-bold text-slate-900 mt-1">{shift.facilitiesName}</h3>
+                      <p className="text-xs text-slate-500">{shift.jobCode}</p>
                     </div>
-
-                    <div className="mt-3 flex items-center gap-2 text-sm text-slate-800">
-                      ⏰ <span className="font-medium">Shift:</span> {shift.time}
-                    </div>
-
-                    {shift.alert && (
-                      <div
-                        className={`mt-4 flex items-start gap-2 rounded-xl border border-white/40 p-3 text-sm backdrop-blur-md ${noticeClasses(
-                          shift.status
-                        )}`}
-                      >
-                        ⚠️
-                        <div>
-                          <p className="font-semibold">Notice</p>
-                          <p>{shift.alert}</p>
-                        </div>
-                      </div>
-                    )}
+                    <span className={`h-fit px-2.5 py-1 rounded-full text-[10px] font-bold ring-1 ring-inset ${badgeClasses(shift.status)}`}>
+                      {shift.status}
+                    </span>
+                  </div>
+                  <div className="mt-4 flex flex-col gap-1 text-sm text-slate-600">
+                    <div className="flex items-center gap-2"><span>⏰</span> {shift.scheduledStartTime} - {shift.scheduledEndTime}</div>
+                    <div className="flex items-center gap-2"><span>📍</span> {shift.workLocation}</div>
                   </div>
                 </div>
-              ))}
+              ))
+            ) : (
+              <div className="col-span-2 py-16 text-center">
+                <div className="text-4xl mb-2">🍃</div>
+                <p className="text-slate-400 font-medium">No shifts scheduled for this week.</p>
+              </div>
+            )}
             </div>
-          </div>
-
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-            <button className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
-              Request Leave
-            </button>
-            <button className="inline-flex items-center justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-900 ring-1 ring-slate-200 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2">
-              Download Timesheet
-            </button>
           </div>
         </div>
       </div>
