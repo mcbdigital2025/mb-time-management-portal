@@ -8,40 +8,43 @@ import { jwtDecode } from "jwt-decode";
  * @param {string} url The URL of the API endpoint.
  * @param {RequestInit} [options] Optional fetch options (method, body, headers, etc.).
  * @returns {Promise<Response>} The fetch Response object.
- * @throws {Error} I
+ * @throws {Error} If no JWT token is found in localStorage.
  */
 export async function authenticatedFetch(url, options = {}) {
-  // const jwtToken = localStorage.getItem("jwtToken"); // Retrieve the stored JWT token
-  const tokenCookie = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith("jwtToken="));
-  const jwtToken = tokenCookie.split("=")[1];
+    // const jwtToken = localStorage.getItem("jwtToken"); // Retrieve the stored JWT token
+    const tokenCookie = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("jwtToken="));
+        const jwtToken = tokenCookie.split("=")[1];
 
-  if (!jwtToken) {
-    console.error("No JWT token found. User not authenticated.");
-    // const router = useRouter();
-    // router.push('/login');
-    throw new Error("Authentication token missing.");
-  }
-  //  const check = isTokenExpired(jwtToken)
-  //  console.log("🚀 ~ authenticatedFetch ~ check:", check)
+    if (!jwtToken) {
+        // Handle case where token is missing (e.g., redirect to login)
+        console.error("No JWT token found. User not authenticated.");
+        // You might want to redirect the user to the login page here
+        // import { useRouter } from 'next/router';
+        // const router = useRouter();
+        // router.push('/login');
+        throw new Error("Authentication token missing.");
+    }
 
-  // Ensure headers object exists
-  options.headers = {
-    ...options.headers, // Preserve any existing headers
-    Authorization: `Bearer ${jwtToken}`, // Add the Authorization header
-    Accept: "application/json", // Common for APIs
-    "Content-Type": "application/json", // Common for POST/PUT requests with JSON body
-  };
+    // Ensure headers object exists
+    options.headers = {
+        ...options.headers, // Preserve any existing headers
+        'Authorization': `Bearer ${jwtToken}`, // Add the Authorization header
+        'Accept': 'application/json', // Common for APIs
+        'Content-Type': 'application/json', // Common for POST/PUT requests with JSON body
+    };
 
-  // Remove credentials: 'include' if you are solely relying on JWT for authentication
-  // as it might send cookies/session IDs which are not needed with stateless JWT.
-  // However, if your backend still uses session cookies for some reason, keep it.
-  // For pure JWT, you'd typically omit or set to 'omit'.
-  // delete options.credentials; // Uncomment this line for pure JWT authentication
+    // Remove credentials: 'include' if you are solely relying on JWT for authentication
+    // as it might send cookies/session IDs which are not needed with stateless JWT.
+    // However, if your backend still uses session cookies for some reason, keep it.
+    // For pure JWT, you'd typically omit or set to 'omit'.
+    // delete options.credentials; // Uncomment this line for pure JWT authentication
 
-  return fetch(url, options);
+    return fetch(url, options);
 }
+
+
 
 export function isTokenExpired(token) {
   try {
