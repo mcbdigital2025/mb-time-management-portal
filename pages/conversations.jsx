@@ -205,8 +205,7 @@ const Conversations = () => {
 
     try {
       const res = await authenticatedFetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/chat/createMemmber`,
-        // `${API_BASE}/mcbtt/api/timesheet/chat/createMemmber`,
+         `${API_BASE}/mcbtt/api/timesheet/chat/createMemmber`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

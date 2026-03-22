@@ -2,24 +2,23 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { authenticatedFetch } from '../utils/api'; // Import authenticatedFetch
+import { authenticatedFetch } from '../utils/api';
+import { User, Save, XCircle, Loader2 } from "lucide-react";
 
 const UpdateClient = () => {
   const [form, setForm] = useState(null);
   const router = useRouter();
-  const [successMessage, setSuccessMessage] = useState(null); // Changed from 'success' to 'successMessage'
-  const [error, setError] = useState(null); // State for error messages
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
     const storedClient = sessionStorage.getItem("selectedClient");
 
-    // ✅ Check for user and JWT token immediately on load
     if (!storedUser || !storedUser.jwtToken) {
-      setError("User session or token is missing. Redirecting to login.");
-      setTimeout(() => {
-        router.replace("/login");
-      }, 500);
+      setError("User session expired. Redirecting to login...");
+      setTimeout(() => router.replace("/login"), 1500);
       return;
     }
 
@@ -38,221 +37,160 @@ const UpdateClient = () => {
         status: client.status || "Active",
       });
     } else {
-      setError("No client data found in session storage. Redirecting to client list.");
-      setTimeout(() => {
-        router.push("/client");
-      }, 500);
+      setError("No client data selected. Returning to directory...");
+      setTimeout(() => router.push("/client"), 1500);
     }
-  }, []); // Empty dependency array as router is accessed inside the effect
+  }, [router]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = async () => {
-    setError(null); // Clear previous errors
-    setSuccessMessage(null); // Clear previous success messages
-
-    // Re-check user and token before submitting
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (!storedUser || !storedUser.jwtToken) {
-      setError("User session or token is missing. Please log in again.");
-      setTimeout(() => {
-        router.replace("/login");
-      }, 1500);
-      return;
-    }
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setSuccessMessage(null);
+    setIsSubmitting(true);
 
     try {
-      // ✅ Use authenticatedFetch instead of direct fetch
       const response = await authenticatedFetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/client/update`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form),
-          // ✅ Removed credentials: "include"
         }
       );
 
       if (response.ok) {
-        setSuccessMessage("Client updated successfully.");
-        setTimeout(() => {
-          router.push("/client");
-        }, 1500); // Give user a moment to see the success message
+        setSuccessMessage("Client profile updated successfully!");
+        setTimeout(() => router.push("/client"), 1500);
       } else {
         const errorText = await response.text();
-        console.error("Failed to update client:", response.status, response.statusText, errorText);
-        throw new Error(`Failed to update client: ${response.status} ${response.statusText} - ${errorText}`);
+        throw new Error(errorText || "Failed to update client.");
       }
     } catch (err) {
-      console.error("Update error:", err);
-      setError("An error occurred while updating the client: " + err.message);
-      // If fetching fails due to token issues (e.g., token expired/invalid),
-      // consider redirecting to login after a delay.
-      if (err.message.includes("Authentication token missing") || err.message.includes("401 Unauthorized")) {
-           setTimeout(() => {
-               router.replace("/login");
-           }, 1500);
+      setError(err.message);
+      if (err.message.includes("401") || err.message.includes("token")) {
+        setTimeout(() => router.replace("/login"), 1500);
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleCancel = () => {
-    router.push("/client");
-  };
+  const inputClasses = "w-full px-3 py-2.5 border border-[#008080]/30 bg-white/50 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none transition-all font-medium";
+  const labelClasses = "text-sm font-bold text-gray-600 mb-1";
 
-  if (error) {
-    return <div className="text-red-500 text-center mt-10">Error: {error}</div>;
-  }
-
-  if (!form) {
-    return <div className="p-6 text-center text-blue-600">Loading client data...</div>;
+  if (!form && !error) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center hero-radial-background bg-[radial-gradient(12%_14.08%_at_9.42%_89.81%,#D1E5FF,#F8FAFC),radial-gradient(13.98%_18.61%_at_186.74%_119.73%,rgba(110,178,188,0.4),rgba(217,217,217,0.4))]">
+        <Loader2 className="animate-spin text-[#008080]" size={48} />
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-5xl mx-auto mt-10 p-6 bg-gray-50 rounded shadow space-y-10">
-      {/* Group Box: Update Client */}
-      <fieldset className="border border-gray-300 rounded p-5">
-        <legend className="text-xl font-semibold px-2">Update Client</legend>
+    <div className="min-h-screen w-full py-10 hero-radial-background bg-[radial-gradient(12%_14.08%_at_9.42%_89.81%,#D1E5FF,#F8FAFC),radial-gradient(13.98%_18.61%_at_186.74%_119.73%,rgba(110,178,188,0.4),rgba(217,217,217,0.4))]">
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="bg-white/20 backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.1)] rounded-2xl border border-white/40 p-8">
 
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-        {successMessage && <p className="text-green-500 text-center mb-4">{successMessage}</p>}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          <div>
-            <label className="block font-medium">Client ID</label>
-            <input
-              type="text"
-              value={form.clientId}
-              disabled
-              className="w-full mt-1 border rounded px-3 py-2 bg-gray-100 text-gray-600"
-            />
+          {/* Header */}
+          <div className="flex flex-col items-center mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-[#008080] via-cyan-700 to-[#008080] bg-clip-text text-transparent border-b border-[#008080]/20 pb-2">
+              Update Client Profile
+            </h2>
           </div>
 
-          <div>
-            <label className="block font-medium">Company ID</label>
-            <input
-              type="text"
-              value={form.companyId}
-              disabled
-              className="w-full mt-1 border rounded px-3 py-2 bg-gray-100 text-gray-600"
-            />
-          </div>
+          {error && <div className="bg-red-50/80 text-red-600 p-4 rounded-xl mb-6 font-semibold border border-red-200">{error}</div>}
+          {successMessage && <div className="bg-teal-50/80 text-teal-700 p-4 rounded-xl mb-6 font-semibold border border-teal-200">{successMessage}</div>}
 
-          <div>
-            <label className="block font-medium">First Name</label>
-            <input
-              type="text"
-              name="firstName"
-              value={form.firstName}
-              onChange={handleChange}
-              className="w-full mt-1 border rounded px-3 py-2"
-            />
-          </div>
+          <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-          <div>
-            <label className="block font-medium">Last Name</label>
-            <input
-              type="text"
-              name="lastName"
-              value={form.lastName}
-              onChange={handleChange}
-              className="w-full mt-1 border rounded px-3 py-2"
-            />
-          </div>
+            {/* Read-Only Identity Section */}
+            <div className="flex flex-col">
+              <label className={labelClasses}>Client ID</label>
+              <input value={form.clientId} disabled className={`${inputClasses} bg-gray-200/50 cursor-not-allowed text-gray-500`} />
+            </div>
 
-          <div>
-            <label className="block font-medium">Email</label>
-            <input
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              className="w-full mt-1 border rounded px-3 py-2"
-            />
-          </div>
+            <div className="flex flex-col">
+              <label className={labelClasses}>Company ID</label>
+              <input value={form.companyId} disabled className={`${inputClasses} bg-gray-200/50 cursor-not-allowed text-gray-500`} />
+            </div>
 
-          <div>
-            <label className="block font-medium">Phone Number</label>
-            <input
-              type="text"
-              name="phoneNumber"
-              value={form.phoneNumber}
-              onChange={handleChange}
-              className="w-full mt-1 border rounded px-3 py-2"
-            />
-          </div>
+            {/* Editable Fields */}
+            <div className="flex flex-col">
+              <label className={labelClasses}>First Name <span className="text-red-500">*</span></label>
+              <input type="text" name="firstName" value={form.firstName} onChange={handleChange} required className={inputClasses} />
+            </div>
 
-          <div className="md:col-span-2"> {/* Span full width on medium screens */}
-            <label className="block font-medium">Address</label>
-            <textarea
-              name="address"
-              value={form.address}
-              onChange={handleChange}
-              rows={4}
-              className="w-full mt-1 border rounded px-3 py-2 resize-y"
-            />
-          </div>
+            <div className="flex flex-col">
+              <label className={labelClasses}>Last Name <span className="text-red-500">*</span></label>
+              <input type="text" name="lastName" value={form.lastName} onChange={handleChange} required className={inputClasses} />
+            </div>
 
+            <div className="flex flex-col">
+              <label className={labelClasses}>Email Address</label>
+              <input type="email" name="email" value={form.email} onChange={handleChange} className={inputClasses} />
+            </div>
 
-          <div>
-            <label className="block font-medium">Age</label>
-            <input
-              type="number"
-              name="age"
-              value={form.age}
-              onChange={handleChange}
-              className="w-full mt-1 border rounded px-3 py-2"
-            />
-          </div>
+            <div className="flex flex-col">
+              <label className={labelClasses}>Phone Number</label>
+              <input type="text" name="phoneNumber" value={form.phoneNumber} onChange={handleChange} className={inputClasses} />
+            </div>
 
-          <div>
-            <label className="block font-medium">Gender</label>
-            <select
-              name="gender"
-              value={form.gender}
-              onChange={handleChange}
-              className="w-full mt-1 border rounded px-3 py-2"
-            >
-              <option value="">Select Gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Nonbinary">Nonbinary</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
+            <div className="md:col-span-2 flex flex-col">
+              <label className={labelClasses}>Residential Address</label>
+              <textarea name="address" value={form.address} onChange={handleChange} rows={3} className={`${inputClasses} resize-none`} />
+            </div>
 
-          <div className="md:col-span-2"> {/* Span full width on medium screens */}
-            <label className="block font-medium">Status</label>
-            <select
-              name="status"
-              value={form.status}
-              onChange={handleChange}
-              className="w-full mt-1 border rounded px-3 py-2"
-            >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-          </div>
+            <div className="flex flex-col">
+              <label className={labelClasses}>Age</label>
+              <input type="number" name="age" value={form.age} onChange={handleChange} className={inputClasses} />
+            </div>
+
+            <div className="flex flex-col">
+              <label className={labelClasses}>Gender</label>
+              <select name="gender" value={form.gender} onChange={handleChange} className={inputClasses}>
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Nonbinary">Nonbinary</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-2 flex flex-col">
+              <label className={labelClasses}>Account Status</label>
+              <select name="status" value={form.status} onChange={handleChange} className={inputClasses}>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="md:col-span-2 flex flex-col sm:flex-row gap-4 mt-6">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 flex items-center justify-center gap-2 bg-[#008080] text-white font-bold py-3.5 rounded-xl hover:bg-[#035f5f] transition-all shadow-lg disabled:bg-gray-400 cursor-pointer"
+              >
+                <Save size={20} />
+                {isSubmitting ? "Updating..." : "Update Client"}
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/client")}
+                className="flex-1 flex items-center justify-center gap-2 bg-[#F75D42] text-white font-bold py-3.5 rounded-xl hover:bg-[#d44b35] transition-all shadow-lg cursor-pointer"
+              >
+                <XCircle size={20} />
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
-
-        <div className="flex justify-center gap-6 mt-10">
-          <button
-            onClick={handleSave}
-            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Save
-          </button>
-          <button
-            onClick={handleCancel}
-            className="px-6 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-          >
-            Cancel
-          </button>
-        </div>
-      </fieldset>
+      </div>
     </div>
   );
 };
