@@ -9,6 +9,7 @@ import {
 import { authenticatedFetch } from '../utils/api';
 import { toast } from 'react-toastify';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react'; // Optional: for icons
+import ViewEmployeesSkeleton from '../components/loaders/ViewEmployeesSkeleton';
 
 const ScheduleService = ({ user }) => {
   const router = useRouter();
@@ -160,7 +161,7 @@ const ScheduleService = ({ user }) => {
     return <div>{rows}</div>;
   };
 
-  if (loading) return <div>Loading Schedules...</div>;
+  if (loading) return <div> <ViewEmployeesSkeleton/> </div>;
 
   return (
     <div style={{ padding: '20px', background: '#fff', borderRadius: '12px', border: '1px solid #ddd' }}>
