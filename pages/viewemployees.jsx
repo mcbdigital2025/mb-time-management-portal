@@ -4,28 +4,31 @@ import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import JSONbig from "json-bigint";
-import { authenticatedFetch } from '../utils/api';
+import { authenticatedFetch } from "../utils/api";
 import ReusableTable from "../components/ReusableTable";
-import { Users, BookOpen, Home, Info, PlusCircle } from "lucide-react";
+import ViewEmployeesSkeleton from "../components/loaders/ViewEmployeesSkeleton";
+import { Users, BookOpen, Home, Trash2, Edit, AlertCircle, UserPlus, Lock } from "lucide-react";
 
-const Client = () => {
-  const [clients, setClients] = useState([]);
-  const [clientLearningNeeds, setClientLearningNeeds] = useState(null);
+const ViewEmployees = () => {
+  const [employees, setEmployees] = useState([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
+  const [skills, setSkills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
-  const [selectedClientId, setSelectedClientId] = useState(null);
+  const [confirmMessage, setConfirmMessage] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
   const [user, setUser] = useState(null);
   const router = useRouter();
 
-  // Permissions Check
+  // --- PERMISSION CHECK ---
   const hasEditPermission = useMemo(() => {
     return user?.accessLevel === "Administrator";
   }, [user]);
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (!storedUser || !storedUser.companyId) {
+    if (!storedUser || !storedUser.companyId || !storedUser.jwtToken) {
       setError("User session missing. Redirecting to login.");
       setLoading(false);
       setTimeout(() => router.replace("/login"), 500);
@@ -33,20 +36,20 @@ const Client = () => {
     }
     setUser(storedUser);
 
-    const fetchClients = async () => {
+    const fetchEmployees = async () => {
       try {
         const response = await authenticatedFetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/client/${encodeURIComponent(storedUser.companyId)}`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/employee/${encodeURIComponent(storedUser.companyId)}`,
           { method: "GET" }
         );
-        if (!response.ok) throw new Error("Failed to fetch client data.");
+        if (!response.ok) throw new Error("Failed to fetch employee data.");
 
         const text = await response.text();
         const data = JSONbig.parse(text);
-        setClients(data.map(c => ({
-          ...c,
-          clientId: c.clientId?.toString(),
-          companyId: c.companyId?.toString()
+        setEmployees(data.map(emp => ({
+          ...emp,
+          employeeId: emp.employeeId?.toString(),
+          companyId: emp.companyId?.toString(),
         })));
       } catch (err) {
         setError(err.message);
@@ -55,191 +58,219 @@ const Client = () => {
       }
     };
 
-    fetchClients();
+    fetchEmployees();
   }, [router]);
 
-  const fetchLearningNeeds = async (clientId) => {
+  const fetchSkills = async (empId) => {
+    if (!user?.companyId || !empId) return;
     try {
       const response = await authenticatedFetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/clientLearnNeeds/id/${encodeURIComponent(user.companyId)}/${encodeURIComponent(clientId)}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/employee/skill/${encodeURIComponent(user.companyId)}/${encodeURIComponent(empId)}`,
         { method: "GET" }
       );
       if (response.ok) {
-        const text = await response.text();
-        const data = JSONbig.parse(text);
-        setClientLearningNeeds(data);
+        const data = await response.json();
+        setSkills(Array.isArray(data) ? data : []);
       } else {
-        setClientLearningNeeds(null);
+        setSkills([]);
       }
     } catch (err) {
-      setClientLearningNeeds(null);
+      setSkills([]);
     }
   };
 
-  const handleRowClick = (client) => {
-    setSelectedClientId(client.clientId);
-    fetchLearningNeeds(client.clientId);
-    setError("");
-    setSuccessMessage("");
+  const handleRowClick = (emp) => {
+    setSelectedEmployeeId(emp.employeeId);
+    fetchSkills(emp.employeeId);
+    setError(null);
+    setSuccessMessage(null);
   };
 
-  // Action Columns Definition
-  const clientColumns = [
-    { header: "ID", render: (c) => <span className="font-mono text-xs text-gray-400">{c.clientId}</span> },
-    { header: "Name", render: (c) => <span className="font-semibold text-gray-900">{c.firstName} {c.lastName}</span> },
-    { header: "Email", render: (c) => c.email },
-    { header: "Phone", render: (c) => c.phoneNumber || "—" },
+  const handleCreateEmployee = () => {
+    if (!hasEditPermission) return;
+    router.push("/createemployee");
+  };
+
+  const handleDeleteEmployee = (emp) => {
+    if (!hasEditPermission) return;
+    setConfirmMessage(`Delete employee: ${emp.firstName} ${emp.lastName}?`);
+    setConfirmAction(() => async () => {
+      try {
+        const res = await authenticatedFetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/employee/delete?employeeId=${emp.employeeId}&companyId=${user.companyId}`,
+          { method: "POST" }
+        );
+        if (res.ok) {
+          setEmployees(prev => prev.filter(e => e.employeeId !== emp.employeeId));
+          setSuccessMessage("Employee deleted successfully.");
+          if (selectedEmployeeId === emp.employeeId) {
+            setSelectedEmployeeId(null);
+            setSkills([]);
+          }
+        }
+      } catch (err) { setError(err.message); }
+      setConfirmMessage(null);
+    });
+  };
+
+  const employeeColumns = [
+    { header: "ID", render: (e) => <span className="text-xs text-gray-400 font-mono">{e.employeeId}</span> },
+    { header: "Name", render: (e) => <span className="font-semibold text-gray-900">{e.firstName} {e.lastName}</span> },
+    { header: "Email", accessor: "email" },
+    { header: "Department", accessor: "departmentId" },
+    { header: "Job Title", accessor: "jobTitle" },
     {
-      header: "Status",
-      render: (c) => (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${c.status === "Active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
-          {c.status}
+      header: "Access Level",
+      render: (e) => (
+        <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-1 rounded">
+          {e.accessLevel}
         </span>
       )
     },
+    {
+      header: "Status",
+      render: (e) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-bold ${e.status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+          {e.status}
+        </span>
+      ),
+    },
   ];
 
-  const clientActions = hasEditPermission ? [
+  const employeeActions = hasEditPermission ? [
     {
       label: "Edit",
       icon: "edit",
       variant: "primary",
-      onClick: (c) => {
-        sessionStorage.setItem("selectedClient", JSON.stringify(c));
-        router.push("/updateClient");
+      onClick: (e) => {
+        sessionStorage.setItem("selectedEmployee", JSON.stringify(e));
+        router.push("/updateemployee");
       }
     },
     {
       label: "Delete",
       icon: "trash",
       variant: "danger",
-      onClick: async (c) => {
-        if (!window.confirm(`Are you sure you want to delete ${c.firstName}?`)) return;
-        try {
-          const res = await authenticatedFetch(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/client/delete?clientId=${c.clientId}&companyId=${user.companyId}`,
-            { method: "POST" }
-          );
-          if (res.ok) {
-            setClients(clients.filter(item => item.clientId !== c.clientId));
-            setSuccessMessage("Client deleted successfully.");
-          }
-        } catch (err) { setError(err.message); }
-      }
+      onClick: (e) => handleDeleteEmployee(e)
     }
   ] : [];
 
   return (
     <div className="relative min-h-screen w-full flex flex-col items-center hero-radial-background bg-[radial-gradient(12%_14.08%_at_9.42%_89.81%,#D1E5FF,#F8FAFC),radial-gradient(13.98%_18.61%_at_186.74%_119.73%,rgba(110,178,188,0.4),rgba(217,217,217,0.4))] px-4 py-10">
-
       <div className="relative z-10 w-full max-w-7xl space-y-6">
-        {/* Header Card */}
+
+        {/* HEADER SECTION */}
         <div className="bg-white/70 rounded-2xl shadow-sm border border-teal-400/30 overflow-hidden px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
               <Users className="text-[#008080]" size={24} />
-              <h1 className="text-2xl font-semibold text-gray-900">Client Management</h1>
+              <h1 className="text-2xl font-semibold text-gray-900">Employee Directory</h1>
             </div>
-            <p className="text-sm text-gray-500 mt-1">Manage client profiles and specialized learning requirements.</p>
+            <p className="text-sm text-gray-500 mt-1">Role: <span className="font-bold text-[#008080]">{user?.accessLevel || "Loading..."}</span></p>
           </div>
 
-          <div className="flex flex-col md:items-end gap-2">
-            <p className="text-sm font-bold text-gray-700">Role: {user?.accessLevel || "Loading..."}</p>
-            <button
-              onClick={() => {
-                sessionStorage.setItem("companyId", user.companyId);
-                router.push("/createClient");
-              }}
-              disabled={!hasEditPermission}
-              className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-                hasEditPermission ? "bg-[#008080] text-white hover:bg-teal-700" : "bg-gray-300 text-gray-500 cursor-not-allowed"
-              }`}
-            >
-              <PlusCircle size={16} /> Add Client
-            </button>
-          </div>
+          <button
+            onClick={handleCreateEmployee}
+            disabled={!hasEditPermission}
+            className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition shadow-sm ${
+              hasEditPermission ? "bg-[#008080] text-white hover:bg-teal-700 cursor-pointer" : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
+          >
+            <UserPlus size={18} /> Add Employee
+          </button>
         </div>
 
-        {/* Alerts */}
-        {(error || successMessage) && (
-          <div className="px-2">
-            {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>}
-            {successMessage && <div className="p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">{successMessage}</div>}
-          </div>
-        )}
+        {/* MESSAGES */}
+        {error && <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">{error}</div>}
+        {successMessage && <div className="p-4 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm">{successMessage}</div>}
 
-        {/* Main Table */}
+        {/* EMPLOYEE TABLE */}
         <div className="bg-white/70 rounded-2xl shadow-sm border border-teal-400/30 overflow-hidden">
-          <ReusableTable
-            data={clients}
-            columns={clientColumns}
-            actions={clientActions}
-            getRowKey={(c) => c.clientId}
-            onRowClick={handleRowClick}
-            isRowSelected={(c) => selectedClientId === c.clientId}
-            footerLeft={`Total Clients: ${clients.length}`}
-            footerRight="Select a client to view Learning Needs"
-          />
-        </div>
-
-        {/* Learning Needs Section - Consistent Card Style */}
-        <div className="bg-white/80 rounded-2xl p-8 border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-teal-50 rounded-lg text-[#008080]">
-                <BookOpen size={20} />
-              </div>
-              <h2 className="text-lg font-bold text-gray-800">Learning Requirements</h2>
-            </div>
-            {selectedClientId && hasEditPermission && (
-              <div className="flex gap-2">
-                {!clientLearningNeeds ? (
-                  <button onClick={() => router.push('/createClientLearningNeeds')} className="text-xs font-bold px-3 py-1.5 bg-white border border-gray-200 rounded-md hover:bg-gray-50">Add Needs</button>
-                ) : (
-                  <button onClick={() => router.push('/updateClientLearningNeeds')} className="text-xs font-bold px-3 py-1.5 bg-white border border-gray-200 rounded-md hover:bg-gray-50">Modify</button>
-                )}
-              </div>
-            )}
-          </div>
-
-          {clientLearningNeeds ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-3 p-4 bg-gray-50 rounded-xl">
-                <h3 className="text-[10px] font-black text-teal-600 uppercase tracking-widest flex items-center gap-2"><Info size={12}/> Skill Levels</h3>
-                <div className="text-sm">
-                  <p className="flex justify-between py-1 border-b border-gray-200"><span className="text-gray-500">Literacy:</span> <b>{clientLearningNeeds.literacyLevel}</b></p>
-                  <p className="flex justify-between py-1 border-b border-gray-200"><span className="text-gray-500">Numeracy:</span> <b>{clientLearningNeeds.numeracyLevel}</b></p>
-                  <p className="flex justify-between py-1"><span className="text-gray-500">Digital:</span> <b>{clientLearningNeeds.digitalSkillsLevel}</b></p>
-                </div>
-              </div>
-              <div className="space-y-3 p-4 bg-gray-50 rounded-xl text-sm">
-                <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2"><BookOpen size={12}/> Method</h3>
-                <p><span className="text-gray-500">Preferred:</span> {clientLearningNeeds.preferredLearningMethod}</p>
-                <p><span className="text-gray-500">Assistive Tech:</span> {clientLearningNeeds.assistiveTechnologyRequired ? "Yes" : "No"}</p>
-              </div>
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <h3 className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-2">Behavioral Notes</h3>
-                <p className="text-xs text-gray-600 italic">"{clientLearningNeeds.behavioralSupportNotes || "None recorded."}"</p>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-10 text-gray-400 italic text-sm">
-              {selectedClientId ? "No data found for this client." : "Select a client to view details."}
-            </div>
+          {loading ? <ViewEmployeesSkeleton /> : (
+            <ReusableTable
+              data={employees}
+              columns={employeeColumns}
+              actions={employeeActions}
+              getRowKey={(e) => e.employeeId}
+              onRowClick={(row) => handleRowClick(row)}
+              isRowSelected={(e) => selectedEmployeeId === e.employeeId}
+              footerLeft={`Showing ${employees.length} employees`}
+              footerRight="Select a row to view skills"
+            />
           )}
         </div>
 
-        {/* Home Button */}
-        <div className="flex justify-center pt-4">
-          <Link href="/home">
-            <button className="flex items-center gap-2 px-8 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition shadow-lg">
-              <Home size={18} /> Home
-            </button>
+        {/* SKILLS SECTION */}
+        <div className="bg-white/80 rounded-2xl p-6 border border-teal-100 shadow-sm mt-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-teal-50 rounded-lg text-[#008080]"><BookOpen size={20} /></div>
+              <h2 className="text-lg font-bold text-gray-800">Skills & Qualifications</h2>
+            </div>
+
+            {hasEditPermission && selectedEmployeeId && (
+              <button
+                onClick={() => router.push("/createskill")}
+                className="px-4 py-2 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 transition shadow-sm cursor-pointer"
+              >
+                + Add Skill
+              </button>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl border border-teal-100 overflow-hidden">
+            {selectedEmployeeId ? (
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 text-[10px] uppercase font-bold text-gray-500 border-b border-gray-100">
+                  <tr>
+                    <th className="px-6 py-3">Skill Name</th>
+                    <th className="px-6 py-3">Level</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {skills.length > 0 ? skills.map((s, idx) => (
+                    <tr key={idx} className="hover:bg-teal-50/30 transition-colors">
+                      <td className="px-6 py-4 font-medium text-gray-700">{s.skillName}</td>
+                      <td className="px-6 py-4 text-gray-500 italic">{s.skillLevel}</td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan="2" className="px-6 py-10 text-center text-gray-400 italic">No skills listed for this employee.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            ) : (
+              <div className="py-10 text-center text-gray-500 italic text-sm">
+                Select an employee from the table above to view skills.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* HOME NAVIGATION */}
+        <div className="flex justify-center pt-6">
+          <Link href="/home" className="flex items-center gap-2 px-10 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition shadow-lg">
+            <Home size={18} /> Home
           </Link>
         </div>
       </div>
+
+      {/* CONFIRMATION MODAL */}
+      {confirmMessage && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] px-4">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center">
+            <AlertCircle className="mx-auto mb-4 text-red-500" size={48} />
+            <p className="text-lg font-bold text-gray-900 mb-2">{confirmMessage}</p>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => confirmAction()} className="flex-1 py-2.5 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition">Confirm</button>
+              <button onClick={() => setConfirmMessage(null)} className="flex-1 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default Client;
+export default ViewEmployees;
