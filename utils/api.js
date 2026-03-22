@@ -11,50 +11,59 @@ import { jwtDecode } from "jwt-decode";
  * @throws {Error} If no JWT token is found in localStorage.
  */
 export async function authenticatedFetch(url, options = {}) {
-    // const jwtToken = localStorage.getItem("jwtToken"); // Retrieve the stored JWT token
+    // 1. Safety check for SSR (Next.js environment)
+    if (typeof document === "undefined") {
+        return fetch(url, options);
+    }
+
+    // 2. Safely find the cookie
     const tokenCookie = document.cookie
         .split("; ")
         .find((row) => row.startsWith("jwtToken="));
-        const jwtToken = tokenCookie.split("=")[1];
 
-    if (!jwtToken) {
-        // Handle case where token is missing (e.g., redirect to login)
+    // 3. If cookie is missing, do not attempt to .split("="), just handle the error
+    if (!tokenCookie) {
         console.error("No JWT token found. User not authenticated.");
-        // You might want to redirect the user to the login page here
-        // import { useRouter } from 'next/router';
-        // const router = useRouter();
-        // router.push('/login');
+        // We throw a clear error that your components can .catch()
         throw new Error("Authentication token missing.");
     }
 
-    // Ensure headers object exists
-    options.headers = {
-        ...options.headers, // Preserve any existing headers
-        'Authorization': `Bearer ${jwtToken}`, // Add the Authorization header
-        'Accept': 'application/json', // Common for APIs
-        'Content-Type': 'application/json', // Common for POST/PUT requests with JSON body
+    // 4. Safe to split now because we know tokenCookie exists
+    const jwtToken = tokenCookie.split("=")[1];
+
+    if (!jwtToken) {
+        throw new Error("JWT Token value is empty.");
+    }
+
+    // 5. Prepare headers
+    const headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwtToken}`,
+        ...options.headers, // Allow overriding if specific calls need different headers
     };
 
-    // Remove credentials: 'include' if you are solely relying on JWT for authentication
-    // as it might send cookies/session IDs which are not needed with stateless JWT.
-    // However, if your backend still uses session cookies for some reason, keep it.
-    // For pure JWT, you'd typically omit or set to 'omit'.
-    // delete options.credentials; // Uncomment this line for pure JWT authentication
-
-    return fetch(url, options);
+    return fetch(url, {
+        ...options,
+        headers,
+    });
 }
 
-
-
+/**
+ * Checks if a JWT token's expiration time has passed.
+ */
 export function isTokenExpired(token) {
+  if (!token) return true;
   try {
     const decoded = jwtDecode(token);
 
     if (!decoded.exp) return false;
 
-    const currentTime = Date.now() / 1000;
+    // Check if current time (in seconds) is greater than expiry time
+    const currentTime = Math.floor(Date.now() / 1000);
     return decoded.exp < currentTime;
-  } catch {
+  } catch (error) {
+    // If decoding fails, treat as expired/invalid
     return true;
   }
 }
