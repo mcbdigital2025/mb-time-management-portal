@@ -1,0 +1,7 @@
+__turbopack_load_page_chunks__("/createemployee", [
+  "static/chunks/35e5c84ad849d3f1.js",
+  "static/chunks/caf5e2e0155783b8.js",
+  "static/chunks/12dc69b52e191442.js",
+  "static/chunks/91b33ba45d7bce11.js",
+  "static/chunks/turbopack-0d95f234344f5458.js"
+])

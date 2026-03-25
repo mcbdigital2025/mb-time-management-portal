@@ -1,0 +1,8 @@
+__turbopack_load_page_chunks__("/bookservice", [
+  "static/chunks/6e15279a9775c32c.js",
+  "static/chunks/caf5e2e0155783b8.js",
+  "static/chunks/12dc69b52e191442.js",
+  "static/chunks/91b33ba45d7bce11.js",
+  "static/chunks/df8df2200990bca8.js",
+  "static/chunks/turbopack-6b53457b0471b4bc.js"
+])

@@ -58,7 +58,7 @@ export function proxy(request: NextRequest) {
   const hasValidToken = token && !isTokenExpired(token);
 
 //   const token = request.cookies.get('auth_token')?.value;
-  console.log("🚀 ~ proxy ~ token:", hasValidToken)
+  // console.log("🚀 ~ proxy ~ token:", hasValidToken)
 
   if (hasValidToken && pathname === "/login") {
     return NextResponse.redirect(new URL("/landing", request.url));

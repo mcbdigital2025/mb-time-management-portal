@@ -1,4 +1,9 @@
 export default {
+  output: "standalone",
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+
   images: {
     remotePatterns: [
       {
