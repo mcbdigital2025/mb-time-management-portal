@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/router";
 import JSONbig from "json-bigint";
 import { authenticatedFetch } from "../utils/api";
+import { toast } from "react-toastify";
 
 const Conversations = () => {
   const [chatGroups, setChatGroups] = useState([]);
@@ -91,12 +92,16 @@ const Conversations = () => {
   const fetchEmployees = async (user) => {
     try {
       const response = await authenticatedFetch(
-        `${API_BASE}/mcbtt/api/timesheet/employee/company/${user.companyId}`,
+         `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/employee/${encodeURIComponent(
+          user.companyId
+        )}`,
+        // `${API_BASE}/mcbtt/api/timesheet/employee/company/${user.companyId}`,
         { method: "GET", headers: { Accept: "application/json" } },
       );
 
       if (response.ok) {
         const data = await response.json();
+        console.log("🚀 ~ fetchEmployees ~ data:", data)
         setEmployees(Array.isArray(data) ? data : []);
       }
     } catch (err) {
@@ -196,10 +201,11 @@ const Conversations = () => {
       employeeId: selectedEmployee,
       joinedDate: new Date().toISOString(),
     };
+    console.log("🚀 ~ addChatMember ~ payload:", payload)
 
     try {
       const res = await authenticatedFetch(
-        `${API_BASE}/mcbtt/api/timesheet/chat/createMemmber`,
+         `${API_BASE}/mcbtt/api/timesheet/chat/createMemmber`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -208,7 +214,7 @@ const Conversations = () => {
       );
 
       if (res.ok) {
-        alert("Member added successfully!");
+        toast.success("Member added successfully!");
         setIsModalOpen(false);
         setSelectedEmployee("");
         loadChatMembers(selectedChatGroup);
@@ -498,7 +504,7 @@ const Conversations = () => {
         </section>
 
         {/* RIGHT: PROFILE PANEL */}
-        <aside className="hidden min-w-0 md:flex">
+        <aside className="hidden min-w-0 lg:flex">
           <div className="flex w-full flex-col gap-3 rounded-[18px] border border-black/5 bg-white p-4 shadow-[0_18px_45px_rgba(17,24,39,0.08)]">
             <div className="flex items-center gap-3">
               <div className="grid h-16 w-16 shrink-0 place-items-center rounded-[18px] border border-violet-500/20 bg-[linear-gradient(135deg,#f0eaff_0%,#e7ddff_60%,#f6f3ff_100%)] text-xl font-black text-[#3b2b5a] md:h-18 md:w-18 md:text-4xl">

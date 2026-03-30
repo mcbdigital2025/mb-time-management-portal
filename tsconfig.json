@@ -24,7 +24,7 @@
     "**/*.mts",
     "**/*.ts",
     "**/*.tsx"
-  ],
+, "pages/footer.js", "pages/about.js"  ],
   "exclude": [
     "node_modules"
   ]
