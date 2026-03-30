@@ -18,6 +18,7 @@ const AboutPage = () => {
         <div className="absolute inset-0 bg-[#203047]/45" />
         <div className="absolute inset-0 bg-[#008080]/30" />
 
+
         {/* Content */}
         <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center text-white">
           <h1 className="text-4xl font-extrabold md:text-5xl">About us</h1>
