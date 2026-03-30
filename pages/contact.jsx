@@ -1,4 +1,7 @@
+import Image from "next/image";
 import React from "react";
+import { HeroImage } from "../components/assest";
+import { Facebook, Twitter, Linkedin } from "lucide-react";
 
 const IconWrap = ({ children }) => (
   <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[#008080] text-[#008080]">
@@ -6,79 +9,131 @@ const IconWrap = ({ children }) => (
   </div>
 );
 
+const FormField = ({
+  label,
+  type = "text",
+  placeholder,
+  name,
+  labelColor = "#008080",
+  className = "",
+}) => {
+  return (
+    <div>
+      <label
+        htmlFor={name}
+        className="mb-1 block text-[14px] font-medium"
+        style={{ color: labelColor }}
+      >
+        {label}
+      </label>
+      <input
+        id={name}
+        name={name}
+        type={type}
+        placeholder={placeholder}
+        className={`${fieldBaseClass} h-[38px] ${className}`}
+      />
+    </div>
+  );
+};
+
+const FormTextarea = ({
+  label,
+  placeholder,
+  name,
+  rows = 5,
+  labelColor = "#6a6a6a",
+  className = "",
+}) => {
+  return (
+    <div>
+      <label
+        htmlFor={name}
+        className="mb-1 block text-[14px] font-medium"
+        style={{ color: labelColor }}
+      >
+        {label}
+      </label>
+      <textarea
+        id={name}
+        name={name}
+        placeholder={placeholder}
+        rows={rows}
+        className={`${fieldBaseClass} py-3 ${className}`}
+      />
+    </div>
+  );
+};
+
+const fieldBaseClass =
+  "w-full rounded-md border border-[#bfc6cf] px-4 text-[14px] outline-none placeholder:text-[#9aa3ad] focus:border-[#008080]";
+
+
+
 const ContactPage = () => {
   return (
     <div className="min-h-screen bg-white text-[#2c2c2c]">
       {/* Hero */}
-      <section
-        className="relative h-55 w-full bg-cover bg-center"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(32,48,71,0.45), rgba(32,48,71,0.45)), url('images/Hero-image.png')",
-        }}
-      >
-        <div className="absolute inset-0 flex flex-col b items-center justify-center text-center">
-          <h1 className="text-[54px] font-medium tracking-[0.5px] 
-          text-[#ffffff]">
+
+      <section className="relative h-55 w-full overflow-hidden">
+        <Image
+          src={HeroImage}
+          alt="Contact page hero"
+          fill
+          priority
+          className="object-cover"
+        />
+
+        <div className="absolute inset-0 bg-[#203047]/45" />
+
+        <div className="absolute inset-0 flex items-center justify-center text-center">
+          <h1 className="text-[54px] font-medium tracking-[0.5px] text-white">
             Contact Us
           </h1>
-          
         </div>
       </section>
-
+      
       {/* Content */}
       <section className="mx-auto max-w-6xl px-6 py-10 md:px-10 lg:px-16">
         <div className="grid grid-cols-1 gap-16 md:grid-cols-2">
           {/* Left form */}
           <div className="max-w-107.5">
             <form className="space-y-4">
-              <div>
-                <label className="mb-1 block text-[14px] font-medium text-[#008080]">
-                  Your Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="Name"
-                  className="h-9.5 w-full rounded-md border border-[#bfc6cf] px-4 text-[14px] outline-none placeholder:text-[#9aa3ad] focus:border-[#008080]"
-                />
-              </div>
+              <FormField
+                label="Your Name"
+                name="name"
+                type="text"
+                placeholder="Name"
+                labelColor="#008080"
+              />
 
-              <div>
-                <label className="mb-1 block text-[14px] font-medium text-[#008080]">
-                  Your Email
-                </label>
-                <input
-                  type="email"
-                  placeholder="Email"
-                  className="h-9.5 w-full rounded-md border border-[#bfc6cf] px-4 text-[14px] outline-none placeholder:text-[#9aa3ad] focus:border-[#008080]"
-                />
-              </div>
+              <FormField
+                label="Your Email"
+                name="email"
+                type="email"
+                placeholder="Email"
+                labelColor="#008080"
+              />
 
-              <div>
-                <label className="mb-1 block text-[14px] font-medium text-[#6a6a6a]">
-                  Subject
-                </label>
-                <input
-                  type="text"
-                  placeholder="Subject"
-                  className="h-[38px] w-full rounded-md border border-[#bfc6cf] px-4 text-[14px] outline-none placeholder:text-[#9aa3ad] focus:border-[#008080]"
-                />
-              </div>
+              <FormField
+                label="Subject"
+                name="subject"
+                type="text"
+                placeholder="Subject"
+                labelColor="#008080"
+              />
 
-              <div>
-                <label className="mb-1 block text-[14px] font-medium text-[#6a6a6a]">
-                  Your Message
-                </label>
-                <textarea
-                  placeholder="Message"
-                  rows={5}
-                  className="w-full rounded-md border border-[#bfc6cf] px-4 py-3 text-[14px] outline-none placeholder:text-[#9aa3ad] focus:border-[#008080]"
-                />
-              </div>
+              <FormTextarea
+                label="Your Message"
+                name="message"
+                placeholder="Message"
+                rows={5}
+                labelColor="#008080"
+              />
 
               <button
                 type="submit"
-                className="mt-1 inline-flex h-[34px] items-center rounded-sm bg-[#008080] px-5 py-5 text-[14px] font-semibold uppercase tracking-[1.4px] text-white transition hover:opacity-90"
+                className="mt-1 inline-flex h-8.5 items-center rounded-sm bg-[#008080] px-5 py-5 text-[14px] font-semibold uppercase tracking-[1.4px] text-white transition hover:opacity-90"
               >
                 Send Message
               </button>
@@ -163,20 +218,30 @@ const ContactPage = () => {
               </div>
             </div>
 
+
             <div className="mt-8">
               <h3 className="text-[16px] font-semibold text-[#2a2a2a]">
                 Follow Us On
               </h3>
 
               <div className="mt-2 flex items-center gap-2">
-                {["f", "X", "in"].map((item) => (
-                  <div
-                    key={item}
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-[#008080] text-[11px] font-semibold text-white cursor-pointer"
-                  >
-                    {item}
-                  </div>
-                ))}
+                {[
+                  { icon: Facebook, href: "#" },
+                  { icon: Twitter, href: "#" },
+                  { icon: Linkedin, href: "#" },
+                ].map((item, index) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <a
+                      key={index}
+                      href={item.href}
+                      className="flex h-9 w-9 items-center justify-center rounded-full bg-[#008080] text-white transition hover:opacity-90"
+                    >
+                      <Icon size={16} />
+                    </a>
+                  );
+                })}
               </div>
             </div>
           </div>

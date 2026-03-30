@@ -1,16 +1,24 @@
+import Image from "next/image";
+import { HeroImage } from "../components/assest";
+
 const AboutPage = () => {
   return (
     <div className="min-h-screen bg-white text-[#1f1f1f]">
       {/* Hero Section */}
-      <section
-        className="relative h-70 w-full bg-cover bg-center"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(32,48,71,0.45), rgba(32,48,71,0.45)), url('images/Hero-image.png')",
-        }}
-      >
+      <section className="relative h-66 w-full overflow-hidden">
+        <Image
+          src={HeroImage} 
+          alt="About us hero"
+          fill
+          priority
+          className="object-cover"
+        />
+
+        {/* Gradient overlays */}
+        <div className="absolute inset-0 bg-[#203047]/45" />
         <div className="absolute inset-0 bg-[#008080]/30" />
 
+        {/* Content */}
         <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center text-white">
           <h1 className="text-4xl font-extrabold md:text-5xl">About us</h1>
           <p className="mt-3 max-w-2xl text-sm font-medium leading-6 md:text-base">
@@ -19,7 +27,6 @@ const AboutPage = () => {
           </p>
         </div>
       </section>
-
       {/* About Company Section */}
       <section className="mx-auto max-w-6xl px-6 py-16 md:px-10 lg:px-12">
         <div className="grid items-center gap-12 md:grid-cols-2">
@@ -54,8 +61,8 @@ const AboutPage = () => {
 
             {/* Main image card */}
             <div className="relative z-10 w-full max-w-107.5 overflow-hidden rounded-[18px] bg-white shadow-[0_14px_35px_rgba(0,0,0,0.18)]">
-              <img
-                src="images/Hero-image.png"
+              <Image
+                src={HeroImage}
                 alt="About company"
                 className="h-65 w-full object-cover"
               />
