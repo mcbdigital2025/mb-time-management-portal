@@ -47,13 +47,14 @@ const UpdateEmployee = () => {
 
       const formatDate = (value) => {
         if (!value) return "";
-        return value.split("T")[0];
+        // Handles ISO strings or timestamp strings by grabbing the date part
+        return value.toString().split("T")[0];
       };
 
       // ✅ Mapping all 13 fields from session storage
       setForm({
-        employeeId: selectedEmployee.employeeId || "",
-        companyId: selectedEmployee.companyId || "",
+        employeeId: selectedEmployee.employeeId?.toString() || "",
+        companyId: selectedEmployee.companyId?.toString() || "",
         firstName: selectedEmployee.firstName || "",
         lastName: selectedEmployee.lastName || "",
         email: selectedEmployee.email || "",
@@ -64,8 +65,12 @@ const UpdateEmployee = () => {
         departmentId: selectedEmployee.departmentId || "",
         jobTitle: selectedEmployee.jobTitle || "",
         status: selectedEmployee.status || "",
+<<<<<<< HEAD
         accessLevel:
           selectedEmployee.accessLevel?.replace("ROLE_", "") || "Basic",
+=======
+        accessLevel: selectedEmployee.accessLevel || "",
+>>>>>>> main
       });
     } else {
       router.push("/viewemployees");
@@ -81,13 +86,20 @@ const UpdateEmployee = () => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
+<<<<<<< HEAD
       const finalAccessLevel = form.accessLevel.replace("ROLE_", "").trim();
 
       const submissionData = {
         ...form,
         accessLevel: finalAccessLevel,
+=======
+      // ✅ FIX: Removed 'const' from inside the object literal
+      const submissionData = {
+        ...form
+>>>>>>> main
       };
 
       const response = await authenticatedFetch(
@@ -99,9 +111,16 @@ const UpdateEmployee = () => {
         },
       );
 
-      if (!response.ok) throw new Error(`Update failed: ${response.status}`);
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || `Update failed: ${response.status}`);
+      }
 
       setSuccessMessage("Employee updated successfully!");
+
+      // Clear session storage after successful update to keep data fresh
+      sessionStorage.removeItem("selectedEmployee");
+
       setTimeout(() => router.push("/viewemployees"), 1500);
     } catch (err) {
       setError(err.message);
@@ -116,6 +135,7 @@ const UpdateEmployee = () => {
         Update Employee Details
       </h2>
 
+<<<<<<< HEAD
       {error && (
         <p className="text-red-500 mb-4 bg-red-50 p-3 rounded-lg text-sm font-semibold">
           {error}
@@ -126,14 +146,21 @@ const UpdateEmployee = () => {
           {successMessage}
         </p>
       )}
+=======
+      {error && <div className="text-red-500 mb-4 bg-red-50 p-3 rounded-lg text-sm font-semibold border border-red-100">{error}</div>}
+      {successMessage && <div className="text-green-600 mb-4 bg-green-50 p-3 rounded-lg text-sm font-semibold border border-green-100">{successMessage}</div>}
+
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+>>>>>>> main
 
       <form
         onSubmit={handleSubmit}
         className="grid grid-cols-1 md:grid-cols-2 gap-5"
       >
         {/* Row 1: Names */}
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           <label className="text-sm font-bold text-gray-600">First Name</label>
+<<<<<<< HEAD
           <input
             type="text"
             name="firstName"
@@ -141,9 +168,13 @@ const UpdateEmployee = () => {
             onChange={handleChange}
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-400 outline-none"
           />
+=======
+          <input type="text" name="firstName" value={form.firstName} onChange={handleChange} required className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none transition" />
+>>>>>>> main
         </div>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           <label className="text-sm font-bold text-gray-600">Last Name</label>
+<<<<<<< HEAD
           <input
             type="text"
             name="lastName"
@@ -214,9 +245,39 @@ const UpdateEmployee = () => {
             onChange={handleChange}
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-400 outline-none"
           />
+=======
+          <input type="text" name="lastName" value={form.lastName} onChange={handleChange} required className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none transition" />
         </div>
-        <div className="space-y-1">
+
+        {/* Row 2: Identifiers (Disabled) */}
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-bold text-gray-400">Employee ID (Fixed)</label>
+          <input type="text" value={form.employeeId} disabled className="w-full px-4 py-2 border rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-bold text-gray-400">Company ID (Fixed)</label>
+          <input type="text" value={form.companyId} disabled className="w-full px-4 py-2 border rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed" />
+        </div>
+
+        {/* Row 3: Email & Phone */}
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-bold text-gray-400">Email (Read Only)</label>
+          <input type="email" value={form.email} disabled className="w-full px-4 py-2 border rounded-lg bg-gray-50 text-gray-500" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-bold text-gray-600">Phone Number</label>
+          <input type="text" name="phoneNumber" value={form.phoneNumber} onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none transition" />
+        </div>
+
+        {/* Row 4: Dates */}
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-bold text-gray-600">Date of Birth</label>
+          <input type="date" name="dateOfBirth" value={form.dateOfBirth} onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none transition" />
+>>>>>>> main
+        </div>
+        <div className="flex flex-col gap-1">
           <label className="text-sm font-bold text-gray-600">Hire Date</label>
+<<<<<<< HEAD
           <input
             type="date"
             name="hireDate"
@@ -224,17 +285,24 @@ const UpdateEmployee = () => {
             onChange={handleChange}
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-400 outline-none"
           />
+=======
+          <input type="date" name="hireDate" value={form.hireDate} onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none transition" />
+>>>>>>> main
         </div>
 
         {/* Row 5: Gender & Access Level */}
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           <label className="text-sm font-bold text-gray-600">Gender</label>
+<<<<<<< HEAD
           <select
             name="gender"
             value={form.gender}
             onChange={handleChange}
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-400 outline-none"
           >
+=======
+          <select name="gender" value={form.gender} onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none transition">
+>>>>>>> main
             <option value="">Select Gender</option>
             {GENDER_OPTIONS.map((g) => (
               <option key={g} value={g}>
@@ -243,6 +311,7 @@ const UpdateEmployee = () => {
             ))}
           </select>
         </div>
+<<<<<<< HEAD
         <div className="space-y-1">
           <label className="text-sm font-bold text-gray-600">
             Access Level
@@ -253,6 +322,11 @@ const UpdateEmployee = () => {
             onChange={handleChange}
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-400 outline-none"
           >
+=======
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-bold text-gray-600">Access Level</label>
+          <select name="accessLevel" value={form.accessLevel} onChange={handleChange} required className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none transition">
+>>>>>>> main
             <option value="">Select Access</option>
             {ACCESS_LEVEL_OPTIONS.map((a) => (
               <option key={a} value={a}>
@@ -263,8 +337,9 @@ const UpdateEmployee = () => {
         </div>
 
         {/* Row 6: Dept & Job Title */}
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           <label className="text-sm font-bold text-gray-600">Department</label>
+<<<<<<< HEAD
           <input
             type="text"
             name="departmentId"
@@ -272,9 +347,13 @@ const UpdateEmployee = () => {
             onChange={handleChange}
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-400 outline-none"
           />
+=======
+          <input type="text" name="departmentId" value={form.departmentId} onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none transition" />
+>>>>>>> main
         </div>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           <label className="text-sm font-bold text-gray-600">Job Title</label>
+<<<<<<< HEAD
           <input
             type="text"
             name="jobTitle"
@@ -295,6 +374,15 @@ const UpdateEmployee = () => {
             onChange={handleChange}
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-400 outline-none"
           >
+=======
+          <input type="text" name="jobTitle" value={form.jobTitle} onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none transition" />
+        </div>
+
+        {/* Row 7: Status (Full Width) */}
+        <div className="flex flex-col gap-1 md:col-span-2">
+          <label className="text-sm font-bold text-gray-600">Employment Status</label>
+          <select name="status" value={form.status} onChange={handleChange} required className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none transition">
+>>>>>>> main
             <option value="">Select Status</option>
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>
@@ -309,14 +397,22 @@ const UpdateEmployee = () => {
           <button
             type="submit"
             disabled={isSubmitting}
+<<<<<<< HEAD
             className={`flex-1 py-3 rounded-lg font-bold text-white transition ${isSubmitting ? "bg-gray-400" : "bg-yellow-500 hover:bg-yellow-600 shadow-md"}`}
+=======
+            className={`flex-1 py-3 rounded-lg font-bold text-white transition shadow-sm ${isSubmitting ? "bg-gray-400 cursor-not-allowed" : "bg-[#008080] hover:bg-teal-700 shadow-teal-100"}`}
+>>>>>>> main
           >
             {isSubmitting ? "Processing..." : "UPDATE EMPLOYEE"}
           </button>
           <button
             type="button"
             onClick={() => router.push("/viewemployees")}
+<<<<<<< HEAD
             className="flex-1 py-3 rounded-lg font-bold bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
+=======
+            className="flex-1 py-3 rounded-lg font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
+>>>>>>> main
           >
             CANCEL
           </button>

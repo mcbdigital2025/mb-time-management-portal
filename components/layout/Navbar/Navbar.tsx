@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { NavbarProps } from "../../../types";
 import { NavGroup } from "./NavGroup";
+import { Logo } from "../../assest";
 
 type ApiNavSection = {
   categoryName: string;
@@ -105,7 +106,7 @@ export default function Navbar({ user, nav = [], handleLogout }: NavbarProps) {
       <div className="w-full h-17.5 md:px-29 py-3.75 px-4 flex items-center justify-between">
         <Link href="/" className="flex w-35 h-20 overflow-hidden items-center">
           <Image
-            src="/images/logo.png"
+            src={Logo}
             alt="Logo"
             width={78}
             height={44}
@@ -140,12 +141,12 @@ export default function Navbar({ user, nav = [], handleLogout }: NavbarProps) {
             ref={dropdownRef}
             className="hidden md:flex items-center space-x-1 md:space-x-2 lg:space-x-3"
           >
-            <Link
+            {/* <Link
               href="/"
               className="px-1 md:px-3 py-2 font-medium text-base rounded-2xl hover:bg-[#008080]"
             >
               Home
-            </Link>
+            </Link> */}
             {home?.items?.map((item) => (
               <Link
                 key={item.key}
@@ -195,19 +196,6 @@ export default function Navbar({ user, nav = [], handleLogout }: NavbarProps) {
               onItemClick={() => setOpenGroup(null)}
               rootRef={clientsRef}
             />
-
-            <Link
-              href={"/contact"}
-              className="px-3 py-2 font-medium md:text-sm text-[12px] rounded-2xl cursor-pointer hover:bg-[#008080]"
-            >
-              Contact
-            </Link>
-            <Link
-              href={"/about"}
-              className="px-3 py-2 font-medium md:text-sm text-[12px] rounded-2xl cursor-pointer hover:bg-[#008080]"
-            >
-              About
-            </Link>
           </nav>
         )}
 
@@ -303,13 +291,13 @@ export default function Navbar({ user, nav = [], handleLogout }: NavbarProps) {
                 </nav>
               ) : (
                 <div className="border-b border-gray-200 pb-2">
-                  <Link
+                  {/* <Link
                     href="/"
                     className="block px-2 text-center py-2 text-base font-medium hover:bg-[#008080] rounded-lg"
                     onClick={closeAll}
                   >
                     Home
-                  </Link>
+                  </Link> */}
 
                   {conv?.items?.map((item) => (
                     <Link
@@ -321,21 +309,6 @@ export default function Navbar({ user, nav = [], handleLogout }: NavbarProps) {
                       {item.label}
                     </Link>
                   ))}
-
-                  <Link
-                    href="/contact"
-                    className="block px-2 text-center py-2 text-base font-medium hover:bg-[#008080] rounded-lg"
-                    onClick={closeAll}
-                  >
-                    Contact
-                  </Link>
-                  <Link
-                    href="/about"
-                    className="block px-2 text-center py-2 text-base font-medium hover:bg-[#008080] rounded-lg"
-                    onClick={closeAll}
-                  >
-                    About
-                  </Link>
                 </div>
               )}
 

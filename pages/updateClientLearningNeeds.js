@@ -2,45 +2,34 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { authenticatedFetch } from '../utils/api'; // Import authenticatedFetch
+import { authenticatedFetch } from '../utils/api';
+import { BookOpen, Save, XCircle, Loader2 } from "lucide-react";
 
 const UpdateClientLearningNeeds = () => {
   const router = useRouter();
   const [formData, setFormData] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null); // Changed from 'success' to 'successMessage' for clarity
-  const [error, setError] = useState(null); // State for error messages
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    const storedData = sessionStorage.getItem("selectedClientLearningNeeds");
+  // --- LOGIC FUNCTIONS ---
 
-    // ✅ Check for user and JWT token immediately on load
-    if (!storedUser || !storedUser.jwtToken) {
-      setError("User session or token is missing. Redirecting to login.");
-      setTimeout(() => {
-        router.replace("/login");
-      }, 500);
-      return;
-    }
-
-    if (storedData) {
-      const parsedData = JSON.parse(storedData);
-      setFormData(parsedData);
-    } else {
-      setError("No client learning needs data found in session storage. Redirecting to client list.");
-      setTimeout(() => {
-        router.push("/client");
-      }, 500);
-    }
-  }, []); // Empty dependency array as router is accessed inside the effect
+  const handleCancel = () => {
+    router.push("/client");
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
     if (type === "checkbox") {
-      const set = new Set(formData[name]?.split(",").filter(Boolean) || []); // Ensure filter(Boolean) for robustness
-      checked ? set.add(value) : set.delete(value);
-      setFormData({ ...formData, [name]: Array.from(set).join(",") });
+      const currentValues = formData[name] ? formData[name].split(",").filter(Boolean) : [];
+      if (checked) {
+        currentValues.push(value);
+      } else {
+        const index = currentValues.indexOf(value);
+        if (index > -1) currentValues.splice(index, 1);
+      }
+      setFormData({ ...formData, [name]: currentValues.join(",") });
     } else if (type === "radio") {
       setFormData({ ...formData, [name]: value === "true" });
     } else {
@@ -48,240 +37,221 @@ const UpdateClientLearningNeeds = () => {
     }
   };
 
-  const handleSave = async () => {
-    setError(null); // Clear previous errors
-    setSuccessMessage(null); // Clear previous success messages
-
-    // Re-check user and token before submitting
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (!storedUser || !storedUser.jwtToken) {
-      setError("User session or token is missing. Please log in again.");
-      setTimeout(() => {
-        router.replace("/login");
-      }, 1500);
-      return;
-    }
-
-    if (!formData) { // Ensure formData is not null before saving
-        setError("Form data is missing. Cannot save.");
-        return;
-    }
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setSuccessMessage(null);
+    setIsSubmitting(true);
 
     try {
-      // ✅ Use authenticatedFetch instead of direct fetch
       const response = await authenticatedFetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/clientLearnNeeds/update`,
         {
           method: "PUT",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
-          // ✅ Removed credentials: "include"
         }
       );
 
       if (response.ok) {
-        setSuccessMessage("Client learning needs updated successfully.");
-        setTimeout(() => {
-          router.push("/client");
-        }, 1500); // Give user a moment to see the success message
+        setSuccessMessage("Learning needs updated successfully!");
+        setTimeout(() => router.push("/client"), 1500);
       } else {
         const errorText = await response.text();
-        console.error("Failed to update Client learning needs:", response.status, response.statusText, errorText);
-        throw new Error(`Failed to update Client learning needs: ${response.status} ${response.statusText} - ${errorText}`);
+        throw new Error(errorText || "Failed to update record.");
       }
     } catch (err) {
-      console.error("Update error:", err);
-      setError("An error occurred while updating: " + err.message);
-      // If fetching fails due to token issues (e.g., token expired/invalid),
-      // consider redirecting to login after a delay.
-      if (err.message.includes("Authentication token missing") || err.message.includes("401 Unauthorized")) {
-           setTimeout(() => {
-               router.replace("/login");
-           }, 1500);
-      }
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleCancel = () => {
-    router.push("/client");
-  };
+  // --- EFFECTS ---
 
-  if (error) {
-    return <div className="text-red-500 text-center mt-10">Error: {error}</div>;
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    const storedData = sessionStorage.getItem("selectedClientLearningNeeds");
+
+    if (!storedUser?.jwtToken) {
+      setError("Session expired. Redirecting to login...");
+      setTimeout(() => router.replace("/login"), 1500);
+      return;
+    }
+
+    if (storedData) {
+      setFormData(JSON.parse(storedData));
+    } else {
+      setError("No record selected. Returning to directory...");
+      setTimeout(() => router.push("/client"), 1500);
+    }
+  }, [router]);
+
+  // --- STYLING ---
+
+  const inputClasses = "w-full px-3 py-2.5 border border-[#008080]/30 bg-white/50 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none transition-all font-medium text-gray-800";
+  const labelClasses = "text-sm font-bold text-gray-700 mb-1";
+
+  // --- RENDER ---
+
+  if (!formData && !error) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#F8FAFC]">
+        <Loader2 className="animate-spin text-[#008080]" size={40} />
+      </div>
+    );
   }
 
-  if (!formData) return <div className="p-6 text-center text-blue-600">Loading...</div>;
-
   return (
-    <div className="max-w-4xl mx-auto mt-10 p-6 bg-white shadow rounded space-y-6">
-      <h1 className="text-2xl font-bold text-center mb-4">Update Client Learning Needs</h1>
+    <div className="min-h-screen w-full py-10 hero-radial-background bg-[radial-gradient(12%_14.08%_at_9.42%_89.81%,#D1E5FF,#F8FAFC),radial-gradient(13.98%_18.61%_at_186.74%_119.73%,rgba(110,178,188,0.4),rgba(217,217,217,0.4))]">
+      <div className="max-w-5xl mx-auto px-4">
+        <div className="bg-white/40 backdrop-blur-xl shadow-2xl rounded-2xl border border-white/20 p-8">
 
-      {successMessage && <p className="text-green-500 text-center mb-4">{successMessage}</p>}
-      {/* Error message is already handled by the `if (error)` block above */}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block font-medium">Client Learning ID</label>
-          <input value={formData.clientLearningId} readOnly className="input-readonly" />
-        </div>
-        <div>
-          <label className="block font-medium">Client ID</label>
-          <input value={formData.clientId} readOnly className="input-readonly" />
-        </div>
-        <div>
-          <label className="block font-medium">Company ID</label>
-          <input value={formData.companyId} readOnly className="input-readonly" />
-        </div>
-
-        <div>
-          <label className="block font-medium">Preferred Learning Method</label>
-          <select
-            name="preferredLearningMethod"
-            value={formData.preferredLearningMethod}
-            onChange={handleChange}
-            className="input"
-          >
-            <option value="Visual">Visual</option>
-            <option value="Auditory">Auditory</option>
-            <option value="Reading/Writing">Reading/Writing</option>
-            <option value="Kinesthetic">Kinesthetic</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block font-medium">Assistive Technology Required</label>
-          <div className="flex gap-4">
-            <label><input type="radio" name="assistiveTechnologyRequired" value="true" checked={formData.assistiveTechnologyRequired === true} onChange={handleChange} /> Yes</label>
-            <label><input type="radio" name="assistiveTechnologyRequired" value="false" checked={formData.assistiveTechnologyRequired === false} onChange={handleChange} /> No</label>
+          {/* Header */}
+          <div className="flex flex-col items-center mb-10 text-center">
+            <div className="p-3 bg-teal-100 rounded-full text-[#008080] mb-4">
+              <BookOpen size={32} />
+            </div>
+            <h1 className="text-3xl font-black bg-gradient-to-r from-[#008080] to-teal-600 bg-clip-text text-transparent uppercase tracking-tight">
+              Update Learning Needs
+            </h1>
+            <p className="text-gray-500 text-sm mt-1 font-medium text-gray-500">Modify existing educational requirements</p>
           </div>
-        </div>
 
-        <div className="md:col-span-2">
-          <label className="block font-medium">Communication Support</label>
-          <textarea name="communicationSupport" value={formData.communicationSupport || ""} onChange={handleChange} className="input" />
-        </div>
+          {error && <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 font-medium border border-red-100">{error}</div>}
+          {successMessage && <div className="bg-teal-50 text-teal-700 p-4 rounded-xl mb-6 font-medium border border-teal-100">{successMessage}</div>}
 
-        <div>
-          <label className="block font-medium">Literacy Level</label>
-          <select name="literacyLevel" value={formData.literacyLevel} onChange={handleChange} className="input">
-            <option>Low</option><option>Basic</option><option>Intermediate</option><option>Advanced</option>
-          </select>
-        </div>
+          <form onSubmit={handleUpdate} className="space-y-8">
 
-        <div>
-          <label className="block font-medium">Numeracy Level</label>
-          <select name="numeracyLevel" value={formData.numeracyLevel} onChange={handleChange} className="input">
-            <option>Low</option><option>Basic</option><option>Intermediate</option><option>Advanced</option>
-          </select>
-        </div>
+            {/* IDs Section */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-[#008080]/5 p-6 rounded-xl border border-[#008080]/10">
+              <div className="flex flex-col">
+                <label className={labelClasses}>Learning ID</label>
+                <input value={formData?.clientLearningId || ""} readOnly className={`${inputClasses} bg-gray-100/50 cursor-not-allowed text-gray-500`} />
+              </div>
+              <div className="flex flex-col">
+                <label className={labelClasses}>Client ID</label>
+                <input value={formData?.clientId || ""} readOnly className={`${inputClasses} bg-gray-100/50 cursor-not-allowed text-gray-500`} />
+              </div>
+              <div className="flex flex-col">
+                <label className={labelClasses}>Company ID</label>
+                <input value={formData?.companyId || ""} readOnly className={`${inputClasses} bg-gray-100/50 cursor-not-allowed text-gray-500`} />
+              </div>
+            </div>
 
-        <div>
-          <label className="block font-medium">Digital Skills Level</label>
-          <select name="digitalSkillsLevel" value={formData.digitalSkillsLevel} onChange={handleChange} className="input">
-            <option>None</option><option>Beginner</option><option>Intermediate</option><option>Advanced</option>
-          </select>
-        </div>
+            {/* Core Settings */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="flex flex-col">
+                <label className={labelClasses}>Preferred Method</label>
+                <select name="preferredLearningMethod" value={formData?.preferredLearningMethod || "Visual"} onChange={handleChange} className={inputClasses}>
+                  {["Visual", "Auditory", "Reading/Writing", "Kinesthetic", "Other"].map(opt => <option key={opt}>{opt}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <label className={labelClasses}>Literacy Level</label>
+                <select name="literacyLevel" value={formData?.literacyLevel || "Basic"} onChange={handleChange} className={inputClasses}>
+                  {["Low", "Basic", "Intermediate", "Advanced"].map(opt => <option key={opt}>{opt}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <label className={labelClasses}>Digital Skills</label>
+                <select name="digitalSkillsLevel" value={formData?.digitalSkillsLevel || "Beginner"} onChange={handleChange} className={inputClasses}>
+                  {["None", "Beginner", "Intermediate", "Advanced"].map(opt => <option key={opt}>{opt}</option>)}
+                </select>
+              </div>
+            </div>
 
-        <div>
-          <label className="block font-medium">Access To Device</label>
-          <select name="accessToDevice" value={formData.accessToDevice} onChange={handleChange} className="input">
-            <option>Yes</option><option>No</option><option>Shared</option>
-          </select>
-        </div>
+            {/* Radios */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="p-4 rounded-xl border border-gray-200 bg-white/30">
+                <label className={`${labelClasses} block mb-3`}>Assistive Technology Required?</label>
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-600">
+                    <input type="radio" name="assistiveTechnologyRequired" value="true" checked={formData?.assistiveTechnologyRequired === true} onChange={handleChange} className="w-4 h-4 accent-[#008080]" /> Yes
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-600">
+                    <input type="radio" name="assistiveTechnologyRequired" value="false" checked={formData?.assistiveTechnologyRequired === false} onChange={handleChange} className="w-4 h-4 accent-[#008080]" /> No
+                  </label>
+                </div>
+              </div>
 
-        <div>
-          <label className="block font-medium">Internet Access</label>
-          <select name="internetAccess" value={formData.internetAccess} onChange={handleChange} className="input">
-            <option>Yes</option><option>No</option><option>Limited</option>
-          </select>
-        </div>
+              <div className="p-4 rounded-xl border border-gray-200 bg-white/30">
+                <label className={`${labelClasses} block mb-3`}>Onsite Support Required?</label>
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-600">
+                    <input type="radio" name="onsiteSupportRequired" value="true" checked={formData?.onsiteSupportRequired === true} onChange={handleChange} className="w-4 h-4 accent-[#008080]" /> Yes
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-600">
+                    <input type="radio" name="onsiteSupportRequired" value="false" checked={formData?.onsiteSupportRequired === false} onChange={handleChange} className="w-4 h-4 accent-[#008080]" /> No
+                  </label>
+                </div>
+              </div>
+            </div>
 
-        <div className="md:col-span-2">
-          <label className="block font-medium">Training Goal</label>
-          <textarea name="trainingGoal" value={formData.trainingGoal || ""} onChange={handleChange} className="input" />
-        </div>
+            {/* Selection Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-5 rounded-xl border border-[#008080]/20 bg-[#008080]/5">
+                <label className={`${labelClasses} block border-b border-[#008080]/20 pb-2 mb-4 uppercase tracking-widest text-[11px]`}>Preferred Days</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => (
+                    <label key={day} className="flex items-center gap-3 p-2 bg-white/50 rounded-lg hover:bg-white transition-colors cursor-pointer text-sm font-semibold text-gray-600">
+                      <input type="checkbox" name="preferredTrainingDays" value={day} checked={formData?.preferredTrainingDays?.includes(day)} onChange={handleChange} className="w-4 h-4 rounded accent-[#008080]" /> {day}
+                    </label>
+                  ))}
+                </div>
+              </div>
 
-        <div>
-          <label className="block font-medium">Preferred Training Days</label>
-          {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => (
-            <label key={day} className="block">
-              <input
-                type="checkbox"
-                name="preferredTrainingDays"
-                value={day}
-                checked={formData.preferredTrainingDays?.includes(day)}
-                onChange={handleChange}
-              />{" "}
-              {day}
-            </label>
-          ))}
-        </div>
+              <div className="p-5 rounded-xl border border-[#008080]/20 bg-[#008080]/5">
+                <label className={`${labelClasses} block border-b border-[#008080]/20 pb-2 mb-4 uppercase tracking-widest text-[11px]`}>Preferred Times</label>
+                <div className="flex flex-col gap-3">
+                  {["Morning", "Afternoon", "Evening"].map((time) => (
+                    <label key={time} className="flex items-center gap-3 p-2 bg-white/50 rounded-lg hover:bg-white transition-colors cursor-pointer text-sm font-semibold text-gray-600">
+                      <input type="checkbox" name="preferredTrainingTimes" value={time} checked={formData?.preferredTrainingTimes?.includes(time)} onChange={handleChange} className="w-4 h-4 rounded accent-[#008080]" /> {time}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
 
-        <div>
-          <label className="block font-medium">Preferred Training Times</label>
-          {["Morning", "Afternoon", "Evening"].map((time) => (
-            <label key={time} className="block">
-              <input
-                type="checkbox"
-                name="preferredTrainingTimes"
-                value={time}
-                checked={formData.preferredTrainingTimes?.includes(time)}
-                onChange={handleChange}
-              />{" "}
-              {time}
-            </label>
-          ))}
-        </div>
+            {/* Textareas */}
+            <div className="grid grid-cols-1 gap-6">
+              <div className="flex flex-col">
+                <label className={labelClasses}>Primary Training Goal</label>
+                <textarea name="trainingGoal" value={formData?.trainingGoal || ""} onChange={handleChange} rows="3" className={inputClasses} />
+              </div>
+            </div>
 
-        <div>
-          <label className="block font-medium">Onsite Support Required</label>
-          <div className="flex gap-4">
-            <label><input type="radio" name="onsiteSupportRequired" value="true" checked={formData.onsiteSupportRequired === true} onChange={handleChange} /> Yes</label>
-            <label><input type="radio" name="onsiteSupportRequired" value="false" checked={formData.onsiteSupportRequired === false} onChange={handleChange} /> No</label>
-          </div>
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex flex-col">
+                <label className={labelClasses}>Behavioral Support Notes</label>
+                <textarea name="behavioralSupportNotes" value={formData?.behavioralSupportNotes || ""} onChange={handleChange} rows="3" className={inputClasses} />
+              </div>
+              <div className="flex flex-col">
+                <label className={labelClasses}>Communication Support</label>
+                <textarea name="communicationSupport" value={formData?.communicationSupport || ""} onChange={handleChange} rows="3" className={inputClasses} />
+              </div>
+            </div>
 
-        <div className="md:col-span-2">
-          <label className="block font-medium">Behavioral Support Notes</label>
-          <textarea name="behavioralSupportNotes" value={formData.behavioralSupportNotes || ""} onChange={handleChange} className="input" />
-        </div>
-
-        <div className="md:col-span-2">
-          <label className="block font-medium">Additional Notes</label>
-          <textarea name="additionalNotes" value={formData.additionalNotes || ""} onChange={handleChange} className="input" />
+            {/* Footer Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-100">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 flex items-center justify-center gap-2 bg-[#008080] text-white font-black py-4 rounded-xl hover:bg-[#035f5f] transition-all shadow-lg shadow-teal-100 disabled:bg-gray-400 cursor-pointer"
+              >
+                <Save size={20} /> {isSubmitting ? "UPDATING..." : "UPDATE RECORDS"}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="flex-1 flex items-center justify-center gap-2 bg-[#F75D42] text-white font-black py-4 rounded-xl hover:bg-[#d44b35] transition-all shadow-lg shadow-red-100 cursor-pointer"
+              >
+                <XCircle size={20} /> CANCEL
+              </button>
+            </div>
+          </form>
         </div>
       </div>
-
-      <div className="flex justify-center gap-6 mt-6">
-        <button onClick={handleSave} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-          Save
-        </button>
-        <button onClick={() => router.push("/client")} className="px-6 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">
-          Cancel
-        </button>
-      </div>
-
-      <style jsx>{`
-        .input {
-          width: 100%;
-          padding: 0.5rem;
-          border: 1px solid #ccc;
-          border-radius: 6px;
-          margin-top: 0.25rem;
-        }
-        .input-readonly {
-          width: 100%;
-          padding: 0.5rem;
-          background-color: #f1f1f1;
-          border: 1px solid #ccc;
-          border-radius: 6px;
-          margin-top: 0.25rem;
-        }
-      `}</style>
     </div>
   );
 };

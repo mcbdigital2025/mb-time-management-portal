@@ -1,6 +1,7 @@
 import { CircleCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { HeroImage } from "../assest";
 
 export default function Hero() {
   return (
@@ -47,7 +48,7 @@ export default function Hero() {
           <div className="w-full rounded-2xl bg-white p-3 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5">
             <div className="relative overflow-hidden rounded-xl bg-gray-100">
               <Image
-                src="/images/Hero-image.png"
+                src={HeroImage}
                 alt="Product dashboard preview"
                 width={1400}
                 height={900}

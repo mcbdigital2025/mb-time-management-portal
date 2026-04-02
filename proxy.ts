@@ -6,16 +6,6 @@ const PUBLIC_ROUTES = [
   "/reset-password",
 ];
 
-// function isPublicPath(pathname: string) {
-//   return (
-//     PUBLIC_ROUTES.some((route) => pathname.startsWith(route)) ||
-//     pathname.startsWith("/_next") ||
-//     pathname.startsWith("/favicon.ico") ||
-//     pathname.startsWith("/images") ||
-//     pathname.startsWith("/assets")
-//   );
-// }
-
 function isPublicPath(pathname: string) {
   return (
     pathname === "/login" ||
@@ -30,6 +20,28 @@ function isPublicPath(pathname: string) {
     pathname.startsWith("/_next/") ||
     pathname === "/favicon.ico"
   );
+}
+
+function decodeToken(token: string) {
+  try {
+    const payloadBase64 = token.split(".")[1];
+    if (!payloadBase64) return null;
+
+    const base64 = payloadBase64
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+
+    const padded = base64.padEnd(
+      base64.length + (4 - (base64.length % 4)) % 4,
+      "="
+    );
+
+    const payload = JSON.parse(atob(padded));
+
+    return payload;
+  } catch {
+    return null;
+  }
 }
 
 function isTokenExpired(token: string) {
@@ -55,7 +67,16 @@ export function proxy(request: NextRequest) {
   const publicPath = isPublicPath(pathname);
   const token = request.cookies.get("jwtToken")?.value;
 
-  const hasValidToken = token && !isTokenExpired(token);
+  // const hasValidToken = token && !isTokenExpired(token);
+
+  const payload = token ? decodeToken(token) : null;
+const isExpired = payload ? payload.exp <= Math.floor(Date.now() / 1000) : true;
+
+const hasValidToken = payload && !isExpired;
+
+const userRole = payload;
+console.log("🚀 ~ proxy ~ userRole:", userRole)
+const userId = payload?.sub; // or id depending on your backend
 
 //   const token = request.cookies.get('auth_token')?.value;
   // console.log("🚀 ~ proxy ~ token:", hasValidToken)

@@ -1,663 +1,304 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import JSONbig from "json-bigint";
-import { authenticatedFetch } from "../utils/api"; // Import authenticatedFetch
+import { authenticatedFetch } from "../utils/api";
 import ReusableTable from "../components/ReusableTable";
 import ViewEmployeesSkeleton from "../components/loaders/ViewEmployeesSkeleton";
+import { Users, BookOpen, Home, Trash2, Edit, AlertCircle } from "lucide-react";
 
 const Client = () => {
   const [clients, setClients] = useState([]);
   const [clientLearningNeeds, setClientLearningNeeds] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null); // New state for success messages
-  const [confirmMessage, setConfirmMessage] = useState(null); // New state for confirmation messages
-  const [confirmAction, setConfirmAction] = useState(null); // New state for confirmation action callback
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [confirmMessage, setConfirmMessage] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
   const [selectedClientId, setSelectedClientId] = useState(null);
+  const [user, setUser] = useState(null);
   const router = useRouter();
 
+  const hasEditPermission = useMemo(() => {
+    return user?.accessLevel === "Administrator";
+  }, [user]);
+
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    // ✅ Check for JWT token in storedUser
-    if (!user || !user.companyId || !user.jwtToken) {
-      setError("User information or token is missing. Redirecting to login.");
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (!storedUser || !storedUser.companyId || !storedUser.jwtToken) {
+      setError("User session missing. Redirecting to login.");
       setLoading(false);
-      setTimeout(() => {
-        router.replace("/login");
-      }, 500);
-      return; // Exit early
+      setTimeout(() => router.replace("/login"), 500);
+      return;
     }
+    setUser(storedUser);
 
     const fetchClients = async () => {
       try {
-        // ✅ Use authenticatedFetch instead of direct fetch
         const response = await authenticatedFetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/client/${encodeURIComponent(user.companyId)}`,
-          {
-            method: "GET",
-            headers: { Accept: "application/json" },
-            // ✅ Removed credentials: "include"
-          },
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/client/${encodeURIComponent(storedUser.companyId)}`,
+          { method: "GET", headers: { Accept: "application/json" } }
         );
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(
-            `Failed to fetch client data: ${response.status} ${response.statusText} - ${errorText}`,
-          );
-        }
+        if (!response.ok) throw new Error("Failed to fetch client data.");
 
         const text = await response.text();
         const data = JSONbig.parse(text);
-
-        const converted = data.map((client) => ({
-          ...client,
-          clientId: client.clientId?.toString(),
-          companyId: client.companyId?.toString(),
-        }));
-        setClients(converted);
+        setClients(data.map(c => ({
+          ...c,
+          clientId: c.clientId?.toString(),
+          companyId: c.companyId?.toString(),
+        })));
       } catch (err) {
-        console.error("Error fetching clients:", err);
         setError(err.message);
-        // If fetching fails due to token issues (e.g., token expired/invalid),
-        // consider redirecting to login after a delay.
-        if (
-          err.message.includes("Authentication token missing") ||
-          err.message.includes("401 Unauthorized")
-        ) {
-          setTimeout(() => {
-            router.replace("/login");
-          }, 1500);
-        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchClients();
-  }, []); // Empty dependency array as user is accessed inside the effect
+  }, [router]);
 
   const fetchLearningNeeds = async (clientId) => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    // ✅ Check for JWT token in storedUser
-    if (!user || !user.companyId || !clientId || !user.jwtToken) {
-      console.error(
-        "User information or token is missing for fetching learning needs.",
-      );
-      setError("User session or token is missing. Redirecting to login.");
-      setTimeout(() => {
-        router.replace("/login");
-      }, 500);
-      return;
-    }
-
+    if (!user?.companyId || !clientId) return;
     try {
-      // ✅ Use authenticatedFetch instead of direct fetch
       const response = await authenticatedFetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/clientLearnNeeds/id/${encodeURIComponent(user.companyId)}/${encodeURIComponent(clientId)}`,
-        {
-          method: "GET",
-          headers: { Accept: "application/json" },
-          // ✅ Removed credentials: "include"
-        },
+        { method: "GET", headers: { Accept: "application/json" } }
       );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Failed to fetch learning needs: ${response.status} ${response.statusText} - ${errorText}`,
-        );
-      }
-
-      const text = await response.text();
-      const data = JSONbig.parse(text);
-
-      const safeData = {
-        ...data,
-        clientId: data.clientId?.toString(),
-        clientLearningId: data.clientLearningId?.toString(),
-        companyId: data.companyId?.toString(),
-      };
-
-      if (!safeData || Object.keys(safeData).length === 0) {
-        setClientLearningNeeds(null);
+      if (response.ok) {
+        const text = await response.text();
+        const data = JSONbig.parse(text);
+        setClientLearningNeeds({
+          ...data,
+          clientId: data.clientId?.toString(),
+          clientLearningId: data.clientLearningId?.toString(),
+          companyId: data.companyId?.toString(),
+        });
       } else {
-        setClientLearningNeeds(safeData);
+        setClientLearningNeeds(null);
       }
     } catch (err) {
-      console.error("Error fetching learning needs:", err);
-      setClientLearningNeeds(null); // Clear learning needs on error
-      setError(err.message); // Set error for display
-      // If fetching fails due to token issues (e.g., token expired/invalid),
-      // consider redirecting to login after a delay.
-      if (
-        err.message.includes("Authentication token missing") ||
-        err.message.includes("401 Unauthorized")
-      ) {
-        setTimeout(() => {
-          router.replace("/login");
-        }, 1500);
-      }
+      setClientLearningNeeds(null);
     }
   };
 
-  const handleRowClick = (clientId) => {
-    setSelectedClientId(clientId);
-    fetchLearningNeeds(clientId);
-    setError(null); // Clear errors when selecting a new client
-    setSuccessMessage(null); // Clear success messages
+  const handleRowClick = (client) => {
+    // Crucial: ReusableTable usually passes the full row object
+    const id = client.clientId;
+    setSelectedClientId(id);
+    fetchLearningNeeds(id);
+    setError(null);
+    setSuccessMessage(null);
   };
 
   const handleCreateClient = () => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (user && user.companyId) {
-      sessionStorage.setItem("companyId", user.companyId);
-      router.push("/createClient");
-    } else {
-      setError("User information is missing. Cannot create client.");
-      setTimeout(() => {
-        router.replace("/login");
-      }, 500);
-    }
-  };
-
-  const handleUpdateClients = () => {
-    const selectedClient = clients.find((c) => c.clientId === selectedClientId);
-    if (selectedClient) {
-      sessionStorage.setItem("selectedClient", JSON.stringify(selectedClient));
-      router.push("/updateClient");
-    } else {
-      setError("No client selected for update.");
-    }
-  };
-
-  const handleDeleteClients = async () => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    const client = clients.find((c) => c.clientId === selectedClientId);
-    // ✅ Check for JWT token in storedUser
-    if (!client || !user || !user.companyId || !user.jwtToken) {
-      setError("User information or token is missing. Cannot delete client.");
-      setTimeout(() => {
-        router.replace("/login");
-      }, 500);
-      return;
-    }
-
-    setConfirmMessage(
-      `Are you sure you want to delete the Client of email ${client.email}?`,
-    );
-    setConfirmAction(() => async () => {
-      try {
-        // ✅ Use authenticatedFetch instead of direct fetch
-        const response = await authenticatedFetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/client/delete?clientId=${encodeURIComponent(
-            client.clientId,
-          )}&companyId=${encodeURIComponent(user.companyId)}`,
-          {
-            method: "POST",
-            headers: {
-              Accept: "application/json",
-            },
-            // ✅ Removed credentials: "include"
-          },
-        );
-
-        if (response.ok) {
-          setSuccessMessage("Client deleted successfully.");
-          setClients(clients.filter((c) => c.clientId !== client.clientId));
-          setClientLearningNeeds(null);
-          setSelectedClientId(null);
-          setError(null); // Clear any previous errors
-        } else {
-          const errorText = await response.text();
-          throw new Error(
-            `Failed to delete client: ${response.status} ${response.statusText} - ${errorText}`,
-          );
-        }
-      } catch (err) {
-        console.error("Delete client error:", err);
-        setError("An error occurred while deleting the client: " + err.message);
-        // If fetching fails due to token issues (e.g., token expired/invalid),
-        // consider redirecting to login after a delay.
-        if (
-          err.message.includes("Authentication token missing") ||
-          err.message.includes("401 Unauthorized")
-        ) {
-          setTimeout(() => {
-            router.replace("/login");
-          }, 1500);
-        }
-      } finally {
-        setConfirmMessage(null); // Close confirmation modal
-        setConfirmAction(null);
-      }
-    });
+    if (!hasEditPermission) return;
+    sessionStorage.setItem("companyId", user.companyId);
+    router.push("/createClient");
   };
 
   const handleDeleteClient = (client) => {
-    const user = JSON.parse(localStorage.getItem("user"));
-
-    if (!client || !user || !user.companyId || !user.jwtToken) {
-      setError("User information or token is missing. Cannot delete client.");
-      setTimeout(() => {
-        router.replace("/login");
-      }, 500);
-      return;
-    }
-
-    setConfirmMessage(
-      `Are you sure you want to delete the client with email ${client.email}?`,
-    );
+    if (!hasEditPermission) return;
+    setConfirmMessage(`Delete client: ${client.firstName} ${client.lastName}?`);
     setConfirmAction(() => async () => {
       try {
-        const response = await authenticatedFetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/client/delete?clientId=${encodeURIComponent(
-            client.clientId,
-          )}&companyId=${encodeURIComponent(user.companyId)}`,
-          {
-            method: "POST",
-            headers: {
-              Accept: "application/json",
-            },
-          },
+        const res = await authenticatedFetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/client/delete?clientId=${client.clientId}&companyId=${user.companyId}`,
+          { method: "POST" }
         );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(
-            `Failed to delete client: ${response.status} ${response.statusText} - ${errorText}`,
-          );
+        if (res.ok) {
+          setClients(prev => prev.filter(c => c.clientId !== client.clientId));
+          setSuccessMessage("Client deleted successfully.");
+          if (selectedClientId === client.clientId) {
+            setSelectedClientId(null);
+            setClientLearningNeeds(null);
+          }
         }
-
-        setSuccessMessage("Client deleted successfully.");
-        setClients((prev) =>
-          prev.filter((c) => c.clientId !== client.clientId),
-        );
-
-        if (selectedClientId === client.clientId) {
-          setSelectedClientId(null);
-          setClientLearningNeeds(null);
-        }
-
-        setError(null);
-      } catch (err) {
-        console.error("Delete client error:", err);
-        setError("An error occurred while deleting the client: " + err.message);
-
-        if (
-          err.message.includes("Authentication token missing") ||
-          err.message.includes("401 Unauthorized")
-        ) {
-          setTimeout(() => {
-            router.replace("/login");
-          }, 1500);
-        }
-      } finally {
-        setConfirmMessage(null);
-        setConfirmAction(null);
-      }
+      } catch (err) { setError(err.message); }
+      setConfirmMessage(null);
     });
-  };
-
-  // New handler for creating client learning needs
-  const handleCreateLearningNeeds = () => {
-    const selectedClient = clients.find((c) => c.clientId === selectedClientId);
-    if (selectedClient) {
-      sessionStorage.setItem("ClientID", selectedClient.clientId);
-      sessionStorage.setItem("CompanyID", selectedClient.companyId);
-      router.push("/createClientLearningNeeds");
-    } else {
-      setError("No client selected to create learning needs.");
-    }
   };
 
   const handleDeleteLearningNeeds = async () => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    // ✅ Check for JWT token in storedUser
-    if (!clientLearningNeeds || !user || !user.companyId || !user.jwtToken) {
-      setError(
-        "User information or token is missing. Cannot delete learning needs.",
-      );
-      setTimeout(() => {
-        router.replace("/login");
-      }, 500);
-      return;
-    }
-
-    setConfirmMessage(
-      `Are you sure you want to delete Client Learning Needs for ClientId ${clientLearningNeeds.clientId}?`,
-    );
+    if (!clientLearningNeeds || !hasEditPermission) return;
+    setConfirmMessage("Delete these Learning Needs?");
     setConfirmAction(() => async () => {
       try {
-        // ✅ Use authenticatedFetch instead of direct fetch
-        const response = await authenticatedFetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/clientLearnNeeds/delete?clientLearningId=${encodeURIComponent(
-            clientLearningNeeds.clientLearningId,
-          )}&companyId=${encodeURIComponent(user.companyId)}`,
-          {
-            method: "POST",
-            headers: {
-              Accept: "application/json",
-            },
-            // ✅ Removed credentials: "include"
-          },
+        const res = await authenticatedFetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/clientLearnNeeds/delete?clientLearningId=${clientLearningNeeds.clientLearningId}&companyId=${user.companyId}`,
+          { method: "POST" }
         );
-
-        if (response.ok) {
-          setSuccessMessage("Client Learning Needs deleted successfully.");
+        if (res.ok) {
           setClientLearningNeeds(null);
-          setError(null); // Clear any previous errors
-        } else {
-          const errorText = await response.text();
-          throw new Error(
-            `Failed to delete learning needs: ${response.status} ${response.statusText} - ${errorText}`,
-          );
+          setSuccessMessage("Learning needs removed.");
         }
-      } catch (err) {
-        console.error("Delete learning needs error:", err);
-        setError(
-          "An error occurred while deleting learning needs: " + err.message,
-        );
-        // If fetching fails due to token issues (e.g., token expired/invalid),
-        // consider redirecting to login after a delay.
-        if (
-          err.message.includes("Authentication token missing") ||
-          err.message.includes("401 Unauthorized")
-        ) {
-          setTimeout(() => {
-            router.replace("/login");
-          }, 1500);
-        }
-      } finally {
-        setConfirmMessage(null); // Close confirmation modal
-        setConfirmAction(null);
-      }
+      } catch (err) { setError(err.message); }
+      setConfirmMessage(null);
     });
   };
 
-  const handleUpdateLearningNeeds = () => {
-    if (clientLearningNeeds) {
-      sessionStorage.setItem(
-        "selectedClientLearningNeeds",
-        JSON.stringify(clientLearningNeeds),
-      );
-      router.push("/updateClientLearningNeeds");
-    } else {
-      setError("No learning needs selected for update.");
-    }
-  };
-
-  const handleConfirm = () => {
-    if (confirmAction) {
-      confirmAction();
-    }
-  };
-
-  const handleCancelConfirm = () => {
-    setConfirmMessage(null);
-    setConfirmAction(null);
-  };
-
-  const handleUpdateClient = (client) => {
-    if (client) {
-      sessionStorage.setItem("selectedClient", JSON.stringify(client));
-      router.push("/updateClient");
-    } else {
-      setError("No client selected for update.");
-    }
-  };
-
   const clientColumns = [
-    { header: "Client ID", accessor: "clientId", align: "center" },
-    { header: "Company ID", accessor: "companyId", align: "center" },
-    { header: "First Name", accessor: "firstName", align: "center" },
-    { header: "Last Name", accessor: "lastName", align: "center" },
+    { header: "ID", render: (c) => <span className="text-xs text-gray-400 font-mono">{c.clientId}</span> },
+    { header: "Name", render: (c) => <span className="font-semibold text-gray-900">{c.firstName} {c.lastName}</span> },
     { header: "Email", accessor: "email" },
-    {
-      header: "Phone",
-      render: (row) => row.phoneNumber || "N/A",
-    },
-    {
-      header: "Address",
-      render: (row) => row.address || "N/A",
-    },
-    { header: "Age", accessor: "age", align: "center" },
-    { header: "Gender", accessor: "gender", align: "center" },
+    { header: "Phone", render: (c) => c.phoneNumber || "—" },
     {
       header: "Status",
-      align: "center",
-      render: (row) =>
-        row.status === "Active" ? (
-          <span className="text-green-600 font-semibold">Active</span>
-        ) : (
-          <span className="text-red-500 font-semibold">Inactive</span>
-        ),
+      render: (c) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-bold ${c.status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+          {c.status}
+        </span>
+      ),
     },
   ];
 
-  const clientActions = [
+  const clientActions = hasEditPermission ? [
     {
       label: "Edit",
       icon: "edit",
       variant: "primary",
-      title: "Edit client",
-      showLabel: true,
-      onClick: (client) => handleUpdateClient(client),
+      onClick: (c) => {
+        sessionStorage.setItem("selectedClient", JSON.stringify(c));
+        router.push("/updateClient");
+      }
     },
     {
       label: "Delete",
       icon: "trash",
       variant: "danger",
-      title: "Delete client",
-      showLabel: false,
-      onClick: (client) => handleDeleteClient(client),
-    },
-  ];
+      onClick: (c) => handleDeleteClient(c)
+    }
+  ] : [];
 
   return (
-    <div className="hero-radial-background bg-[radial-gradient(12%_14.08%_at_9.42%_89.81%,#D1E5FF,#F8FAFC),radial-gradient(13.98%_18.61%_at_186.74%_119.73%,rgba(110,178,188,0.4),rgba(217,217,217,0.4))] w-full flex justify-center py-3 min-h-[90vh]">
-      <div className="bg-white/30 backdrop-blur-2xl shadow-xl rounded-2xl max-w-7xl mx-auto mt-10  bg-gray-50 rounded shadow space-y-10">
-        {/* Confirmation Modal */}
-        {confirmMessage && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
-              <p className="text-lg font-semibold mb-4">{confirmMessage}</p>
-              <div className="flex justify-center space-x-4">
-                <button
-                  onClick={handleConfirm}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-                >
-                  Confirm
-                </button>
-                <button
-                  onClick={handleCancelConfirm}
-                  className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+    <div className="relative min-h-screen w-full flex flex-col items-center hero-radial-background bg-[radial-gradient(12%_14.08%_at_9.42%_89.81%,#D1E5FF,#F8FAFC),radial-gradient(13.98%_18.61%_at_186.74%_119.73%,rgba(110,178,188,0.4),rgba(217,217,217,0.4))] px-4 py-10">
+      <div className="relative z-10 w-full max-w-7xl space-y-6">
 
-        {/* Group Box: Clients */}
-        <div className=" w-full pt-3 border-gray-300 rounded">
-          <p className="text-2xl text-center mb-2 font-semibold px-2">
-            {" "}
-            Clients
-          </p>
-          <div className=" flex justify-end px-5 mb-3  ">
-            <button
-              onClick={handleCreateClient}
-              className="px-4 py-2 bg-[#008080] text-white rounded-lg cursor-pointer hover:bg-[#008080]"
-            >
-              + add Clients
-            </button>
+        {/* HEADER SECTION */}
+        <div className="bg-white/70 rounded-2xl shadow-sm border border-teal-400/30 overflow-hidden px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Users className="text-[#008080]" size={24} />
+              <h1 className="text-2xl font-semibold text-gray-900">Client Management</h1>
+            </div>
+            <p className="text-sm text-gray-500 mt-1">Role: <span className="font-bold text-[#008080]">{user?.accessLevel || "Loading..."}</span></p>
           </div>
 
-          {loading ? (
-            <div className="text-center text-blue-500 mt-4">
-              <ViewEmployeesSkeleton />
-            </div>
-          ) : error ? (
-            <div className="text-red-500 text-center mt-4">{error}</div>
-          ) : clients.length > 0 ? (
+          <button
+            onClick={handleCreateClient}
+            disabled={!hasEditPermission}
+            className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition shadow-sm ${
+              hasEditPermission ? "bg-[#008080] text-white hover:bg-teal-700 cursor-pointer" : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
+          >
+            + Add Client
+          </button>
+        </div>
+
+        {/* MESSAGES */}
+        {error && <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">{error}</div>}
+        {successMessage && <div className="p-4 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm">{successMessage}</div>}
+
+        {/* CLIENT TABLE */}
+        <div className="bg-white/70 rounded-2xl shadow-sm border border-teal-400/30 overflow-hidden">
+          {loading ? <ViewEmployeesSkeleton /> : (
             <ReusableTable
               data={clients}
               columns={clientColumns}
               actions={clientActions}
-              getRowKey={(row) => row.clientId}
-              onRowClick={(row) => handleRowClick(row.clientId)}
-              isRowSelected={(row) => selectedClientId === row.clientId}
-              emptyText="No clients found."
-              footerLeft={`Total clients: ${clients.length}`}
+              getRowKey={(c) => c.clientId}
+              onRowClick={(row) => handleRowClick(row)} // Explicitly passing the row
+              isRowSelected={(c) => selectedClientId === c.clientId}
+              footerLeft={`Showing ${clients.length} clients`}
+              footerRight="Select a row to manage needs"
             />
-          ) : (
-            <p className="text-center text-gray-500">No clients found.</p>
           )}
+        </div>
 
-          {/* Action Buttons for Clients */}
-          <div className="hidden gap-4 justify-center mt-4">
-            <button
-              onClick={handleUpdateClient}
-              disabled={!selectedClientId}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-            >
-              Update
-            </button>
-            <button
-              onClick={handleDeleteClient}
-              disabled={!selectedClientId}
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-            >
-              Delete
-            </button>
+        {/* LEARNING NEEDS SECTION */}
+        <div className="bg-white/80 rounded-2xl p-6 border border-teal-100 shadow-sm mt-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-teal-50 rounded-lg text-[#008080]"><BookOpen size={20} /></div>
+              <h2 className="text-lg font-bold text-gray-800">Client Learning Needs</h2>
+            </div>
+
+            {hasEditPermission && selectedClientId && (
+              <div className="flex gap-2">
+
+                  <button
+                    onClick={() => {
+                      const selectedClient = clients.find(c => c.clientId === selectedClientId);
+                      if (selectedClient) {
+                        sessionStorage.setItem("ClientID", selectedClient.clientId);
+                        sessionStorage.setItem("CompanyID", selectedClient.companyId);
+                        router.push("/createClientLearningNeeds");
+                      }
+                    }}
+                    className="px-4 py-2 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 transition shadow-sm cursor-pointer"
+                  >
+                    + Create Needs
+                  </button>
+                  <>
+                    <button
+                      onClick={() => {
+                        sessionStorage.setItem("selectedClientLearningNeeds", JSON.stringify(clientLearningNeeds));
+                        router.push("/updateClientLearningNeeds");
+                      }}
+                      className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition shadow-sm cursor-pointer"
+                    >
+                      Update
+                    </button>
+                    <button
+                      onClick={handleDeleteLearningNeeds}
+                      className="px-4 py-2 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition shadow-sm cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  </>
+              </div>
+            )}
+          </div>
+
+          <div className={`p-6 rounded-xl border ${clientLearningNeeds ? 'bg-white border-teal-100' : 'bg-gray-50 border-gray-200 border-dashed'}`}>
+            {clientLearningNeeds ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-6 gap-x-8 text-sm">
+                <div><strong className="text-gray-400 uppercase text-[10px] tracking-wider">Preferred Method</strong><p className="mt-1 font-medium">{clientLearningNeeds.preferredLearningMethod || "N/A"}</p></div>
+                <div><strong className="text-gray-400 uppercase text-[10px] tracking-wider">Assistive Tech</strong><p className="mt-1 font-medium">{clientLearningNeeds.assistiveTechnologyRequired ? "Yes" : "No"}</p></div>
+                <div><strong className="text-gray-400 uppercase text-[10px] tracking-wider">Literacy Level</strong><p className="mt-1 font-medium">{clientLearningNeeds.literacyLevel || "N/A"}</p></div>
+                <div><strong className="text-gray-400 uppercase text-[10px] tracking-wider">Numeracy Level</strong><p className="mt-1 font-medium">{clientLearningNeeds.numeracyLevel || "N/A"}</p></div>
+                <div><strong className="text-gray-400 uppercase text-[10px] tracking-wider">Digital Skills</strong><p className="mt-1 font-medium">{clientLearningNeeds.digitalSkillsLevel || "N/A"}</p></div>
+                <div><strong className="text-gray-400 uppercase text-[10px] tracking-wider">Training Goal</strong><p className="mt-1 font-medium">{clientLearningNeeds.trainingGoal || "N/A"}</p></div>
+              </div>
+            ) : (
+              <div className="py-8 text-center text-gray-500 italic text-sm">
+                {selectedClientId
+                  ? "No specialized needs found. Use the '+ Create Needs' button above."
+                  : "Select a client from the table above to view or create learning needs."}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Group Box: Client Learning Needs */}
-        <fieldset className="border border-gray-300 rounded p-5">
-          <legend className="text-xl font-semibold px-2">
-            Client Learning Needs
-          </legend>
-
-          {/* Action Buttons for Learning Needs */}
-          {clientLearningNeeds && (
-            <div className="flex gap-4 justify-center mb-4">
-              <button
-                onClick={handleCreateLearningNeeds}
-                disabled={!selectedClientId || !!clientLearningNeeds}
-                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50"
-              >
-                Create
-              </button>
-              <button
-                onClick={handleUpdateLearningNeeds}
-                disabled={!selectedClientId || !clientLearningNeeds}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-              >
-                Update
-              </button>
-              <button
-                onClick={handleDeleteLearningNeeds}
-                disabled={!selectedClientId || !clientLearningNeeds}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-              >
-                Delete
-              </button>
-            </div>
-          )}
-
-          {clientLearningNeeds ? (
-            <div className="text-sm text-gray-700 space-y-1">
-              <p>
-                <strong>Client Learning Id:</strong>{" "}
-                {clientLearningNeeds.clientLearningId}
-              </p>
-              <p>
-                <strong>Client Id:</strong> {clientLearningNeeds.clientId}
-              </p>
-              <p>
-                <strong>Company Id:</strong> {clientLearningNeeds.companyId}
-              </p>
-              <p>
-                <strong>Preferred Method:</strong>{" "}
-                {clientLearningNeeds.preferredLearningMethod}
-              </p>
-              <p>
-                <strong>Assistive Tech:</strong>{" "}
-                {clientLearningNeeds.assistiveTechnologyRequired ? "Yes" : "No"}
-              </p>
-              <p>
-                <strong>Communication Support:</strong>{" "}
-                {clientLearningNeeds.communicationSupport}
-              </p>
-              <p>
-                <strong>Literacy:</strong> {clientLearningNeeds.literacyLevel}
-              </p>
-              <p>
-                <strong>Numeracy:</strong> {clientLearningNeeds.numeracyLevel}
-              </p>
-              <p>
-                <strong>Digital Skills:</strong>{" "}
-                {clientLearningNeeds.digitalSkillsLevel}
-              </p>
-              <p>
-                <strong>Device Access:</strong>{" "}
-                {clientLearningNeeds.accessToDevice}
-              </p>
-              <p>
-                <strong>Internet:</strong> {clientLearningNeeds.internetAccess}
-              </p>
-              <p>
-                <strong>Training Goal:</strong>{" "}
-                {clientLearningNeeds.trainingGoal}
-              </p>
-              <p>
-                <strong>Days:</strong>{" "}
-                {clientLearningNeeds.preferredTrainingDays}
-              </p>
-              <p>
-                <strong>Times:</strong>{" "}
-                {clientLearningNeeds.preferredTrainingTimes}
-              </p>
-              <p>
-                <strong>Onsite Support:</strong>{" "}
-                {clientLearningNeeds.onsiteSupportRequired ? "Yes" : "No"}
-              </p>
-              <p>
-                <strong>Behavioral Notes:</strong>{" "}
-                {clientLearningNeeds.behavioralSupportNotes}
-              </p>
-              <p>
-                <strong>Notes:</strong> {clientLearningNeeds.additionalNotes}
-              </p>
-            </div>
-          ) : selectedClientId ? (
-            <div className="text-sm text-gray-500 italic text-center">
-              No learning needs data found for this client.
-            </div>
-          ) : (
-            <div className="text-sm text-gray-500 italic text-center">
-              Select a client to view learning needs.
-            </div>
-          )}
-        </fieldset>
-
-        {/* Global Error/Success Message Display */}
-        {error && (
-          <div className="fixed bottom-4 right-4 bg-red-600 text-white p-3 rounded-lg shadow-lg z-50">
-            {error}
-          </div>
-        )}
-        {successMessage && (
-          <div className="fixed bottom-4 right-4 bg-green-600 text-white p-3 rounded-lg shadow-lg z-50">
-            {successMessage}
-          </div>
-        )}
+        <div className="flex justify-center pt-6">
+          <Link href="/home" className="flex items-center gap-2 px-10 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition shadow-lg"><Home size={18} /> Home</Link>
+        </div>
       </div>
+
+      {confirmMessage && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] px-4">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center">
+            <AlertCircle className="mx-auto mb-4 text-red-500" size={48} />
+            <p className="text-lg font-bold text-gray-900 mb-2">{confirmMessage}</p>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => confirmAction()} className="flex-1 py-2.5 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition">Confirm</button>
+              <button onClick={() => setConfirmMessage(null)} className="flex-1 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

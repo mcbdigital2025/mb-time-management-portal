@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { companyLinks, productLinks, supportLinks } from "../data/index";
+import Image from "next/image";
+import { Logo } from "../components/assest";
 
 export default function Footer() {
   return (
@@ -9,10 +11,13 @@ export default function Footer() {
           {/* Left column */}
           <div className="space-y-4 text-center sm:text-left">
             <div className="flex items-center justify-center sm:justify-start gap-3">
-              <img
-                src="/images/logo.png"
-                alt="MaboCore"
-                className="h-11 w-auto rounded-lg"
+              <Image
+                src={Logo}
+                alt="Logo"
+                width={78}
+                height={44}
+                priority
+                className="object-contain"
               />
             </div>
 
@@ -63,9 +68,6 @@ export default function Footer() {
 function FooterCol({
   title,
   links,
-}: {
-  title: string;
-  links: { label: string; href: string }[];
 }) {
   return (
     <div className="space-y-4 text-center sm:text-left">
