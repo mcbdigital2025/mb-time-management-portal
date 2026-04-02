@@ -284,7 +284,7 @@ const MyShiftsSchedule = ({ user }) => {
                   >
                     <ChevronLeft size={18} />
                   </button>
-                  <button onClick={nextWeek} className="p-2 hover:bg-slate-50">
+                  <button onClick={nextWeek} className="p-2 hover:bg-slate-50 cursor-pointer">
                     <ChevronRight size={18} />
                   </button>
                 </div>
