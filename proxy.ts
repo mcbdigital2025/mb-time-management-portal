@@ -74,12 +74,12 @@ const isExpired = payload ? payload.exp <= Math.floor(Date.now() / 1000) : true;
 
 const hasValidToken = payload && !isExpired;
 
-const userRole = payload;
-console.log("🚀 ~ proxy ~ userRole:", userRole)
+const userRole = payload?.role;
+// console.log("🚀 ~ proxy ~ userRole:", userRole)
 const userId = payload?.sub; // or id depending on your backend
 
 //   const token = request.cookies.get('auth_token')?.value;
-  console.log("🚀 ~ proxy ~ token:", hasValidToken)
+  // console.log("🚀 ~ proxy ~ token:", hasValidToken)
 
   if (hasValidToken && pathname === "/login") {
     return NextResponse.redirect(new URL("/landing", request.url));
