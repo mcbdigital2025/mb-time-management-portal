@@ -154,9 +154,15 @@ const MyShiftsSchedule = ({ user }) => {
 
     const navigateTo = (path) => {
         if (!selectedShift) return;
+
+        // Save to session storage as a "session value"
+        // We convert to string to ensure BigInt safety
+        sessionStorage.setItem('currentClientBookingId', selectedShift.clientBookingId.toString());
+
         router.push({
             pathname: path,
-            query: { scheduleId: selectedShift.clientBookingId, clientId: selectedShift.clientId }
+            // We still keep the query for backup, but the session is our primary source
+            query: { scheduleId: selectedShift.clientBookingId.toString(), clientId: selectedShift.clientId }
         });
     };
 
@@ -164,7 +170,7 @@ const MyShiftsSchedule = ({ user }) => {
         isActive ? 'text-slate-700 hover:bg-slate-50 cursor-pointer' : 'text-slate-300 cursor-not-allowed opacity-50'
     }`;
 
-    if (loading) return <div className="p-8 h-[80vh] text-center text-slate-500 flex justify-center items-center">Loading schedules...</div>;
+    if (loading) return <div className="p-8 text-center text-slate-500">Loading schedules...</div>;
 
     return (
         <div className="flex min-h-screen bg-gray-50">
@@ -181,8 +187,8 @@ const MyShiftsSchedule = ({ user }) => {
                 <button disabled={!selectedShift} onClick={handleClockOut} className={`${menuBtnClass(!!selectedShift)} hover:text-rose-700 hover:bg-rose-50`}><LogOut size={18} /> Clock Out</button>
                 <hr className="my-2 border-slate-100" />
                 <button disabled={!selectedShift} onClick={() => navigateTo('/createUpdateServiceStaffNotes')} className={`${menuBtnClass(!!selectedShift)} hover:text-blue-700 hover:bg-blue-50`}><StickyNote size={18} /> Add Notes</button>
-                <button disabled={!selectedShift} onClick={() => navigateTo('/incidents/new')} className={`${menuBtnClass(!!selectedShift)} hover:text-amber-700 hover:bg-amber-50`}><AlertTriangle size={18} /> Report Incident</button>
-                <button disabled={!selectedShift} onClick={() => navigateTo('/mileage/add')} className={`${menuBtnClass(!!selectedShift)} hover:text-indigo-700 hover:bg-indigo-50`}><Car size={18} /> Add Mileage</button>
+                <button disabled={!selectedShift} onClick={() => navigateTo('/createUpdateIncidentReport')} className={`${menuBtnClass(!!selectedShift)} hover:text-amber-700 hover:bg-amber-50`}><AlertTriangle size={18} /> Report Incident</button>
+                <button disabled={!selectedShift} onClick={() => navigateTo('/createUpdateServiceMileage')} className={`${menuBtnClass(!!selectedShift)} hover:text-indigo-700 hover:bg-indigo-50`}><Car size={18} /> Add Mileage</button>
                 <button disabled={!selectedShift} onClick={() => navigateTo('/expenses/add')} className={`${menuBtnClass(!!selectedShift)} hover:text-teal-700 hover:bg-teal-50`}><Receipt size={18} /> Add Expense</button>
             </div>
 
