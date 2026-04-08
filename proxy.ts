@@ -13,8 +13,6 @@ function isPublicPath(pathname: string) {
     pathname === "/contact" ||
     pathname === "/about" ||
     pathname === "/createemployee" ||
-    // pathname === "/viewemployees" ||
-    // pathname === "/updateemployee" ||
     pathname === "/forgot-password" ||
     pathname === "/reset-password" ||
     pathname.startsWith("/_next/") ||
@@ -67,6 +65,13 @@ export function proxy(request: NextRequest) {
   const publicPath = isPublicPath(pathname);
   const token = request.cookies.get("jwtToken")?.value;
 
+  const NON_ADMIN_ALLOWED_ROUTES = [
+  "/landing",
+  "/profile",
+  "/conversations",
+  "/myshiftsschedule",
+];
+
   // const hasValidToken = token && !isTokenExpired(token);
 
   const payload = token ? decodeToken(token) : null;
@@ -74,9 +79,10 @@ const isExpired = payload ? payload.exp <= Math.floor(Date.now() / 1000) : true;
 
 const hasValidToken = payload && !isExpired;
 
-const userRole = payload;
-console.log("🚀 ~ proxy ~ userRole:", userRole)
-const userId = payload?.sub; // or id depending on your backend
+const userRole = payload?.role;
+// console.log("🚀 ~ proxy ~ userRole:", userRole)
+
+
 
 //   const token = request.cookies.get('auth_token')?.value;
   // console.log("🚀 ~ proxy ~ token:", hasValidToken)
@@ -100,6 +106,23 @@ const userId = payload?.sub; // or id depending on your backend
 
     return response;
   }
+
+  // Only run this for authenticated users
+if (hasValidToken) {
+  const isAdmin =
+    typeof userRole === "string" &&
+    userRole.toLowerCase().includes("administrator");
+
+  const isAllowedForNonAdmin =
+    NON_ADMIN_ALLOWED_ROUTES.some((route) =>
+      pathname.startsWith(route)
+    );
+
+  // 🚫 Block non-admins from restricted routes
+  if (!isAdmin && !isAllowedForNonAdmin) {
+    return NextResponse.redirect(new URL("/landing", request.url));
+  }
+}
 
   return NextResponse.next();
 }
