@@ -11,8 +11,9 @@ export default {
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:8085/mcbtt/api/:path*", // Backend URL
+        destination: "http://100.86.231.87:8085/mcbtt/api/:path*", // Backend URL
       },
     ];
   },
 };
+
