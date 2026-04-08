@@ -164,7 +164,7 @@ const MyShiftsSchedule = ({ user }) => {
         isActive ? 'text-slate-700 hover:bg-slate-50 cursor-pointer' : 'text-slate-300 cursor-not-allowed opacity-50'
     }`;
 
-    if (loading) return <div className="p-8 text-center text-slate-500">Loading schedules...</div>;
+    if (loading) return <div className="p-8 h-[80vh] text-center text-slate-500 flex justify-center items-center">Loading schedules...</div>;
 
     return (
         <div className="flex min-h-screen bg-gray-50">
