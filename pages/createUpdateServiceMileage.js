@@ -127,7 +127,10 @@ const CreateUpdateServiceMileage = ({ user }) => {
     }
 
     return (
-        <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg mt-10 border border-gray-200">
+
+        <div className='min-h-[85vh] hero-radial-background flex justify-center items-center'>
+
+        <div className="max-w-5xl  mx-auto p-6  bg-white shadow-lg rounded-lg mt-10 border border-gray-200">
             <h1 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">
                 {serviceMileageId ? "Update Service Mileage" : "Add Service Mileage"}
             </h1>
@@ -206,6 +209,7 @@ const CreateUpdateServiceMileage = ({ user }) => {
                     </button>
                 </div>
             </form>
+        </div>
         </div>
     );
 };
