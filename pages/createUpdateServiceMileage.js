@@ -22,6 +22,7 @@ const CreateUpdateServiceMileage = ({ user }) => {
     const [isPageLoading, setIsPageLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // mileage/{companyId}/{clientBookingId}
     const API_BASE = `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/staffAction/mileage`;
 
     // --- EFFECT: Initialize ID from Session (Matching myshiftsschedule.js logic) ---
@@ -49,7 +50,7 @@ const CreateUpdateServiceMileage = ({ user }) => {
         const fetchExistingMileage = async () => {
             try {
                 // Endpoint follows the pattern of the referenced staff notes fetch
-                const response = await authenticatedFetch(`${API_BASE}/booking/${user.companyId}/${activeBookingId}`);
+                const response = await authenticatedFetch(`${API_BASE}/${user.companyId}/${activeBookingId}`);
                 if (response.ok) {
                     const data = await response.json();
                     if (data) {
@@ -127,10 +128,7 @@ const CreateUpdateServiceMileage = ({ user }) => {
     }
 
     return (
-
-        <div className='min-h-[85vh] hero-radial-background flex justify-center items-center'>
-
-        <div className="max-w-5xl  mx-auto p-6  bg-white shadow-lg rounded-lg mt-10 border border-gray-200">
+        <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg mt-10 border border-gray-200">
             <h1 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">
                 {serviceMileageId ? "Update Service Mileage" : "Add Service Mileage"}
             </h1>
@@ -209,7 +207,6 @@ const CreateUpdateServiceMileage = ({ user }) => {
                     </button>
                 </div>
             </form>
-        </div>
         </div>
     );
 };
