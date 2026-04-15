@@ -50,8 +50,8 @@ export default LandingOverview;
 
 const AccountAndCalendar = ({ user, today }) => {
   console.log("🚀 ~ AccountAndCalendar ~ user:", user);
-  const defaultImage =
-  user?.gender === "Male" ? "/male_employee.jpg" : "/female_employee.jpg";
+  // const defaultImage = user?.gender === "Male" ? "/male_employee.jpg" : "/female_employee.jpg";
+  const defaultImage = "/male_employee.jpg";
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const monthYear = currentDate.toLocaleString("default", {
@@ -87,7 +87,6 @@ const AccountAndCalendar = ({ user, today }) => {
   // user?.profileImage && user.profileImage.trim() !== ""
   //   ? user.profileImage
   //   : defaultImage;
-  const imageSrc = defaultImage;
   return (
     <div className="flex">
       <div className="w-full flex flex-col gap-4 lg:flex-row lg:gap-7">
