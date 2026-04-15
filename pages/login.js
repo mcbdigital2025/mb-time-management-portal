@@ -51,9 +51,9 @@ export default function Login() {
       const { email, companyId, password } = formData;
 
 
-      // `/api/timesheet/userLogin/login`,
+      // `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/login`,
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/login`,
+        `/api/timesheet/userLogin/login`,
         {
           method: "POST",
           headers: {

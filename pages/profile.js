@@ -78,7 +78,7 @@ const EmployeeProfile = () => {
                 <img
                   src={employee?.profileImage || defaultImage}
                   alt="Profile"
-                  className="w-40 h-40 rounded-full border-4 border-white shadow-lg object-cover"
+                  className="w-40 h-40 rounded-full border-4 border-white shadow-lg object-cover object-top"
                 />
                 <div className="mt-4 text-center">
                   <h2 className="text-xl font-bold text-gray-800">{employee.firstName} {employee.lastName}</h2>

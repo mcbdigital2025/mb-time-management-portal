@@ -1,3 +1,337 @@
+# 🔐 Local HTTPS Setup (Windows) – MaBCore Portal
+
+This guide explains how to run the MaBCore Portal locally over HTTPS using **mkcert**.
+
+---
+
+## 📦 Prerequisites
+
+* Windows OS
+* Administrator access
+* Node.js installed
+* Chocolatey installed
+
+---
+
+## ⚙️ Installation & Setup
+
+### 1. Install mkcert
+
+Open **Command Prompt / PowerShell as Administrator** and run:
+
+```bash
+choco install mkcert
+```
+
+---
+
+### 2. Install Local Certificate Authority
+
+```bash
+mkcert -install
+```
+
+This allows your system and browser to trust locally generated certificates.
+
+---
+
+### 3. Generate SSL Certificates
+
+Navigate to the project root:
+
+```bash
+cd path/to/mb-time-management-portal
+```
+
+Generate certificates:
+
+```bash
+mkcert localhost
+```
+
+This creates:
+
+* `localhost.pem`
+* `localhost-key.pem`
+
+---
+
+### 4. Verify Project Structure
+
+Ensure your root directory contains:
+
+```
+mb-time-management-portal/
+├── server.js
+├── localhost.pem
+├── localhost-key.pem
+├── package.json
+```
+
+If these files are missing, HTTPS will fail with an `ENOENT` error.
+
+---
+
+### 5. Run the HTTPS Server
+
+```bash
+npm run dev:https
+```
+
+Open in browser:
+
+```
+https://localhost:3000
+```
+
+---
+
+## ⚠️ Troubleshooting
+
+| Issue                      | Cause                     | Fix                           |
+| -------------------------- | ------------------------- | ----------------------------- |
+| `ENOENT` error             | Missing certificate files | Re-run `mkcert localhost`     |
+| Browser shows "Not Secure" | CA not installed          | Run `mkcert -install` again   |
+| Command fails              | No admin privileges       | Run terminal as Administrator |
+
+---
+
+## 🧪 Optional: Run Without HTTPS
+
+If HTTPS is not required:
+
+```bash
+npm run dev
+```
+
+Access via:
+
+```
+http://localhost:3000
+```
+
+---
+
+## 📌 Important Clarification
+
+* `mkcert` is **only for local development**
+* It is **NOT used in production deployments**
+
+Production environments should use:
+
+* Valid SSL certificates (e.g., from hosting providers or certificate authorities)
+
+---
+
+## 🛠 Recommended Scripts
+
+Add this to `package.json`:
+
+```json
+"scripts": {
+  "dev": "next dev",
+  "dev:https": "node server.js"
+}
+```
+
+---
+
+## ✅ Summary
+
+* Install mkcert
+* Generate local certificates
+* Run HTTPS server
+
+This ensures compatibility with secure APIs and mirrors production-like conditions locally.
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+### 🔐 Local HTTPS Setup with Tailscale – MaBCore Portal
+
+This guide explains how to securely access your local development server over HTTPS using **Tailscale**.
+
+---
+
+## 📦 Prerequisites
+
+* Node.js installed
+* Tailscale installed and logged in
+* Device connected to your Tailscale network (tailnet)
+
+---
+
+## 🧠 Overview
+
+Tailscale provides:
+
+* A **private domain** (`*.ts.net`)
+* **Trusted HTTPS certificates**
+* Secure access across devices (laptop, phone, teammates)
+
+---
+
+## ⚙️ Setup Instructions
+
+### 1. Start Tailscale
+
+```bash
+tailscale up
+```
+
+Verify your device:
+
+```bash
+tailscale status
+```
+
+---
+
+### 2. Get Your Tailscale Domain
+
+Run:
+
+```bash
+tailscale status --json
+```
+
+Look for your device hostname, e.g.:
+
+```
+your-device-name.tailnet-name.ts.net
+```
+
+---
+
+## 🚀 Option A (Recommended): Use Tailscale Serve
+
+This is the simplest and most reliable method.
+
+### Start your app locally
+
+```bash
+npm run dev
+```
+
+### Expose it securely via Tailscale
+
+```bash
+tailscale serve https / http://localhost:3000
+```
+
+### Access your app
+
+```
+https://your-device-name.tailnet-name.ts.net
+```
+
+✅ HTTPS is automatically handled
+✅ No certificate files needed
+✅ Works across all your devices
+
+---
+
+## ⚙️ Option B: Manual HTTPS with Certificates
+
+Use this if you need full control over your HTTPS server.
+
+---
+
+### 1. Generate Certificates
+
+```bash
+tailscale cert your-device-name.tailnet-name.ts.net
+```
+
+This creates:
+
+* `your-device-name.tailnet-name.ts.net.crt`
+* `your-device-name.tailnet-name.ts.net.key`
+
+---
+
+### 2. Update Your Server
+
+Example using Node.js:
+
+```js
+import https from "https";
+import fs from "fs";
+import app from "./app";
+
+const options = {
+  key: fs.readFileSync("your-device-name.tailnet-name.ts.net.key"),
+  cert: fs.readFileSync("your-device-name.tailnet-name.ts.net.crt"),
+};
+
+https.createServer(options, app).listen(3000, "0.0.0.0", () => {
+  console.log("HTTPS server running via Tailscale");
+});
+```
+
+---
+
+### 3. Access the App
+
+```
+https://your-device-name.tailnet-name.ts.net:3000
+```
+
+---
+
+## ⚠️ Common Issues
+
+| Problem                           | Cause                     | Fix                            |
+| --------------------------------- | ------------------------- | ------------------------------ |
+| Cannot access from another device | Server bound to localhost | Use `0.0.0.0`                  |
+| HTTPS not working                 | Wrong domain              | Re-check `tailscale status`    |
+| Connection blocked                | Firewall issue            | Allow Node.js through firewall |
+| Cert command fails                | Not logged into Tailscale | Run `tailscale up`             |
+
+---
+
+## ❗ Important Notes
+
+* Do **NOT** use mkcert with Tailscale
+* Tailscale already provides trusted HTTPS certificates
+* Certificates are valid only within your Tailscale network
+
+---
+
+## 🛠 Recommended Scripts
+
+```json
+"scripts": {
+  "dev": "next dev",
+  "dev:ts": "tailscale serve https / http://localhost:3000"
+}
+```
+
+---
+
+## 🎯 Summary
+
+* Start Tailscale
+* Run your app locally
+* Use `tailscale serve` for HTTPS access
+
+This setup gives you secure, cross-device access without managing SSL manually.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started
@@ -18,176 +352,4 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
----
-
-# 📄 API Contract – User Navigation (Access Pages)
-
-## 📌 Purpose
-
-The backend must return the **navigation structure (menu + submenus)** that a logged-in user is allowed to access.
-
-- The backend determines permissions based on the user’s role (e.g., `STAFF`, `COMPANY_ADMIN`, `PLATFORM_ADMIN`).
-- The frontend will render **exactly what is returned**.
-- **No additional filtering** will be performed on the frontend.
-
----
-
-# ✅ Response Format
-
-The API must return a **JSON array of navigation sections**.
-
-Each section represents a top-level menu group and contains a list of accessible pages.
-
-## Response Structure
-
-```json
-[
-  {
-    "group": "string",
-    "items": [
-      {
-        "key": "string",
-        "label": "string",
-        "href": "string"
-      }
-    ]
-  }
-]
-```
-
----
-
-## Field Definitions
-
-### Navigation Section
-
-| Field   | Type   | Required | Description                         |
-| ------- | ------ | -------- | ----------------------------------- |
-| `group` | string | ✅       | Name of the top-level menu group    |
-| `items` | array  | ✅       | List of accessible navigation items |
-
-### Navigation Item
-
-| Field   | Type   | Required | Description                            |
-| ------- | ------ | -------- | -------------------------------------- |
-| `key`   | string | ✅       | Unique, stable identifier for the page |
-| `label` | string | ✅       | Display name shown in the UI           |
-| `href`  | string | ✅       | Frontend route path                    |
-
----
-
-# 📦 Example – Staff User Response
-
-If the user role is `STAFF`, the backend may return:
-
-```json
-[
-  {
-    "group": "Home",
-    "items": [{ "key": "home", "label": "Home", "href": "/" }]
-  },
-  {
-    "group": "Workforce",
-    "items": [
-      { "key": "profile", "label": "Profile", "href": "/profile" },
-      { "key": "mySchedule", "label": "My Schedule", "href": "/my-schedule" }
-    ]
-  },
-  {
-    "group": "About",
-    "items": [{ "key": "about", "label": "About", "href": "/about" }]
-  }
-]
-```
-
-### Notes
-
-- No **Clients** group
-- No admin-only links
-- Only pages the user is allowed to access are returned
-
----
-
-# 📦 Example – Admin User Response
-
-```json
-[
-  {
-    "group": "Home",
-    "items": [{ "key": "home", "label": "Home", "href": "/" }]
-  },
-  {
-    "group": "Workforce",
-    "items": [
-      { "key": "profile", "label": "Profile", "href": "/profile" },
-      { "key": "company", "label": "Company", "href": "/company" },
-      {
-        "key": "viewEmployees",
-        "label": "View Employees",
-        "href": "/employees"
-      },
-      {
-        "key": "loginEmployees",
-        "label": "Login Employees",
-        "href": "/employees/login"
-      }
-      { "key": "jobs", "label": "Jobs", "href": "/jobs" },
-      { "key": "mySchedule", "label": "My Schedule", "href": "/my-schedule" },
-    ]
-  },
-  {
-    "group": "Clients",
-    "items": [
-      { "key": "clients", "label": "Clients", "href": "/clients" },
-      { "key": "quoteClient", "label": "Quote Client", "href": "/quoteClient" },
-      {
-        "key": "employeeSchedules",
-        "label": "Employee Schedules",
-        "href": "/employeeSchedules"
-      }
-    ]
-  },
-  {
-    "group": "About",
-    "items": [{ "key": "about", "label": "About", "href": "/about" }]
-  }
-]
-```
-
----
-
-# ⚠️ Important Requirements
-
-### 1️⃣ No Trailing Commas
-
-The response must be valid JSON.
-
-### 2️⃣ `href` Must Match Frontend Routes
-
-Examples:
-
-- `/profile`
-- `/employees/login`
-- `/clients`
-
-### 3️⃣ Only Return Allowed Pages
-
-The backend must:
-
-- Determine the user’s role
-- Return only accessible groups and pages
-- Omit disallowed pages completely
-
-The frontend will **not** apply additional permission filtering.
-
----
-
-# 🧠 Backend Responsibility Summary
-
-- Authenticate user via JWT
-- Determine role/permissions
-- Build navigation structure dynamically
-- Return only allowed items
-- Ensure valid JSON response
-
----
+--
