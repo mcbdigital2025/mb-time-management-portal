@@ -22,7 +22,8 @@ import {
   Car,
   Receipt,
   MapPin,
-  Clock
+  Clock,
+  Loader2
 } from "lucide-react";
 import { authenticatedFetch } from "../utils/api";
 
@@ -152,7 +153,14 @@ const MyShiftsSchedule = ({ user }) => {
         isActive ? 'text-slate-700 hover:bg-slate-50 cursor-pointer' : 'text-slate-300 cursor-not-allowed opacity-50'
     }`;
 
-    if (loading) return <div className="p-8 text-center text-slate-500 font-bold">Synchronizing Schedule...</div>;
+    if (loading) {
+  return (
+    <div className=" min-h-[85vh] p-8 flex flex-col items-center justify-center gap-3 text-slate-500 font-bold">
+  <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+  <span className="animate-pulse">Synchronizing Schedule...</span>
+</div>
+  );
+}
 
     return (
         <div className="flex min-h-screen bg-gray-50">

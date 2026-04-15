@@ -5,11 +5,11 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { badgeClasses } from "../utils/data";
 
-
 const LandingOverview = ({ user, week }) => {
-  console.log("🚀 ~ LandingOverview ~ week:", week)
+  console.log("🚀 ~ LandingOverview ~ week:", week);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const defaultImage = user?.gender !== "Male" ? "/male_employee.jpg" : "/female_employee.jpg";
+  const defaultImage =
+    user?.gender !== "Male" ? "/male_employee.jpg" : "/female_employee.jpg";
   const monthYear = currentDate.toLocaleString("default", {
     month: "long",
     year: "numeric",
@@ -18,44 +18,40 @@ const LandingOverview = ({ user, week }) => {
   const daysInMonth = new Date(
     currentDate.getFullYear(),
     currentDate.getMonth() + 1,
-    0
+    0,
   ).getDate();
 
   const firstDayOfMonth = new Date(
     currentDate.getFullYear(),
     currentDate.getMonth(),
-    1
+    1,
   ).getDay();
 
   const nextMonth = () => {
     setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
+      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
     );
   };
 
   const prevMonth = () => {
     setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
+      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1),
     );
   };
 
   return (
     <div className="grid gap-4 lg:grid-cols- w-full">
-
-
       <AccountAndCalendar user={user} today={week} />
-
-
     </div>
   );
 };
 
 export default LandingOverview;
 
-
 const AccountAndCalendar = ({ user, today }) => {
-  console.log("🚀 ~ AccountAndCalendar ~ user:", today)
-  const defaultImage = user?.gender !== "Male" ? "/male_employee.jpg" : "/female_employee.jpg";
+  console.log("🚀 ~ AccountAndCalendar ~ user:", user);
+  const defaultImage =
+  user?.gender === "Male" ? "/male_employee.jpg" : "/female_employee.jpg";
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const monthYear = currentDate.toLocaleString("default", {
@@ -66,26 +62,32 @@ const AccountAndCalendar = ({ user, today }) => {
   const daysInMonth = new Date(
     currentDate.getFullYear(),
     currentDate.getMonth() + 1,
-    0
+    0,
   ).getDate();
 
   const firstDayOfMonth = new Date(
     currentDate.getFullYear(),
     currentDate.getMonth(),
-    1
+    1,
   ).getDay();
 
   const nextMonth = () => {
     setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
+      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
     );
   };
 
   const prevMonth = () => {
     setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
+      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1),
     );
   };
+
+  // const imageSrc =
+  // user?.profileImage && user.profileImage.trim() !== ""
+  //   ? user.profileImage
+  //   : defaultImage;
+  const imageSrc = defaultImage;
   return (
     <div className="flex">
       <div className="w-full flex flex-col gap-4 lg:flex-row lg:gap-7">
@@ -101,8 +103,9 @@ const AccountAndCalendar = ({ user, today }) => {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-3">
                 <div className="mx-auto flex rounded-2xl bg-white/40 ring-1 ring-white/50 shadow-sm sm:mx-0">
                   <img
-                    src={user?.profileImage || defaultImage}
+                    src={defaultImage}
                     alt="Profile"
+                    
                     className="h-24 w-24 rounded-2xl border-4 border-white object-cover object-top shadow-lg sm:h-32 sm:w-32 md:h-36 md:w-36"
                   />
                 </div>
@@ -112,12 +115,15 @@ const AccountAndCalendar = ({ user, today }) => {
                     Welcome Back, {user?.firstName || "User"} {user?.lastName}!
                   </h1>
                   <h1 className=" mb-6 text-sm font-medium  text-slate-500 sm:text-base md:text-base leading-snug">
-                   Email: {user?.email}
+                    Email: {user?.email}
                   </h1>
 
                   <p className="mb-0 text-sm text-slate-600/70 sm:text-base md:text-lg">
                     Here’s your workforce overview for{" "}
-                    <span className="font-semibold text-slate-800">{today}</span>.
+                    <span className="font-semibold text-slate-800">
+                      {today}
+                    </span>
+                    .
                   </p>
 
                   <div className="flex flex-wrap gap-3 pt-1 sm:pt-0">
@@ -182,10 +188,11 @@ const AccountAndCalendar = ({ user, today }) => {
                   return (
                     <div
                       key={day}
-                      className={`rounded-md py-1 sm:py-1.5 ${isToday
-                        ? "bg-white font-semibold text-emerald-700"
-                        : "text-white/80"
-                        }`}
+                      className={`rounded-md py-1 sm:py-1.5 ${
+                        isToday
+                          ? "bg-white font-semibold text-emerald-700"
+                          : "text-white/80"
+                      }`}
                     >
                       {day}
                     </div>
