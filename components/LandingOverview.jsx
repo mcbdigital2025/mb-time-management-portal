@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import React, { useState } from "react";
 import Image from "next/image";
 import { badgeClasses } from "../utils/data";
+// import {defaultImg} from "../assests/index"
+import { defaultImg } from "./assest/index";
 
 const LandingOverview = ({ user, week }) => {
   console.log("🚀 ~ LandingOverview ~ week:", week);
@@ -51,7 +53,7 @@ export default LandingOverview;
 const AccountAndCalendar = ({ user, today }) => {
   console.log("🚀 ~ AccountAndCalendar ~ user:", user);
   // const defaultImage = user?.gender === "Male" ? "/male_employee.jpg" : "/female_employee.jpg";
-  const defaultImage = "/male_employee.jpg";
+ 
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const monthYear = currentDate.toLocaleString("default", {
@@ -87,6 +89,7 @@ const AccountAndCalendar = ({ user, today }) => {
   // user?.profileImage && user.profileImage.trim() !== ""
   //   ? user.profileImage
   //   : defaultImage;
+  console.log(defaultImg)
   return (
     <div className="flex">
       <div className="w-full flex flex-col gap-4 lg:flex-row lg:gap-7">
@@ -102,7 +105,7 @@ const AccountAndCalendar = ({ user, today }) => {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-3">
                 <div className="mx-auto flex rounded-2xl bg-white/40 ring-1 ring-white/50 shadow-sm sm:mx-0">
                   <img
-                    src={defaultImage}
+                    src={defaultImg.src}
                     alt="Profile"
                     
                     className="h-24 w-24 rounded-2xl border-4 border-white object-cover object-top shadow-lg sm:h-32 sm:w-32 md:h-36 md:w-36"

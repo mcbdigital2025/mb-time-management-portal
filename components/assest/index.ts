@@ -1,4 +1,4 @@
-import HeroImage from "./Hero-image.png";
+import defaultImg from "./male_employee.jpg";
 import Logo from "./logo.png";
 
-export { HeroImage, Logo };
+export { defaultImg, Logo };
