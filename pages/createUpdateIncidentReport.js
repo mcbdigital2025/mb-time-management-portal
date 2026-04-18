@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { toast } from 'react-toastify';
 import { authenticatedFetch } from '../utils/api';
+import { Loader2 } from 'lucide-react';
 
 const CreateUpdateIncidentReport = ({ user }) => {
     const router = useRouter();
@@ -184,9 +185,19 @@ const CreateUpdateIncidentReport = ({ user }) => {
         }
     };
 
-    if (isPageLoading) return <div className="p-10 text-center font-bold">Loading...</div>;
+    
+    if (isPageLoading) {
+        return (
+          <div className=" min-h-[85vh] p-8 flex flex-col items-center justify-center gap-3 text-slate-500 font-bold">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            <span className="animate-pulse">Loading...</span>
+          </div>
+        );
+      }
 
     return (
+        <div className="min-h-[85vh] justify-center items-center py-5 pb-15">
+
         <div className="max-w-5xl mx-auto p-6 bg-white shadow-xl rounded-2xl mt-10 border border-slate-100">
             <h1 className="text-2xl font-black text-slate-800 mb-8 flex items-center gap-2">
                 <span className="w-2 h-8 bg-rose-500 rounded-full"></span>
@@ -285,6 +296,7 @@ const CreateUpdateIncidentReport = ({ user }) => {
                     </button>
                 </div>
             </form>
+        </div>
         </div>
     );
 };

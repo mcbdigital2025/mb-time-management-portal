@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { toast } from 'react-toastify';
 import { authenticatedFetch } from '../utils/api';
+import { Loader2 } from 'lucide-react';
 
 const CreateUpdateServiceStaffNotes = ({ user }) => {
     const router = useRouter();
@@ -123,7 +124,14 @@ const CreateUpdateServiceStaffNotes = ({ user }) => {
     // Standard formatting and JSX helpers
     const formatLabel = (key) => key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase());
 
-    if (isPageLoading) return <div className="p-10 text-center">Loading Shift Data...</div>;
+    if (isPageLoading) {
+        return (
+          <div className=" min-h-[85vh] p-8 flex flex-col items-center justify-center gap-3 text-slate-500 font-bold">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            <span className="animate-pulse">Loading...</span>
+          </div>
+        );
+      }
 
     return (
         <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg mt-10 border border-gray-200">

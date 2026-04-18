@@ -70,6 +70,10 @@ export function proxy(request: NextRequest) {
   "/profile",
   "/conversations",
   "/myshiftsschedule",
+  "/createUpdateServiceStaffNotes",
+  "/createUpdateServiceMileage",
+  "/createUpdateIncidentReport",
+  "/createUpdateIncidentReport",
 ];
 
   // const hasValidToken = token && !isTokenExpired(token);
