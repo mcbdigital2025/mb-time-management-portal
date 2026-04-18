@@ -20,6 +20,7 @@ import { authenticatedFetch } from "../utils/api";
 import { badgeClasses } from "../utils/data";
 
 const LandingPage = ({ user }) => {
+  console.log("🚀 ~ LandingPage ~ user:", user)
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
 

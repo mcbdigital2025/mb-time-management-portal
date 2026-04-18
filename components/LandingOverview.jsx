@@ -89,7 +89,6 @@ const AccountAndCalendar = ({ user, today }) => {
   // user?.profileImage && user.profileImage.trim() !== ""
   //   ? user.profileImage
   //   : defaultImage;
-  console.log(defaultImg)
   return (
     <div className="flex">
       <div className="w-full flex flex-col gap-4 lg:flex-row lg:gap-7">
