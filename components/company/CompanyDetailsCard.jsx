@@ -47,6 +47,7 @@ const CompanyDetailsCard = ({ company, onEditCompany }) => {
     { label: "Company ID:", value: company?.companyId?.toString() || "id-12345678901234567890" },
     { label: "Company code:", value: company?.companyCode || "CODE1234" },
     { label: "Company name:", value: company?.companyName || "Example Company Inc." },
+    { label: "Industry Type:", value: company?.industryType || "NDIS/Age Care" },
   ];
 
   const rightColumnFlags = [
