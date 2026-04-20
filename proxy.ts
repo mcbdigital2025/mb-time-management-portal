@@ -97,7 +97,7 @@ const userRole = payload?.role;
 
    if (!publicPath && !hasValidToken) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("from", `${pathname}${search}`);
+    // loginUrl.searchParams.set("from", `${pathname}${search}`);
 
     const response = NextResponse.redirect(loginUrl);
 
