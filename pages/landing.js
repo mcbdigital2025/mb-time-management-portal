@@ -20,7 +20,6 @@ import { authenticatedFetch } from "../utils/api";
 import { badgeClasses } from "../utils/data";
 
 const LandingPage = ({ user }) => {
-  console.log("🚀 ~ LandingPage ~ user:", user)
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -123,9 +122,10 @@ return (
       <div className="w-full px-3 py-6 sm:px-4 sm:py-8 md:px-6">
         <LandingOverview
           user={user}
-          // week={format(new Date(), "dd/MM/yyyy")}
-          week={weekRangeLabel}
-          notifications={[]}
+          weekLabel={weekRangeLabel}
+          currentWeekStart={currentWeekStart}
+  onPrevWeek={prevWeek}
+  onNextWeek={nextWeek}
         />
 
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
