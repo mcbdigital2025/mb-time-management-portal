@@ -7,6 +7,18 @@ import { toast } from "react-toastify";
 
 const STATUS_OPTIONS = ["Active", "Inactive"];
 
+// 1. Define the Industry Options matching your SQL ENUM
+const INDUSTRY_OPTIONS = [
+    'NDIS/Age Care',
+    'Online Learning',
+    'Security Guard',
+    'Healthcare & Wellness',
+    'Professional Services',
+    'Field Services',
+    'Education & Training',
+    'Specialized Transport'
+];
+
 const EditCompanyModal = ({ isOpen, onClose, company, onSuccess }) => {
     const [form, setForm] = useState(null);
     const [error, setError] = useState(null);
@@ -31,6 +43,8 @@ const EditCompanyModal = ({ isOpen, onClose, company, onSuccess }) => {
                     ? company.companyId
                     : BigInt(company.companyId),
             status: company.status || "Active",
+            // 2. Ensure industryType has a default value if missing
+            industryType: company.industryType || INDUSTRY_OPTIONS[0],
         });
     }, [isOpen, company]);
 
@@ -52,7 +66,6 @@ const EditCompanyModal = ({ isOpen, onClose, company, onSuccess }) => {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-
         setForm((prev) => ({
             ...prev,
             [name]: type === "checkbox" ? checked : value,
@@ -60,16 +73,8 @@ const EditCompanyModal = ({ isOpen, onClose, company, onSuccess }) => {
     };
 
     const handleSave = async () => {
-        setError(null);
-        setSuccessMessage(null);
-
-        const storedUser = JSON.parse(localStorage.getItem("user"));
-        if (!storedUser || !storedUser.jwtToken) {
-            setError("User session or token is missing. Please log in again.");
-            return;
-        }
-
         setIsSaving(true);
+        setError(null);
 
         try {
             const response = await authenticatedFetch(
@@ -88,23 +93,15 @@ const EditCompanyModal = ({ isOpen, onClose, company, onSuccess }) => {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(
-                    `Update failed: ${response.status} ${response.statusText} - ${errorText}`
-                );
-            }
-            toast.success("Company Details updated successfully!")
-
-            setSuccessMessage("Company updated successfully!");
-
-            if (onSuccess) {
-                await onSuccess();
+                throw new Error(`Update failed: ${response.status} - ${errorText}`);
             }
 
-            setTimeout(() => {
-                onClose();
-            }, 800);
+            toast.success("Company updated successfully!");
+            if (onSuccess) await onSuccess();
+            onClose();
         } catch (err) {
-            setError("Error updating company: " + err.message);
+            setError(err.message);
+            toast.error(err.message);
         } finally {
             setIsSaving(false);
         }
@@ -113,130 +110,94 @@ const EditCompanyModal = ({ isOpen, onClose, company, onSuccess }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/45 px-4 py-6">
-            <div
-                className="absolute inset-0"
-                onClick={() => !isSaving && onClose()}
-                aria-hidden="true"
-            />
-
-            <div className="relative z-101 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
-                <div className="mb-5 flex items-start justify-between gap-4">
-                    <div>
-                        <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
-                            Edit Company
-                        </h2>
-                        <p className="mt-1 text-sm text-slate-500">
-                            Update company details and settings.
-                        </p>
-                    </div>
-
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl hero-radial-background">
+                <div className="flex items-center justify-between border-b border-zinc-100 p-5">
+                    <h2 className="text-lg font-bold text-zinc-900">Edit Company Details</h2>
                     <button
-                        type="button"
                         onClick={onClose}
                         disabled={isSaving}
-                        className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-50 hover:text-zinc-600 cursor-pointer"
                     >
                         ✕
                     </button>
                 </div>
 
-                {error && (
-                    <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                        {error}
-                    </div>
-                )}
-
-
-
                 {!form ? (
-                    <div className="py-6">
-                        <ViewEmployeesSkeleton />
-                    </div>
+                    <div className="p-10"><ViewEmployeesSkeleton /></div>
                 ) : (
-                    <div className="space-y-4">
-                        <Field
-                            label="Company Code"
-                            name="companyCode"
-                            value={form.companyCode || ""}
-                            onChange={handleChange}
-                        />
+                    <div className="max-h-[80vh] overflow-y-auto p-6">
+                        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                            <Field label="Company Code" name="companyCode" value={form.companyCode} onChange={handleChange} />
+                            <Field label="Company Name" name="companyName" value={form.companyName} onChange={handleChange} />
 
-                        <Field
-                            label="Company Name"
-                            name="companyName"
-                            value={form.companyName || ""}
-                            onChange={handleChange}
-                        />
+                            {/* 3. Specialized Dropdown for Industry Type */}
+                            <div className="flex flex-col gap-1">
+                                <label className="mb-1 block text-sm font-semibold text-slate-700">
+                                    Industry Type
+                                </label>
+                                <select
+                                    name="industryType"
+                                    value={form.industryType || ""}
+                                    onChange={handleChange}
+                                    className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 bg-white"
+                                >
+                                    {INDUSTRY_OPTIONS.map((option) => (
+                                        <option key={option} value={option}>
+                                            {option}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
 
-                        <Field
-                            label="Description"
-                            name="companyDescription"
-                            value={form.companyDescription || ""}
-                            onChange={handleChange}
-                            isTextArea
-                        />
+                            <div className="flex flex-col gap-1">
+                                <label className="mb-1 block text-sm font-semibold text-slate-700">
+                                    Status
+                                </label>
+                                <select
+                                    name="status"
+                                    value={form.status}
+                                    onChange={handleChange}
+                                    className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 bg-white"
+                                >
+                                    {STATUS_OPTIONS.map((opt) => (
+                                        <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                </select>
+                            </div>
 
-                        <div>
-                            <label className="mb-1 block text-sm font-semibold text-slate-700">
-                                Status
-                            </label>
-                            <select
-                                name="status"
-                                value={form.status}
-                                onChange={handleChange}
-                                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none ring-0 transition focus:border-blue-500"
-                            >
-                                {STATUS_OPTIONS.map((option) => (
-                                    <option key={option} value={option}>
-                                        {option}
-                                    </option>
-                                ))}
-                            </select>
+                            <div className="md:col-span-2">
+                                <Field
+                                    label="Description"
+                                    name="companyDescription"
+                                    value={form.companyDescription}
+                                    onChange={handleChange}
+                                    isTextArea
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:col-span-2 mt-2">
+                                <Checkbox label="Client Booking" name="clientBooking" checked={form.clientBooking} onChange={handleChange} />
+                                <Checkbox label="Assigned Schedule" name="employeeAssignedSchedule" checked={form.employeeAssignedSchedule} onChange={handleChange} />
+                                <Checkbox label="Log Daily Notes" name="logDailyNote" checked={form.logDailyNote} onChange={handleChange} />
+                                <Checkbox label="Travel Claims" name="transportTravelClaim" checked={form.transportTravelClaim} onChange={handleChange} />
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <Checkbox
-                                label="Client Booking Enabled"
-                                name="clientBooking"
-                                checked={!!form.clientBooking}
-                                onChange={handleChange}
-                            />
-                            <Checkbox
-                                label="Employee Assigned Schedule"
-                                name="employeeAssignedSchedule"
-                                checked={!!form.employeeAssignedSchedule}
-                                onChange={handleChange}
-                            />
-                            <Checkbox
-                                label="Log Daily Note"
-                                name="logDailyNote"
-                                checked={!!form.logDailyNote}
-                                onChange={handleChange}
-                            />
-                            <Checkbox
-                                label="Transport Travel Claim"
-                                name="transportTravelClaim"
-                                checked={!!form.transportTravelClaim}
-                                onChange={handleChange}
-                            />
-                        </div>
-
-                        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                        <div className="mt-8 flex items-center justify-end gap-3 border-t border-zinc-100 pt-5">
                             <button
                                 type="button"
                                 onClick={onClose}
                                 disabled={isSaving}
-                                className="inline-flex items-center justify-center rounded-xl bg-[#F75D42] px-4 py-2.5 text-sm font-semibold text-slate-100 hover:bg-[#f53918]  disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                                className="rounded-xl border border-zinc-200 bg-white px-6 py-2.5 text-sm font-bold text-zinc-700 hover:bg-zinc-50 cursor-pointer"
                             >
                                 Cancel
                             </button>
-
                             <button
                                 type="button"
                                 onClick={handleSave}
                                 disabled={isSaving}
-                                className="inline-flex items-center justify-center rounded-xl bg-[#008080] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#006d6d] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                                className="rounded-xl bg-[#008080] px-6 py-2.5 text-sm font-bold text-white hover:bg-[#006d6d] disabled:opacity-50 cursor-pointer"
                             >
                                 {isSaving ? "Saving..." : "Save Changes"}
                             </button>
@@ -249,11 +210,10 @@ const EditCompanyModal = ({ isOpen, onClose, company, onSuccess }) => {
 };
 
 const Field = ({ label, name, value, onChange, isTextArea = false }) => (
-    <div>
+    <div className="flex flex-col gap-1">
         <label className="mb-1 block text-sm font-semibold text-slate-700">
             {label}
         </label>
-
         {isTextArea ? (
             <textarea
                 name={name}
@@ -275,15 +235,15 @@ const Field = ({ label, name, value, onChange, isTextArea = false }) => (
 );
 
 const Checkbox = ({ label, name, checked, onChange }) => (
-    <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-3">
+    <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-3 hover:bg-zinc-50 transition cursor-pointer">
         <input
             type="checkbox"
             name={name}
             checked={checked}
             onChange={onChange}
-            className="h-4 w-4"
+            className="h-4 w-4 accent-[#008080]"
         />
-        <span className="text-sm text-slate-700">{label}</span>
+        <span className="text-sm font-medium text-slate-700">{label}</span>
     </label>
 );
 

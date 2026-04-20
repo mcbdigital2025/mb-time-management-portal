@@ -16,6 +16,7 @@ export default function Login() {
 
   const [formData, setFormData] = useState({
     email: "",
+    gender: "",
     companyId: "",
     password: "",
   });
@@ -26,11 +27,13 @@ export default function Login() {
   useEffect(() => {
     const savedEmail = localStorage.getItem("rememberedEmail");
     const savedCompanyId = localStorage.getItem("rememberedCompanyId");
+    const gender = localStorage.getItem("rememberedGender");
 
     if (savedEmail && savedCompanyId) {
       setFormData((prev) => ({
         ...prev,
         email: savedEmail,
+         email: savedEmail,
         companyId: savedCompanyId,
       }));
       setRememberMe(true);

@@ -104,7 +104,8 @@ const CreateUpdateServiceMileage = ({ user }) => {
       companyId: user?.companyId,
       clientBookingId: activeBookingId,
       mileageCap: formData.mileageCap,
-      mileageRate: formData.mileageRate,
+      gender: formData.gender,
+       email: savedEmail,
       hasCompanyVehicle: formData.hasCompanyVehicle,
     };
 

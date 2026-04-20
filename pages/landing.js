@@ -193,10 +193,10 @@ return (
                         <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
                           {format(parseISO(shift.workDate), "EEEE, MMM d")}
                         </p>
-                        <h3 className="mt-1 text-sm sm:text-md font-bold text-slate-900 break-words">
+                        <h3 className="mt-1 text-sm sm:text-md font-bold text-slate-900 wrap-break-words">
                           {shift.facilitiesName}
                         </h3>
-                        <p className="text-xs text-slate-500 break-words">
+                        <p className="text-xs text-slate-500 wrap-break-words">
                           {shift.jobCode}
                         </p>
                       </div>
@@ -210,13 +210,13 @@ return (
                     </div>
 
                     <div className="mt-4 flex flex-col gap-2 text-sm text-slate-600">
-                      <div className="flex items-start gap-2 break-words">
+                      <div className="flex items-start gap-2 wrap-break-words">
                         <span>⏰</span>
                         <span>
                           {shift.scheduledStartTime} - {shift.scheduledEndTime}
                         </span>
                       </div>
-                      <div className="flex items-start gap-2 break-words">
+                      <div className="flex items-start gap-2 wrap-break-words">
                         <span>📍</span>
                         <span>{shift.workLocation}</span>
                       </div>
