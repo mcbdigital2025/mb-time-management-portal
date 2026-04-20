@@ -50,7 +50,7 @@ const LandingOverview = ({ user, week }) => {
 export default LandingOverview;
 
 const AccountAndCalendar = ({ user, today }) => {
-  console.log("🚀 ~ AccountAndCalendar ~ user:", user);
+  // console.log("🚀 ~ AccountAndCalendar ~ user:", user);
   const defaultImage = user?.gender === "Male" ?  maleImg.src : femaleimg.src;
  
 
