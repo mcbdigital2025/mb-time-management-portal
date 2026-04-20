@@ -4,41 +4,10 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import React, { useState } from "react";
 import Image from "next/image";
 import { badgeClasses } from "../utils/data";
-// import {defaultImg} from "../assests/index"
 import { femaleimg, maleImg } from "./assest/index";
 
 const LandingOverview = ({ user, week }) => {
-  console.log("🚀 ~ LandingOverview ~ week:", week);
-  const [currentDate, setCurrentDate] = useState(new Date());
-  
-  const monthYear = currentDate.toLocaleString("default", {
-    month: "long",
-    year: "numeric",
-  });
-
-  const daysInMonth = new Date(
-    currentDate.getFullYear(),
-    currentDate.getMonth() + 1,
-    0,
-  ).getDate();
-
-  const firstDayOfMonth = new Date(
-    currentDate.getFullYear(),
-    currentDate.getMonth(),
-    1,
-  ).getDay();
-
-  const nextMonth = () => {
-    setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
-    );
-  };
-
-  const prevMonth = () => {
-    setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1),
-    );
-  };
+  // console.log("🚀 ~ LandingOverview ~ week:", week);
 
   return (
     <div className="grid gap-4 lg:grid-cols- w-full">
@@ -50,9 +19,9 @@ const LandingOverview = ({ user, week }) => {
 export default LandingOverview;
 
 const AccountAndCalendar = ({ user, today }) => {
-  console.log("🚀 ~ AccountAndCalendar ~ user:", user);
-  const defaultImage = user?.gender === "Male" ?  maleImg.src : femaleimg.src;
- 
+  // console.log("🚀 ~ AccountAndCalendar ~ user:", user);
+  const defaultImage = user?.gender === "Male" ? maleImg.src : femaleimg.src;
+
 
 
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -85,7 +54,7 @@ const AccountAndCalendar = ({ user, today }) => {
     );
   };
 
-  
+
   return (
     <div className="flex">
       <div className="w-full flex flex-col gap-4 lg:flex-row lg:gap-7">
@@ -103,7 +72,7 @@ const AccountAndCalendar = ({ user, today }) => {
                   <img
                     src={defaultImage}
                     alt="Profile"
-                    
+
                     className="h-24 w-24 rounded-2xl border-4 border-white object-cover object-top shadow-lg sm:h-32 sm:w-32 md:h-36 md:w-36"
                   />
                 </div>
@@ -186,11 +155,10 @@ const AccountAndCalendar = ({ user, today }) => {
                   return (
                     <div
                       key={day}
-                      className={`rounded-md py-1 sm:py-1.5 ${
-                        isToday
+                      className={`rounded-md py-1 sm:py-1.5 ${isToday
                           ? "bg-white font-semibold text-emerald-700"
                           : "text-white/80"
-                      }`}
+                        }`}
                     >
                       {day}
                     </div>
