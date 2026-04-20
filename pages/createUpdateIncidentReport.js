@@ -283,7 +283,7 @@ const CreateUpdateIncidentReport = ({ user }) => {
                     <button
                         type="submit"
                         disabled={isSubmitting || isUploading}
-                        className="flex-[2] bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-black disabled:bg-slate-300 transition-all shadow-lg"
+                        className="flex-2 bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-black disabled:bg-slate-300 transition-all shadow-lg"
                     >
                         {isSubmitting ? "Finalizing Report..." : "Submit Incident Report"}
                     </button>
