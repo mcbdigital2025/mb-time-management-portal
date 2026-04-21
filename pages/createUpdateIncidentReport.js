@@ -37,7 +37,7 @@ const CreateUpdateIncidentReport = ({ user }) => {
     const [isPageLoading, setIsPageLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const API_BASE = `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/staffAction`;
+    const API_BASE = `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/staffAction/incident`;
     const ATTACHMENT_API = `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/attachments/upload`;
 
     // --- EFFECT: Initialize Context ---
@@ -65,7 +65,7 @@ const CreateUpdateIncidentReport = ({ user }) => {
 
         const fetchExistingReport = async () => {
             try {
-                const response = await authenticatedFetch(`${API_BASE}/incident/${user.companyId}/${activeBookingId}`);
+                const response = await authenticatedFetch(`${API_BASE}/${user.companyId}/${activeBookingId}`);
                 if (response.ok) {
                     const data = await response.json();
                     if (data) {
