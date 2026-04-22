@@ -77,11 +77,11 @@ const AccountAndCalendar = ({
                     .
                   </p>
 
-                  <div className="flex flex-wrap gap-3 pt-1 sm:pt-0">
+                  {/* <div className="flex flex-wrap gap-3 pt-1 sm:pt-0">
                     <button className="w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-700 sm:w-auto sm:min-w-55 md:text-lg lg:text-xl">
                       {user?.accessLevel || "BASIC"}
                     </button>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>
