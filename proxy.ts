@@ -9,6 +9,7 @@ const PUBLIC_ROUTES = [
 function isPublicPath(pathname: string) {
   return (
     pathname === "/login" ||
+    pathname === "/registration" ||
     pathname === "/" ||
     pathname === "/contact" ||
     pathname === "/about" ||

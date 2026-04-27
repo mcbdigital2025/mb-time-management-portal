@@ -1,4 +1,5 @@
 "use client";
+import { KeyIcon, KeyRound, KeyRoundIcon } from "lucide-react";
 import React from "react";
 
 /** Inline SVG icons (no libraries) */
@@ -71,6 +72,7 @@ export default function ReusableTable({
     const actionIcon = (icon) => {
         if (icon === "edit") return <PencilIcon />;
         if (icon === "trash") return <TrashIcon />;
+        if (icon === "key") return <KeyRoundIcon />;
         return null;
     };
 

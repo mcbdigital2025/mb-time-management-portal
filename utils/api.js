@@ -30,6 +30,7 @@ export async function authenticatedFetch(url, options = {}) {
 
     // 4. Safe to split now because we know tokenCookie exists
     const jwtToken = tokenCookie.split("=")[1];
+    // console.log("🚀 ~ authenticatedFetch ~ jwtToken:", jwtToken)
 
     if (!jwtToken) {
         throw new Error("JWT Token value is empty.");
