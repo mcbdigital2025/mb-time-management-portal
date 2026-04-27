@@ -64,7 +64,8 @@ const Registration = () => {
     if (!formData.companyCode) return "Company Code is required";
     if (!formData.companyName) return "Company Name is required";
     if (!formData.industryType) return "Please select an Industry Type";
-    if (!formData.email || !formData.email.includes("@")) return "Valid email is required";
+    if (!formData.email || !formData.email.includes("@"))
+      return "Valid email is required";
     return null;
   };
 
@@ -87,7 +88,7 @@ const Registration = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
-        }
+        },
       );
 
       if (response.ok) {
@@ -105,106 +106,179 @@ const Registration = () => {
   };
 
   return (
-    <AuthLayout
-      title="Create Organization"
-      subtitle="Register your company and administrative profile"
-    >
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {error && (
-          <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700 font-bold">
-            {error}
-          </div>
-        )}
+  <AuthLayout
+    title="Create Organization"
+    subtitle="Register your company and administrative profile"
+    maxWidth="max-w-3xl"
+  >
+    <form onSubmit={handleSubmit} autoComplete="off">
+      <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc-900">
+        Organization Details
+      </h3>
 
-        {successMessage && (
-          <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-700 font-bold">
-            {successMessage}
-          </div>
-        )}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <FormField
+          label="Company Code"
+          name="companyCode"
+          value={formData.companyCode}
+          onChange={handleChange}
+          icon={<CompanyIcon />}
+          placeholder="e.g. MCB-01"
+          required
+          disabled={isSubmitting}
+        />
 
-        {/* Section: Organization (Styled like CompanyDetailsCard) */}
-        <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-          <div className="border-b border-zinc-100 bg-zinc-50/50 px-5 py-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-900">
-              Organization Details
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 divide-y divide-zinc-100 md:grid-cols-2 md:divide-x md:divide-y-0">
-            <div className="divide-y divide-zinc-100">
-              <FormField label="Company Code" name="companyCode" value={formData.companyCode} onChange={handleChange} icon={<CompanyIcon />} placeholder="e.g. MCB-01" />
-              <FormField label="Company Name" name="companyName" value={formData.companyName} onChange={handleChange} icon={<CompanyIcon />} placeholder="Legal Business Name" />
-            </div>
-            <div className="divide-y divide-zinc-100">
-              <FormField
-                label="Industry Type"
-                name="industryType"
-                value={formData.industryType}
-                onChange={handleChange}
-                type="select"
-                options={INDUSTRY_OPTIONS}
-                icon={<BriefcaseIcon />}
-              />
-              <FormField label="Description" name="companyDescription" value={formData.companyDescription} onChange={handleChange} icon={<DepartmentIcon />} placeholder="Brief overview" />
-            </div>
-          </div>
+        <FormField
+          label="Company Name"
+          name="companyName"
+          value={formData.companyName}
+          onChange={handleChange}
+          icon={<CompanyIcon />}
+          placeholder="Legal Business Name"
+          required
+          disabled={isSubmitting}
+        />
+
+        <FormField
+          label="Industry Type"
+          name="industryType"
+          value={formData.industryType}
+          onChange={handleChange}
+          as="select"
+          options={INDUSTRY_OPTIONS}
+          icon={<BriefcaseIcon />}
+          required
+          disabled={isSubmitting}
+        />
+
+        <FormField
+          label="Company Description"
+          name="companyDescription"
+          value={formData.companyDescription}
+          onChange={handleChange}
+          icon={<DepartmentIcon />}
+          placeholder="Brief overview"
+          disabled={isSubmitting}
+        />
+      </div>
+
+      <h3 className="mb-4 mt-8 text-sm font-bold uppercase tracking-wider text-zinc-900">
+        Administrative User
+      </h3>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <FormField
+          label="First Name"
+          name="firstName"
+          value={formData.firstName}
+          onChange={handleChange}
+          icon={<UserIcon />}
+          disabled={isSubmitting}
+        />
+
+        <FormField
+          label="Last Name"
+          name="lastName"
+          value={formData.lastName}
+          onChange={handleChange}
+          icon={<UserIcon />}
+          disabled={isSubmitting}
+        />
+
+        <FormField
+          label="Gender"
+          name="gender"
+          value={formData.gender}
+          onChange={handleChange}
+          as="select"
+          options={GENDER_OPTIONS}
+          icon={<UserIcon />}
+          disabled={isSubmitting}
+        />
+
+        <FormField
+          label="Email Address"
+          name="email"
+          type="email"
+          value={formData.email}
+          onChange={handleChange}
+          icon={<EmailIcon />}
+          required
+          disabled={isSubmitting}
+        />
+
+        <FormField
+          label="Phone Number"
+          name="phoneNumber"
+          value={formData.phoneNumber}
+          onChange={handleChange}
+          icon={<PhoneIcon />}
+          disabled={isSubmitting}
+        />
+
+        <div className="flex items-center rounded-full border border-white/30 bg-white/25 px-4 py-3 text-xs italic text-zinc-500 backdrop-blur">
+          This user will be assigned the Master Admin role.
         </div>
+      </div>
 
-        {/* Section: Admin User */}
-        <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-          <div className="border-b border-zinc-100 bg-zinc-50/50 px-5 py-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-900">
-              Administrative User
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 divide-y divide-zinc-100 md:grid-cols-2 md:divide-x md:divide-y-0">
-            <div className="divide-y divide-zinc-100">
-              <FormField label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} icon={<UserIcon />} />
-              <FormField label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} icon={<UserIcon />} />
-              <FormField label="Gender" name="gender" value={formData.gender} onChange={handleChange} type="select" options={GENDER_OPTIONS} icon={<UserIcon />} />
-            </div>
-            <div className="divide-y divide-zinc-100">
-              <FormField label="Email Address" name="email" type="email" value={formData.email} onChange={handleChange} icon={<EmailIcon />} />
-              <FormField label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} icon={<PhoneIcon />} />
-              <div className="px-5 py-4 bg-zinc-50/30 flex items-center text-xs text-zinc-500 italic">
-                This user will be assigned the Master Admin role.
-              </div>
-            </div>
-          </div>
-        </div>
+      <h3 className="mb-4 mt-8 text-sm font-bold uppercase tracking-wider text-zinc-900">
+        Primary Department
+      </h3>
 
-        {/* Section: Primary Department */}
-        <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-          <div className="border-b border-zinc-100 bg-zinc-50/50 px-5 py-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-900">
-              Primary Department
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 divide-y divide-zinc-100 md:grid-cols-2 md:divide-x md:divide-y-0">
-            <FormField label="Department Name" name="departmentName" value={formData.departmentName} onChange={handleChange} icon={<DepartmentIcon />} placeholder="e.g. Operations" />
-            <FormField label="Description" name="departmentDescription" value={formData.departmentDescription} onChange={handleChange} icon={<DepartmentIcon />} />
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <FormField
+          label="Department Name"
+          name="departmentName"
+          value={formData.departmentName}
+          onChange={handleChange}
+          icon={<DepartmentIcon />}
+          placeholder="e.g. Operations"
+          disabled={isSubmitting}
+        />
 
-        {/* Action Buttons */}
-        <div className="flex flex-col-reverse gap-4 pt-4 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            onClick={() => router.push("/login")}
-            className="w-full rounded-xl border border-zinc-200 bg-white px-8 py-3.5 text-sm font-bold text-zinc-600 transition hover:bg-zinc-50 sm:w-auto cursor-pointer"
-          >
-            Back to Login
-          </button>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full rounded-xl bg-[#008080] px-12 py-3.5 text-sm font-bold text-white shadow-md transition hover:bg-[#006666] active:scale-[0.98] disabled:opacity-50 sm:w-auto cursor-pointer"
-          >
-            {isSubmitting ? "Creating..." : "Complete Registration"}
-          </button>
-        </div>
-      </form>
-    </AuthLayout>
-  );
+        <FormField
+          label="Department Description"
+          name="departmentDescription"
+          value={formData.departmentDescription}
+          onChange={handleChange}
+          icon={<DepartmentIcon />}
+          disabled={isSubmitting}
+        />
+      </div>
+
+      <div className="mt-10 flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <button
+          type="button"
+          onClick={() => router.push("/login")}
+          disabled={isSubmitting}
+          className="text-sm text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          Back to Login
+        </button>
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="flex w-full items-center justify-center gap-2 rounded-full bg-[#008080] py-3 text-[15px] font-semibold text-white shadow-[0_10px_25px_rgba(0,128,128,0.25)] transition-colors hover:bg-[#025050] active:bg-[#00b6b6] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto sm:px-10 cursor-pointer"
+        >
+          {isSubmitting ? "Creating..." : "Complete Registration"}
+        </button>
+      </div>
+
+      {successMessage && (
+        <p className="mt-4 text-center text-[14px] font-semibold text-emerald-600">
+          {successMessage}
+        </p>
+      )}
+
+      {error && (
+        <p className="mt-4 text-center text-[14px] font-semibold text-red-600">
+          {error}
+        </p>
+      )}
+    </form>
+  </AuthLayout>
+);
 };
 
 export default Registration;

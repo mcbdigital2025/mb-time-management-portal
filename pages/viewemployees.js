@@ -32,7 +32,8 @@ const ViewEmployees = () => {
   const [user, setUser] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
-
+  const [confirmTitle, setConfirmTitle] = useState("Confirm Action");
+  const [confirmVariant, setConfirmVariant] = useState("default");
 
   // --- PERMISSION CHECK ---
   const hasEditPermission = useMemo(() => {
@@ -76,7 +77,6 @@ const ViewEmployees = () => {
     fetchEmployees();
   }, [router]);
 
-  
   const fetchSkills = async (empId) => {
     if (!user?.companyId || !empId) return;
     try {
@@ -109,7 +109,11 @@ const ViewEmployees = () => {
 
   const handleDeleteEmployee = (emp) => {
     if (!hasEditPermission) return;
+
+    setConfirmTitle("Delete Employee");
+    setConfirmVariant("danger");
     setConfirmMessage(`Delete employee: ${emp.firstName} ${emp.lastName}?`);
+
     setConfirmAction(() => async () => {
       try {
         const res = await authenticatedFetch(
@@ -128,8 +132,62 @@ const ViewEmployees = () => {
         }
       } catch (err) {
         setError(err.message);
+      } finally {
+        setConfirmMessage(null);
+        setConfirmAction(null);
+        setConfirmTitle("Confirm Action");
+        setConfirmVariant("default");
       }
-      setConfirmMessage(null);
+    });
+  };
+
+  const handleResetPassword = (emp) => {
+    if (!hasEditPermission) return;
+
+    setConfirmTitle("Reset Password");
+    setConfirmVariant("warning");
+    setConfirmMessage(`Reset password for ${emp.firstName} ${emp.lastName}?`);
+    console.log("🚀 ~ handleResetPassword ~ Employee Name:", emp.email)
+    console.log("🚀 ~ handleResetPassword ~ Company Id:", user.companyId)
+
+    setConfirmAction(() => {
+      return async () => {
+        try {
+        const res = await authenticatedFetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/employee/resetPassword`,
+          {
+            method: "PUT",
+            headers: {
+              Accept: "application/json",
+              // "Content-Type": "application/json", 
+            },
+            body: JSON.stringify({
+              email: emp.email,
+              companyId: user.companyId,
+            }),
+          },
+        );
+        // mcbtt/api/timesheet/employee/reset-password?employeeId=${emp.employeeId}&companyId=${user.companyId}`,
+        console.log("🚀 ~ handleResetPassword ~ res:", res)
+
+        if (!res.ok) {
+          throw new Error("Failed to reset password.");
+        }
+
+        setSuccessMessage(
+          `Password reset successfully for ${emp.firstName} ${emp.lastName}.`,
+        );
+        setError(null);
+      } catch (err) {
+        setError(err.message || "Unable to reset password.");
+        setSuccessMessage(null);
+      } finally {
+        setConfirmMessage(null);
+        setConfirmAction(null);
+        setConfirmTitle("Confirm Action");
+        setConfirmVariant("default");
+      }
+    };
     });
   };
 
@@ -187,6 +245,13 @@ const ViewEmployees = () => {
           icon: "trash",
           variant: "danger",
           onClick: (e) => handleDeleteEmployee(e),
+        },
+        {
+          label: "Reset Password",
+          icon: "key",
+          // showLabel: true,
+          variant: "outline",
+          onClick: (e) => handleResetPassword(e),
         },
       ]
     : [];
@@ -335,20 +400,39 @@ const ViewEmployees = () => {
       {confirmMessage && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-100 px-4">
           <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center">
-            <AlertCircle className="mx-auto mb-4 text-red-500" size={48} />
-            <p className="text-lg font-bold text-gray-900 mb-2">
-              {confirmMessage}
-            </p>
+            <AlertCircle
+              className={`mx-auto mb-4 ${
+                confirmVariant === "danger" ? "text-red-500" : "text-amber-500"
+              }`}
+              size={48}
+            />
+
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              {confirmTitle}
+            </h3>
+
+            <p className="text-sm text-gray-600">{confirmMessage}</p>
+
             <div className="flex gap-3 mt-6">
               <button
-                onClick={() => confirmAction()}
-                className="flex-1 py-2.5 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition"
+                onClick={() => confirmAction?.()}
+                className={`flex-1 py-2.5 text-white cursor-pointer rounded-xl font-bold transition ${
+                  confirmVariant === "danger"
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-amber-600 hover:bg-amber-700"
+                }`}
               >
                 Confirm
               </button>
+
               <button
-                onClick={() => setConfirmMessage(null)}
-                className="flex-1 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition"
+                onClick={() => {
+                  setConfirmMessage(null);
+                  setConfirmAction(null);
+                  setConfirmTitle("Confirm Action");
+                  setConfirmVariant("default");
+                }}
+                className="flex-1 py-2.5 bg-gray-100 text-gray-600 cursor-pointer rounded-xl font-bold hover:bg-gray-200 transition"
               >
                 Cancel
               </button>
@@ -367,7 +451,9 @@ const ViewEmployees = () => {
             >
               ✕
             </button>
-            <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2 text-center">Update Employee Details</h2>
+            <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2 text-center">
+              Update Employee Details
+            </h2>
 
             <UpdateEmployeeForm
               employee={editingEmployee}

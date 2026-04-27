@@ -9,7 +9,7 @@ import { toast } from "react-toastify";
 const EmployeeProfile = () => {
   const [user, setUser] = useState(null);
   const [employee, setEmployee] = useState(null);
-  console.log("🚀 ~ EmployeeProfile ~ employee:", employee)
+  // console.log("🚀 ~ EmployeeProfile ~ employee:", employee)
   const [skills, setSkills] = useState([]);
   const [error, setError] = useState(null);
   const router = useRouter();
