@@ -112,7 +112,7 @@ const Registration = () => {
     maxWidth="max-w-3xl"
   >
     <form onSubmit={handleSubmit} autoComplete="off">
-      <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc-900">
+      <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc bg-linear-to-r from-[#008080] via-cyan-600 to-[#008080] bg-clip-text text-transparent">
         Organization Details
       </h3>
 
@@ -162,7 +162,7 @@ const Registration = () => {
         />
       </div>
 
-      <h3 className="mb-4 mt-8 text-sm font-bold uppercase tracking-wider text-zinc-900">
+      <h3 className="mb-4 mt-8 text-sm font-bold uppercase tracking-wider text bg-linear-to-r from-[#008080] via-cyan-600 to-[#008080] bg-clip-text  text-transparent">
         Administrative User
       </h3>
 
