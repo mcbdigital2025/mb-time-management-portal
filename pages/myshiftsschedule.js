@@ -244,7 +244,7 @@ const MyShiftsSchedule = ({ user }) => {
         </button>
         <button
           disabled={!selectedShift}
-          onClick={() => navigateTo("/expenses/add")}
+          onClick={() => navigateTo("/createUpdateServiceExpense")}
           className={`${menuBtnClass(!!selectedShift)} hover:text-teal-700 hover:bg-teal-50`}
         >
           <Receipt size={18} /> Add Expense
@@ -265,7 +265,7 @@ const MyShiftsSchedule = ({ user }) => {
                 onClick={goToday}
                 className="px-3 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 transition"
               >
-                Today
+                Week
               </button>
               <div className="flex bg-white border border-slate-200 rounded-lg overflow-hidden">
                 <button

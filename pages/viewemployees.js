@@ -158,8 +158,7 @@ const ViewEmployees = () => {
           {
             method: "PUT",
             headers: {
-              Accept: "application/json",
-              // "Content-Type": "application/json", 
+              "Content-Type": "application/json", 
             },
             body: JSON.stringify({
               email: emp.email,
@@ -168,7 +167,6 @@ const ViewEmployees = () => {
           },
         );
         // mcbtt/api/timesheet/employee/reset-password?employeeId=${emp.employeeId}&companyId=${user.companyId}`,
-        console.log("🚀 ~ handleResetPassword ~ res:", res)
 
         if (!res.ok) {
           throw new Error("Failed to reset password.");
