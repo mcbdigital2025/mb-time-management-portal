@@ -216,7 +216,7 @@ const Registration = () => {
           disabled={isSubmitting}
         />
 
-        <div className="flex items-center rounded-full border border-white/30 bg-white/25 px-4 py-3 text-xs italic text-zinc-500 backdrop-blur">
+        <div className="flex items-center rounded-full border border-white/30 bg-white/25 px-3 py-1 text-xs italic text-zinc-900 backdrop-blur">
           This user will be assigned the Master Admin role.
         </div>
       </div>
