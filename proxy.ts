@@ -74,7 +74,7 @@ export function proxy(request: NextRequest) {
   "/createUpdateServiceStaffNotes",
   "/createUpdateServiceMileage",
   "/createUpdateIncidentReport",
-  "/createUpdateIncidentReport",
+  "/createUpdateServiceExpense",
 ];
 
   // const hasValidToken = token && !isTokenExpired(token);

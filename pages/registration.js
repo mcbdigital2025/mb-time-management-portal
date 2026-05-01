@@ -112,7 +112,7 @@ const Registration = () => {
     maxWidth="max-w-3xl"
   >
     <form onSubmit={handleSubmit} autoComplete="off">
-      <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc-900">
+      <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc bg-linear-to-r from-[#008080] via-cyan-600 to-[#008080] bg-clip-text text-transparent">
         Organization Details
       </h3>
 
@@ -162,7 +162,7 @@ const Registration = () => {
         />
       </div>
 
-      <h3 className="mb-4 mt-8 text-sm font-bold uppercase tracking-wider text-zinc-900">
+      <h3 className="mb-4 mt-8 text-sm font-bold uppercase tracking-wider text bg-linear-to-r from-[#008080] via-cyan-600 to-[#008080] bg-clip-text  text-transparent">
         Administrative User
       </h3>
 
@@ -216,7 +216,7 @@ const Registration = () => {
           disabled={isSubmitting}
         />
 
-        <div className="flex items-center rounded-full border border-white/30 bg-white/25 px-4 py-3 text-xs italic text-zinc-500 backdrop-blur">
+        <div className="flex items-center rounded-full border border-white/30 bg-white/25 px-3 py-1 text-xs italic text-zinc-900 backdrop-blur">
           This user will be assigned the Master Admin role.
         </div>
       </div>
