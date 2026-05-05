@@ -56,7 +56,7 @@ const CreateUpdateServiceExpense = ({ user }) => {
         if (response.ok) {
           // 1. Get the response as raw text (String) to preserve precision
           const rawText = await response.text();
-          console.log("return rawText (string):", rawText);
+
 
           // 2. Parse the string using JSONbig
           const data = JSONbig.parse(rawText);
@@ -66,6 +66,10 @@ const CreateUpdateServiceExpense = ({ user }) => {
           console.log("return data.attachmentId (safe):", safeAttachmentId);
 
           if (data) {
+           // 📄 If the backend has a fileName, we "sync" it to our selection state
+           if (data.fileName) {
+               setSelectedFile({ name: data.fileName, isExisting: true });
+            }
             setExpenseId(data.expenseId);
             setAttachmentId(safeAttachmentId); // Now it's the exact ID from the DB
             setFormData({
@@ -240,10 +244,24 @@ console.log("payload:", payload);
             </div>
           </div>
 
-          <button type="submit" disabled={isSubmitting} className="w-full bg-[#008080] text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2">
-            {isSubmitting && <Loader2 className="animate-spin" size={18} />}
-            {isSubmitting ? "Saving..." : expenseId ? "Update Claim" : "Submit Claim"}
-          </button>
+         <div className="flex gap-4 pt-2">
+             <button
+             type="submit"
+             disabled={isSubmitting}
+             className="flex-[2] bg-[#008080] text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50"
+           >
+             {isSubmitting && <Loader2 className="animate-spin" size={18} />}
+             {isSubmitting ? "Saving..." : expenseId ? "Update Claim" : "Submit Claim"}
+           </button>
+                    <button
+                        type="button"
+                        onClick={() => router.back()}
+                        className="flex-1 bg-gray-100 text-gray-700 font-bold py-4 rounded-xl hover:bg-gray-200 transition-colors"
+                      >
+                        Cancel
+           </button>
+
+         </div>
         </form>
       </div>
     </div>
