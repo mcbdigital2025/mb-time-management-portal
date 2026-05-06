@@ -106,15 +106,7 @@ const LandingPage = ({ user }) => {
   const goToday = () =>
     setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
-  if (loading) {
-    return (
-      <div className="min-h-screen w-full bg-gray-50 py-8 flex justify-center">
-        <div className="w-[90%]">
-          <ViewEmployeesSkeleton />
-        </div>
-      </div>
-    );
-  }
+ 
 
 return (
   <div className="min-h-screen w-full hero-radial-background bg-[radial-gradient(12%_14.08%_at_9.42%_89.81%,#D1E5FF,#F8FAFC)] py-2 flex justify-center">
@@ -128,6 +120,10 @@ return (
   onNextWeek={nextWeek}
         />
 
+        {loading ? (
+  <ViewEmployeesSkeleton />
+) : (
+  <>
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
             <StatCard
@@ -233,6 +229,9 @@ return (
             )}
           </div>
         </div>
+  </>
+)}
+
       </div>
     </div>
   </div>

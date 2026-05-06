@@ -1,14 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import AuthLayout from "../components/auth/AuthLayout";
 import FormField from "../components/auth/FormField";
 import { Loader2 } from "lucide-react";
-import { toast } from "react-toastify";
-import {
-  EmailIcon,
-  CompanyIcon,
-  PasswordIcon,
-} from "../components/auth/icons";
+// import { toast } from "react-toastify";
+import { EmailIcon, CompanyIcon, PasswordIcon } from "../components/auth/icons";
 import { getJwtExpiryInSeconds } from "../utils/getJwtExpiryInSeconds";
 
 export default function Login() {
@@ -16,7 +12,6 @@ export default function Login() {
 
   const [formData, setFormData] = useState({
     email: "",
-    gender: "",
     companyId: "",
     password: "",
   });
@@ -27,13 +22,11 @@ export default function Login() {
   useEffect(() => {
     const savedEmail = localStorage.getItem("rememberedEmail");
     const savedCompanyId = localStorage.getItem("rememberedCompanyId");
-    const gender = localStorage.getItem("rememberedGender");
 
     if (savedEmail && savedCompanyId) {
       setFormData((prev) => ({
         ...prev,
         email: savedEmail,
-         email: savedEmail,
         companyId: savedCompanyId,
       }));
       setRememberMe(true);
@@ -47,31 +40,37 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+
+    if (isSubmitting) return;
+
     setError("");
     setIsSubmitting(true);
 
     try {
-      const { email, companyId, password } = formData;
+      // const { email, companyId, password } = formData;
 
+      const email = formData.email.trim();
+      const companyId = formData.companyId.trim();
+      const password = formData.password;
 
-      // `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/login`,
-      const response = await fetch(
-        `/api/timesheet/userLogin/login`,
-        {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: email,
-            companyId: companyId,
-            password: password
-          }),
-          // credentials: "include",
+      if (!email || !companyId || !password) {
+        setError("Please enter your User ID, Company ID, and Password.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const response = await fetch(`/api/timesheet/userLogin/login`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
         },
-      );
-
+        body: JSON.stringify({
+          email: email,
+          companyId: companyId,
+          password: password,
+        }),
+      });
 
       if (!response.ok) {
         let message = "Login failed due to server error.";
@@ -92,7 +91,7 @@ export default function Login() {
 
       if (data.jwtToken) {
         const maxAge = getJwtExpiryInSeconds(data.jwtToken);
-        console.log("🚀 ~ handleLogin ~ maxAge:", maxAge)
+        console.log("🚀 ~ handleLogin ~ maxAge:", maxAge);
         const secure = window.location.protocol === "https:" ? "; Secure" : "";
 
         document.cookie =
@@ -101,9 +100,6 @@ export default function Login() {
         // `Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`;
       }
 
-
-
-
       if (rememberMe) {
         localStorage.setItem("rememberedEmail", formData.email);
         localStorage.setItem("rememberedCompanyId", formData.companyId);
@@ -111,13 +107,13 @@ export default function Login() {
         localStorage.removeItem("rememberedEmail");
         localStorage.removeItem("rememberedCompanyId");
       }
-      toast.success("Login successful");
+      // toast.success("Login successful");
       router.push("/landing");
     } catch (err) {
       console.log("🚀 ~ handleLogin ~ err:", err);
       const message = err.message || "Invalid credentials. Please try again.";
       setError(`Invalid credentials. Please try again. Error: ${message}`);
-      toast.error(message);
+      // toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
