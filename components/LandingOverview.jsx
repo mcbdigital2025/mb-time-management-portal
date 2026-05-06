@@ -23,7 +23,6 @@ const AccountAndCalendar = ({
   onPrevWeek,
   onNextWeek,
 }) => {
-  console.log("🚀 ~ AccountAndCalendar ~ weekLabel:", weekLabel)
   const defaultImage =
     user?.gender === "Male" ? maleImg.src : femaleimg.src;
 

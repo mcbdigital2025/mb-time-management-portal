@@ -35,10 +35,7 @@ const CreateUpdateServiceExpense = ({ user }) => {
 
     const sessionStoreId = sessionStorage.getItem("currentClientBookingId");
     const urlBookingId = router.query.scheduleId || router.query.clientBookingId;
-console.log("DEBUG: Expense Context Found urlBookingId :", urlBookingId);
-console.log("DEBUG: Expense Context Found sessionStoreId :", sessionStoreId);
     const finalBookingId = urlBookingId || sessionStoreId;
-console.log("DEBUG: Expense Context Found finalBookingId :", finalBookingId);
     if (finalBookingId) {
       setActiveBookingId(finalBookingId);
     } else {
@@ -58,7 +55,7 @@ console.log("DEBUG: Expense Context Found finalBookingId :", finalBookingId);
     const fetchExistingExpense = async () => {
       try {
         // Log for debugging to ensure we are sending the right ID
-        console.log(`Calling API with Booking ID: ${finalBookingId}`);
+        console.log(`Calling API with Booking ID activeBookingId: activeBookingId`);
 
         const response = await authenticatedFetch(
           `${API_BASE}/${user.companyId}/${activeBookingId}`
@@ -136,7 +133,8 @@ console.log("DEBUG: Expense Context Found finalBookingId :", finalBookingId);
     setIsSubmitting(true);
     const method = expenseId ? "PUT" : "POST";
     const endpoint = expenseId ? `${API_BASE}/update` : `${API_BASE}/create`;
-
+console.log("DEBUG: Expense Context method 12 :", method);
+console.log("DEBUG: Expense Context endpoint 12 :", method);
     const payload = {
       ...formData,
       expenseId: expenseId,

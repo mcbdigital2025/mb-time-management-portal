@@ -25,6 +25,7 @@ const ViewEmployees = () => {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
   const [skills, setSkills] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingResetPassword, setLoadingResetPassword] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
   const [confirmMessage, setConfirmMessage] = useState(null);
@@ -147,46 +148,50 @@ const ViewEmployees = () => {
     setConfirmTitle("Reset Password");
     setConfirmVariant("warning");
     setConfirmMessage(`Reset password for ${emp.firstName} ${emp.lastName}?`);
-    console.log("🚀 ~ handleResetPassword ~ Employee Name:", emp.email)
-    console.log("🚀 ~ handleResetPassword ~ Company Id:", user.companyId)
+    console.log("🚀 ~ handleResetPassword ~ Employee Name:", emp.email);
+    console.log("🚀 ~ handleResetPassword ~ Company Id:", user.companyId);
+    setLoadingResetPassword(true);
 
     setConfirmAction(() => {
       return async () => {
         try {
-        const res = await authenticatedFetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/employee/resetPassword`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json", 
+          setLoadingResetPassword(true);
+          const res = await authenticatedFetch(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/employee/resetPassword`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                email: emp.email,
+                companyId: user.companyId,
+              }),
             },
-            body: JSON.stringify({
-              email: emp.email,
-              companyId: user.companyId,
-            }),
-          },
-        );
-        // mcbtt/api/timesheet/employee/reset-password?employeeId=${emp.employeeId}&companyId=${user.companyId}`,
+          );
+          // mcbtt/api/timesheet/employee/reset-password?employeeId=${emp.employeeId}&companyId=${user.companyId}`,
 
-        if (!res.ok) {
-          throw new Error("Failed to reset password.");
+          if (!res.ok) {
+            throw new Error("Failed to reset password.");
+          }
+
+          setSuccessMessage(
+            `Password reset successfully for ${emp.firstName} ${emp.lastName}.`,
+          );
+          setError(null);
+        } catch (err) {
+          setError(err.message || "Unable to reset password.");
+          setSuccessMessage(null);
+        } finally {
+          setLoadingResetPassword(false);
+          setConfirmMessage(null);
+          setConfirmAction(null);
+          setConfirmTitle("Confirm Action");
+          setConfirmVariant("default");
         }
-
-        setSuccessMessage(
-          `Password reset successfully for ${emp.firstName} ${emp.lastName}.`,
-        );
-        setError(null);
-      } catch (err) {
-        setError(err.message || "Unable to reset password.");
-        setSuccessMessage(null);
-      } finally {
-        setConfirmMessage(null);
-        setConfirmAction(null);
-        setConfirmTitle("Confirm Action");
-        setConfirmVariant("default");
-      }
-    };
+      };
     });
+    setLoadingResetPassword(false);
   };
 
   const employeeColumns = [
@@ -288,6 +293,7 @@ const ViewEmployees = () => {
         </div>
 
         {/* MESSAGES */}
+
         {error && (
           <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
             {error}
@@ -420,7 +426,13 @@ const ViewEmployees = () => {
                     : "bg-amber-600 hover:bg-amber-700"
                 }`}
               >
-                Confirm
+                {loadingResetPassword ? (
+                  <div className="   text-red-100 rounded-xl text-sm">
+                    Processing...
+                  </div>
+                ) : (
+                  "Confirm"
+                )}
               </button>
 
               <button
