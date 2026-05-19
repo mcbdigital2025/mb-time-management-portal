@@ -41,6 +41,7 @@ export async function authenticatedFetch(url, options = {}) {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${jwtToken}`,
+        "ngrok-skip-browser-warning": "any-value-here", // ◄ ADD THIS LINE
         ...options.headers, // Allow overriding if specific calls need different headers
     };
 
