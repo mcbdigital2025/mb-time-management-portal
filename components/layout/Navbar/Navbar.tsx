@@ -110,6 +110,7 @@ export default function Navbar({ user, nav = [], handleLogout }: NavbarProps) {
             alt="Logo"
             width={78}
             height={44}
+            style={{ width: "auto", height: "auto" }} // ◄ ADD THIS STYLE PROPERTY TO FIX THE WARNING
             priority
             className="object-contain"
           />
