@@ -45,6 +45,7 @@ const MyShiftsSchedule = ({ user }) => {
   const router = useRouter();
 
   const API_BASE = `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/clientschedule`;
+  // const API_BASE = `https://ammonium-levers-surfacing.ngrok-free.dev/mcbtt/api/timesheet/clientschedule`;
 
   // 1. AUTH CHECK: If user is lost during HTTPS transition, don't try to render
   useEffect(() => {

@@ -178,8 +178,9 @@ function MyApp({ Component, pageProps }) {
       }
 
       try {
+        // `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/accessPages`,
         const url = new URL(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/userLogin/accessPages`,
+          `https://ammonium-levers-surfacing.ngrok-free.dev/mcbtt/api/timesheet/userLogin/accessPages`,
         );
 
         url.searchParams.set("email", storedUser.email);
@@ -209,6 +210,7 @@ function MyApp({ Component, pageProps }) {
         }
 
         const nav = await response.json();
+        console.log("🚀 ~ MyApp ~ nav:", nav)
 
         setAccessPages(nav);
         sessionStorage.setItem("accessPages", JSON.stringify(nav));

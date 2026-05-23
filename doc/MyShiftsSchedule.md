@@ -419,6 +419,7 @@ Then open the selected modal:
 ```jsx
 setShowExpenseModal(true);
 ```
+
 ---
 
 ## Recommended File Structure
