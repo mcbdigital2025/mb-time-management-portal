@@ -26,17 +26,26 @@ import {
   Loader2,
 } from "lucide-react";
 import { authenticatedFetch } from "../utils/api";
+import CreateUpdateServiceStaffNotesModal from "../components/modal/CreateUpdateServiceStaffNotesModal";
+import CreateUpdateIncidentReportModal from "../components/modal/CreateUpdateIncidentReportModal";
+import CreateUpdateServiceMileageModal from "../components/modal/CreateUpdateServiceMileageModal";
+import CreateUpdateServiceExpenseModal from "../components/modal/CreateUpdateServiceExpenseModal";
 
 const MyShiftsSchedule = ({ user }) => {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedShift, setSelectedShift] = useState(null);
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [showIncidentModal, setShowIncidentModal] = useState(false);
+  const [showMileageModal, setShowMileageModal] = useState(false);
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 }),
   );
   const router = useRouter();
 
   const API_BASE = `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/clientschedule`;
+  // const API_BASE = `https://ammonium-levers-surfacing.ngrok-free.dev/mcbtt/api/timesheet/clientschedule`;
 
   // 1. AUTH CHECK: If user is lost during HTTPS transition, don't try to render
   useEffect(() => {
@@ -176,30 +185,23 @@ const MyShiftsSchedule = ({ user }) => {
     );
   };
 
-  const menuBtnClass = (isActive) =>
-    `flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition w-full ${
-      isActive
-        ? "text-slate-700 hover:bg-slate-50 cursor-pointer"
-        : "text-slate-300 cursor-not-allowed opacity-50"
+  const menuBtnClass = (isEnabled, isModalActive = false) =>
+    `flex items-center gap-3 px-4 py-3 text-base font-semibold rounded-xl transition w-full ${
+      !isEnabled
+        ? "text-slate-200 cursor-not-allowed opacity-50"
+        : isModalActive
+          ? "bg-white text-[#008080] shadow-sm cursor-pointer"
+          : "text-white hover:bg-white hover:text-[#008080] cursor-pointer"
     }`;
-
-  if (loading) {
-    return (
-      <div className=" min-h-[85vh] p-8 flex flex-col items-center justify-center gap-3 text-slate-500 font-bold">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-        <span className="animate-pulse">Synchronizing Schedule...</span>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <div className="w-64 bg-white border-r border-slate-200 p-4 flex flex-col gap-2 shadow-sm">
+      <div className="w-64 bg-[#008080]  border-r border-slate-200 p-4 flex flex-col gap-2 shadow-sm">
         <div className="mb-6 px-2">
-          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+          <h2 className="text-base font-bold text-white uppercase tracking-widest">
             Shift Actions
           </h2>
-          <p className="text-[10px] text-slate-500 mt-1">
+          <p className="text-[13px] text-slate-50 mt-1">
             {selectedShift
               ? `Selected: ${selectedShift.facilitiesName}`
               : "Select a shift to enable menus"}
@@ -221,42 +223,77 @@ const MyShiftsSchedule = ({ user }) => {
           <LogOut size={18} /> Clock Out
         </button>
         <hr className="my-2 border-slate-100" />
-        <button
+        {/* <button
           disabled={!selectedShift}
           onClick={() => navigateTo("/createUpdateServiceStaffNotes")}
           className={`${menuBtnClass(!!selectedShift)} hover:text-blue-700 hover:bg-blue-50`}
         >
           <StickyNote size={18} /> Add Notes
-        </button>
+        </button> */}
+
         <button
+          disabled={!selectedShift}
+          onClick={() => {
+            setShowIncidentModal(false);
+            setShowMileageModal(false);
+            setShowExpenseModal(false);
+            setShowNotesModal(true);
+          }}
+          className={menuBtnClass(!!selectedShift, showNotesModal)}
+        >
+          <StickyNote size={18} /> Add Notes
+        </button>
+        {/* <button
           disabled={!selectedShift}
           onClick={() => navigateTo("/createUpdateIncidentReport")}
           className={`${menuBtnClass(!!selectedShift)} hover:text-amber-700 hover:bg-amber-50`}
         >
           <AlertTriangle size={18} /> Report Incident
+        </button> */}
+        <button
+          disabled={!selectedShift}
+          onClick={() => {
+            setShowNotesModal(false);
+            setShowMileageModal(false);
+            setShowExpenseModal(false);
+            setShowIncidentModal(true);
+          }}
+          className={menuBtnClass(!!selectedShift, showIncidentModal)}
+        >
+          <AlertTriangle size={18} /> Report Incident
         </button>
         <button
           disabled={!selectedShift}
-          onClick={() => navigateTo("/createUpdateServiceMileage")}
-          className={`${menuBtnClass(!!selectedShift)} hover:text-indigo-700 hover:bg-indigo-50`}
+          onClick={() => {
+            setShowNotesModal(false);
+            setShowIncidentModal(false);
+            setShowExpenseModal(false);
+            setShowMileageModal(true);
+          }}
+          className={menuBtnClass(!!selectedShift, showMileageModal)}
         >
           <Car size={18} /> Add Mileage
         </button>
         <button
           disabled={!selectedShift}
-          onClick={() => navigateTo("/createUpdateServiceExpense")}
-          className={`${menuBtnClass(!!selectedShift)} hover:text-teal-700 hover:bg-teal-50`}
+          onClick={() => {
+            setShowNotesModal(false);
+            setShowIncidentModal(false);
+            setShowMileageModal(false);
+            setShowExpenseModal(true);
+          }}
+          className={menuBtnClass(!!selectedShift, showExpenseModal)}
         >
           <Receipt size={18} /> Add Expense
         </button>
       </div>
 
-      <div className="flex-1 p-8 overflow-y-auto">
+      <div className="relative flex-1 p-8 overflow-y-auto">
         <div className="max-w-4xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 gap-4">
-            <div className="flex items-center gap-3">
-              <Calendar className="text-emerald-600 w-5 h-5" />
-              <h2 className="text-lg font-bold text-slate-800">
+          <div className="flex flex-col md:flex-row md:items-center justify-between  p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 gap- bg-[#008080]  ">
+            <div className="flex items-center gap-3 ">
+              <Calendar className="text-emerald-50 w-5 h-5" />
+              <h2 className="text-lg font-bold text-slate-50">
                 {weekRangeLabel}
               </h2>
             </div>
@@ -270,68 +307,167 @@ const MyShiftsSchedule = ({ user }) => {
               <div className="flex bg-white border border-slate-200 rounded-lg overflow-hidden">
                 <button
                   onClick={prevWeek}
-                  className="p-2 hover:bg-slate-50 border-r border-slate-200"
+                  className="p-2 hover:bg-slate-50 border-r border-slate-200 cursor-pointer"
                 >
                   <ChevronLeft size={18} />
                 </button>
-                <button onClick={nextWeek} className="p-2 hover:bg-slate-50">
+                <button
+                  onClick={nextWeek}
+                  className="p-2 hover:bg-slate-50 cursor-pointer"
+                >
                   <ChevronRight size={18} />
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="grid gap-4">
-            {filteredSchedules
-              .sort((a, b) => new Date(a.workDate) - new Date(b.workDate))
-              .map((shift) => (
-                <div
-                  key={shift.clientBookingId.toString()}
-                  onClick={() => setSelectedShift(shift)}
-                  className={`p-5 rounded-2xl border transition-all cursor-pointer shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${
-                    selectedShift?.clientBookingId === shift.clientBookingId
-                      ? "border-emerald-500 bg-emerald-50/30 ring-1 ring-emerald-500"
-                      : "border-slate-100 bg-white hover:shadow-md"
-                  }`}
-                >
-                  <div className="flex-1">
-                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
-                      {format(parseISO(shift.workDate), "EEEE, MMM d")}
-                    </p>
-                    <h3 className="text-lg font-bold text-slate-900 mt-1">
-                      {shift.facilitiesName}
-                    </h3>
-                    <p className="text-sm text-slate-500 mt-1 flex items-center gap-1">
-                      <Clock size={14} className="text-slate-400" />{" "}
-                      {shift.scheduledStartTime} - {shift.scheduledEndTime}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <span
-                      className={`px-3 py-1 rounded-full text-[10px] font-bold ring-1 ring-inset ${
-                        shift.status === "In Progress"
-                          ? "bg-blue-50 text-blue-700 ring-blue-600/20"
-                          : "bg-slate-50 text-slate-600 ring-slate-600/20"
-                      }`}
-                    >
-                      {shift.status}
-                    </span>
-                    <div className="flex flex-col text-[10px] font-bold text-right space-y-0.5">
-                      <div className="flex items-center justify-end gap-1 text-slate-500">
-                        <MapPin size={12} className="text-slate-400" />{" "}
-                        {shift.workLocation || "No Location"}
-                      </div>
-                      <div className="text-emerald-600 font-black">
-                        Clock In: {shift.actualStartTime}
-                      </div>
-                      <div className="text-rose-600 font-black">
-                        Clock Out: {shift.actualEndTime}
+          {loading ? (
+            <div className=" min-h-[85vh] p-8 flex flex-col items-center justify-center gap-3 text-slate-500 font-bold">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              <span className="animate-pulse">Synchronizing Schedule...</span>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {filteredSchedules
+                .sort((a, b) => new Date(a.workDate) - new Date(b.workDate))
+                .map((shift) => (
+                  <div
+                    key={shift.clientBookingId.toString()}
+                    onClick={() => setSelectedShift(shift)}
+                    className={`p-5 rounded-2xl border transition-all cursor-pointer shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${
+                      selectedShift?.clientBookingId === shift.clientBookingId
+                        ? "border-emerald-500 bg-emerald-50/30 ring-1 ring-emerald-500"
+                        : "border-slate-100 bg-white hover:shadow-md"
+                    }`}
+                  >
+                    <div className="flex-1">
+                      <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+                        {format(parseISO(shift.workDate), "EEEE, MMM d")}
+                      </p>
+                      <h3 className="text-lg font-bold text-slate-900 mt-1">
+                        {shift.facilitiesName}
+                      </h3>
+                      <p className="text-sm text-slate-500 mt-1 flex items-center gap-1">
+                        <Clock size={14} className="text-slate-400" />{" "}
+                        {shift.scheduledStartTime} - {shift.scheduledEndTime}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <span
+                        className={`px-3 py-1 rounded-full text-[10px] font-bold ring-1 ring-inset ${
+                          shift.status === "In Progress"
+                            ? "bg-blue-50 text-blue-700 ring-blue-600/20"
+                            : "bg-slate-50 text-slate-600 ring-slate-600/20"
+                        }`}
+                      >
+                        {shift.status}
+                      </span>
+                      <div className="flex flex-col text-[10px] font-bold text-right space-y-0.5">
+                        <div className="flex items-center justify-end gap-1 text-slate-500">
+                          <MapPin size={12} className="text-slate-400" />{" "}
+                          {shift.workLocation || "No Location"}
+                        </div>
+                        <div className="text-emerald-600 font-black">
+                          Clock In: {shift.actualStartTime}
+                        </div>
+                        <div className="text-rose-600 font-black">
+                          Clock Out: {shift.actualEndTime}
+                        </div>
                       </div>
                     </div>
                   </div>
+                ))}
+
+              {showNotesModal && selectedShift && (
+                <div className="absolute inset-0 z-50 flex items-start justify-center bg-black/10 p-8">
+                  <div className="relative w-full max-w-5xl max-h-[calc(100vh-6rem)] overflow-y-auto bg-white rounded-2xl shadow-2xl">
+                    <button
+                      type="button"
+                      onClick={() => setShowNotesModal(false)}
+                      className="absolute top-4 right-4 z-10 rounded-full bg-[#008080] px-3 py-1 text-sm font-bold text-slate-50 hover:bg-[#008080] cursor-pointer transition"
+                    >
+                      ✕
+                    </button>
+
+                    <CreateUpdateServiceStaffNotesModal
+                      user={user}
+                      clientBookingId={selectedShift.clientBookingId?.toString()}
+                      onClose={() => setShowNotesModal(false)}
+                      onSaved={() => {
+                        setShowNotesModal(false);
+                        fetchSchedule();
+                      }}
+                    />
+                  </div>
                 </div>
-              ))}
-          </div>
+              )}
+
+              {showIncidentModal && selectedShift && (
+                <div className="absolute inset-0 z-50 flex items-start justify-center bg-black/10 p-8">
+                  <div className="relative w-full max-w-5xl max-h-[calc(100vh-6rem)] overflow-y-auto bg-white rounded-2xl shadow-2xl">
+                    <button
+                      type="button"
+                      onClick={() => setShowIncidentModal(false)}
+                      className="absolute top-4 right-4 z-10 rounded-full bg-[#008080] px-3 py-1 text-sm font-bold text-slate-50 hover:bg-[#008080] cursor-pointer transition"
+                    >
+                      ✕
+                    </button>
+
+                    <CreateUpdateIncidentReportModal
+                      user={user}
+                      clientBookingId={selectedShift.clientBookingId?.toString()}
+                      clientId={selectedShift.clientId?.toString()}
+                      onClose={() => setShowIncidentModal(false)}
+                      onSaved={() => {
+                        setShowIncidentModal(false);
+                        fetchSchedule();
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {showMileageModal && selectedShift && (
+                <div className="absolute inset-0 z-50 flex items-start justify-center bg-black/10 p-8">
+                  <div className="relative w-full max-w-5xl max-h-[calc(100vh-6rem)] overflow-y-auto bg-white rounded-2xl shadow-2xl">
+                    <button
+                      type="button"
+                      onClick={() => setShowMileageModal(false)}
+                      className="absolute top-4 right-4 z-10 rounded-full bg-[#008080] px-3 py-1 text-sm font-bold text-slate-50 hover:bg-[#008080] cursor-pointer transition"
+                    >
+                      ✕
+                    </button>
+
+                    <CreateUpdateServiceMileageModal
+                      user={user}
+                      clientBookingId={selectedShift.clientBookingId?.toString()}
+                      onClose={() => setShowMileageModal(false)}
+                      onSaved={() => {
+                        setShowMileageModal(false);
+                        fetchSchedule();
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {showExpenseModal && selectedShift && (
+                <div className="absolute inset-0 z-50 flex items-start justify-center bg-black/40 p-8">
+                  <div className="relative w-full max-w-2xl max-h-[calc(100vh-6rem)] overflow-y-auto bg-white rounded-2xl shadow-2xl">
+                    <CreateUpdateServiceExpenseModal
+                      user={user}
+                      clientBookingId={selectedShift.clientBookingId?.toString()}
+                      onClose={() => setShowExpenseModal(false)}
+                      onSaved={() => {
+                        setShowExpenseModal(false);
+                        fetchSchedule();
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

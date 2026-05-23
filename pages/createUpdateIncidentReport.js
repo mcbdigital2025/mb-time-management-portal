@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { toast } from 'react-toastify';
+import JSONbig from "json-bigint"; // Added for BigInt precision[cite: 1]
 import { authenticatedFetch } from '../utils/api';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, UploadCloud, X } from 'lucide-react';
 
 const CreateUpdateIncidentReport = ({ user }) => {
     const router = useRouter();
@@ -12,7 +13,11 @@ const CreateUpdateIncidentReport = ({ user }) => {
     // Tracking context IDs
     const [activeBookingId, setActiveBookingId] = useState(null);
     const [activeClientId, setActiveClientId] = useState(null);
+    const [incidentId, setIncidentId] = useState(null);
+    const [attachmentId, setAttachmentId] = useState(null);
 
+    // Form & File State
+    const [selectedFile, setSelectedFile] = useState(null); // Reference createUpdateServiceExpense.js[cite: 1]
     const [formData, setFormData] = useState({
         incidentDate: new Date().toISOString().split('T')[0],
         incidentTime: new Date().toTimeString().slice(0, 5),
@@ -30,15 +35,13 @@ const CreateUpdateIncidentReport = ({ user }) => {
         status: 'Reported'
     });
 
-    const [incidentId, setIncidentId] = useState(null);
-    const [attachmentId, setAttachmentId] = useState(null); // Saved after file upload
+    // UI Status State
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isUploading, setIsUploading] = useState(false);
     const [isPageLoading, setIsPageLoading] = useState(true);
     const [error, setError] = useState(null);
 
     const API_BASE = `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/staffAction/incident`;
-    const ATTACHMENT_API = `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/attachments/upload`;
+    const ATTACHMENT_API = `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/staffAction/attachment`;
 
     // --- EFFECT: Initialize Context ---
     useEffect(() => {
@@ -67,10 +70,21 @@ const CreateUpdateIncidentReport = ({ user }) => {
             try {
                 const response = await authenticatedFetch(`${API_BASE}/${user.companyId}/${activeBookingId}`);
                 if (response.ok) {
-                    const data = await response.json();
+                    // Use raw text and JSONbig to preserve BigInt precision[cite: 1]
+                    const rawText = await response.text();
+                    const data = JSONbig.parse(rawText);
+
                     if (data) {
+                        // Convert BigInt to string for React state[cite: 1]
+                        const safeAttachmentId = data.attachmentId ? data.attachmentId.toString() : null;
+
                         setIncidentId(data.incidentId);
-                        setAttachmentId(data.attachmentId);
+                        setAttachmentId(safeAttachmentId);
+
+                        if (data.fileName) {
+                            setSelectedFile({ name: data.fileName, isExisting: true });
+                        }
+
                         setFormData({
                             ...data,
                             incidentDate: data.incidentDate || '',
@@ -79,58 +93,29 @@ const CreateUpdateIncidentReport = ({ user }) => {
                     }
                 }
             } catch (err) {
-                console.log("No existing report found.");
+                console.log("Error fetching incident:", err);
             } finally {
                 setIsPageLoading(false);
             }
         };
         fetchExistingReport();
-    }, [activeBookingId, user, API_BASE]);
+    }, [activeBookingId, user?.companyId, API_BASE]);
 
-    // --- FILE UPLOAD LOGIC ---
-    const handleFileUpload = async (e) => {
+    // --- FILE HELPERS ---
+    const handleFileSelect = (e) => {
         const file = e.target.files[0];
-        if (!file) return;
-
-        // Optional: File size limit check (e.g., 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error("File is too large. Max 5MB allowed.");
-            return;
-        }
-
-        setIsUploading(true);
-        const uploadData = new FormData();
-        uploadData.append('file', file);
-        uploadData.append('companyId', user?.companyId);
-
-        // Setting a default expire date (e.g., 7 years for compliance)
-        const expireDate = new Date();
-        expireDate.setFullYear(expireDate.getFullYear() + 7);
-        uploadData.append('expireDate', expireDate.toISOString());
-
-        try {
-            const response = await fetch(ATTACHMENT_API, {
-                method: 'POST',
-                headers: {
-                    // Headers usually managed by authenticatedFetch or browser for FormData
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: uploadData,
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                setAttachmentId(result.attachmentId); // Store returned PK from Attachment table
-                toast.success("Attachment uploaded and linked!");
-            } else {
-                toast.error("Failed to upload attachment.");
-            }
-        } catch (err) {
-            toast.error("Error during upload.");
-        } finally {
-            setIsUploading(false);
+        if (file) {
+            setSelectedFile(file);
+            toast.info(`Selected: ${file.name}`);
         }
     };
+
+    const fileToBase64 = (file) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = (error) => reject(error);
+    });
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -140,32 +125,60 @@ const CreateUpdateIncidentReport = ({ user }) => {
         }));
     };
 
+    // --- SUBMIT LOGIC ---
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        if (!activeBookingId) {
-            toast.error("Shift reference lost.");
-            return;
-        }
+        if (!activeBookingId) return toast.error("Shift reference lost.");
 
         setIsSubmitting(true);
-        setError(null);
-
-        const method = incidentId ? 'PUT' : 'POST';
-        const endpoint = incidentId ? `${API_BASE}/update` : `${API_BASE}/create`;
-
-        // IncidentReport JSON Object including Attachment_Id
-        const payload = {
-            ...formData,
-            incidentId: incidentId,
-            companyId: user?.companyId,
-            clientBookingId: activeBookingId,
-            employeeId: user?.employeeId,
-            clientId: activeClientId,
-            attachmentId: attachmentId // Links the previously uploaded Attachment record
-        };
+        let currentAttachmentId = attachmentId;
 
         try {
+            // 1. ATTACHMENT PHASE: Handle file upload if a new file is selected[cite: 1]
+            if (selectedFile && !selectedFile.isExisting) {
+                const base64Data = await fileToBase64(selectedFile);
+
+                const attachmentPayload = {
+                    attachmentId: currentAttachmentId,
+                    companyId: user?.companyId,
+                    fileName: selectedFile.name,
+                    attachmentBlob: base64Data
+                };
+
+                // Use PUT if attachmentId exists, otherwise POST[cite: 1]
+                const uploadMethod = currentAttachmentId ? "PUT" : "POST";
+                const uploadEndpoint = currentAttachmentId ? `${ATTACHMENT_API}/update` : `${ATTACHMENT_API}/create`;
+
+                const uploadRes = await authenticatedFetch(uploadEndpoint, {
+                    method: uploadMethod,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(attachmentPayload),
+                });
+
+                if (uploadRes.ok) {
+                    const rawText = await uploadRes.text();
+                    const result = JSONbig.parse(rawText);
+                    currentAttachmentId = result.attachmentId.toString(); // Convert to string[cite: 1]
+                    setAttachmentId(currentAttachmentId);
+                } else {
+                    throw new Error("Failed to upload attachment.");
+                }
+            }
+
+            // 2. INCIDENT PHASE: Save the main record[cite: 1, 2]
+            const method = incidentId ? 'PUT' : 'POST';
+            const endpoint = incidentId ? `${API_BASE}/update` : `${API_BASE}/create`;
+
+            const payload = {
+                ...formData,
+                incidentId: incidentId,
+                companyId: user?.companyId,
+                clientBookingId: activeBookingId,
+                employeeId: user?.employeeId,
+                clientId: activeClientId,
+                attachmentId: currentAttachmentId // Link the attachment ID[cite: 1, 2]
+            };
+
             const response = await authenticatedFetch(endpoint, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
@@ -176,127 +189,114 @@ const CreateUpdateIncidentReport = ({ user }) => {
                 toast.success("Incident report saved successfully!");
                 router.push("/myshiftsschedule");
             } else {
-                setError("Submission failed. Check your data.");
+                toast.error("Failed to save incident details.");
             }
         } catch (err) {
-            setError("Communication error with server.");
+            toast.error(err.message || "An error occurred.");
         } finally {
             setIsSubmitting(false);
         }
     };
 
-
     if (isPageLoading) {
         return (
-          <div className=" min-h-[85vh] p-8 flex flex-col items-center justify-center gap-3 text-slate-500 font-bold">
+          <div className="min-h-[85vh] p-8 flex flex-col items-center justify-center gap-3 text-slate-500 font-bold">
             <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
             <span className="animate-pulse">Loading...</span>
           </div>
         );
-      }
+    }
 
     return (
         <div className="min-h-[85vh] justify-center items-center py-5 pb-15">
-
-        <div className="max-w-5xl mx-auto p-6 bg-white shadow-xl rounded-2xl mt-10 border border-slate-100">
-            <h1 className="text-2xl font-black text-slate-800 mb-8 flex items-center gap-2">
-                <span className="w-2 h-8 bg-rose-500 rounded-full"></span>
-                {incidentId ? "Modify Incident Record" : "Register New Incident"}
-            </h1>
-
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Date & Time Section */}
-                <div className="space-y-4">
-                    <label className="block text-xs font-black uppercase text-slate-400 tracking-wider">Occurrence Details</label>
-                    <div className="grid grid-cols-2 gap-4">
-                        <input type="date" name="incidentDate" value={formData.incidentDate} onChange={handleChange} required className="p-3 border rounded-xl bg-slate-50 w-full" />
-                        <input type="time" name="incidentTime" value={formData.incidentTime} onChange={handleChange} required className="p-3 border rounded-xl bg-slate-50 w-full" />
-                    </div>
-                    <input type="text" name="locationOfIncident" value={formData.locationOfIncident} onChange={handleChange} required placeholder="Exact Location (e.g. Kitchen, Park)" className="p-3 border rounded-xl bg-slate-50 w-full" />
-                </div>
-
-                {/* Categorization */}
-                <div className="space-y-4">
-                    <label className="block text-xs font-black uppercase text-slate-400 tracking-wider">Classification</label>
-                    <div className="grid grid-cols-2 gap-4">
-                        <select name="incidentType" value={formData.incidentType} onChange={handleChange} className="p-3 border rounded-xl bg-slate-50 w-full">
-                            <option value="Injury">Injury</option>
-                            <option value="Near Miss">Near Miss</option>
-                            <option value="Behavioral">Behavioral</option>
-                            <option value="Property Damage">Property Damage</option>
-                        </select>
-                        <select name="severityLevel" value={formData.severityLevel} onChange={handleChange} className="p-3 border rounded-xl bg-slate-50 w-full">
-                            <option value="Low">Low Severity</option>
-                            <option value="Medium">Medium</option>
-                            <option value="High">High Severity</option>
-                            <option value="Critical">Critical</option>
-                        </select>
-                    </div>
-                </div>
-
-                {/* ATTACHMENT SECTION */}
-                <div className="md:col-span-2 p-6 bg-emerald-50/50 rounded-2xl border-2 border-dashed border-emerald-200">
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                        <div>
-                            <h3 className="font-bold text-emerald-900">Evidence & Attachments</h3>
-                            <p className="text-sm text-emerald-700">Upload photos or documents related to the incident.</p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <input
-                                type="file"
-                                id="file-upload"
-                                hidden
-                                onChange={handleFileUpload}
-                                disabled={isUploading}
-                            />
-                            <label
-                                htmlFor="file-upload"
-                                className={`px-6 py-2 rounded-full font-bold text-sm cursor-pointer transition-all ${
-                                    isUploading ? 'bg-slate-300' : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                                }`}
-                            >
-                                {isUploading ? "Uploading..." : "Choose File"}
-                            </label>
-                            {attachmentId && (
-                                <span className="text-xs font-black text-emerald-600 bg-white px-3 py-1 rounded-full shadow-sm border border-emerald-100">
-                                    ID: {attachmentId} - ATTACHED
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Description */}
-                <div className="md:col-span-2">
-                    <label className="block text-xs font-black uppercase text-slate-400 mb-2">Detailed Narrative</label>
-                    <textarea name="descriptionOfIncident" value={formData.descriptionOfIncident} onChange={handleChange} required rows="5" className="p-4 border rounded-2xl bg-slate-50 w-full focus:ring-2 focus:ring-rose-500 outline-none" placeholder="Provide a step-by-step account of the event..." />
-                </div>
-
-                {/* Actions Taken */}
-                <div className="md:col-span-2">
-                    <label className="block text-xs font-black uppercase text-slate-400 mb-2">Immediate Actions Taken</label>
-                    <textarea name="immediateActionsTaken" value={formData.immediateActionsTaken} onChange={handleChange} rows="3" className="p-4 border rounded-2xl bg-slate-50 w-full focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="What did you do immediately after the incident?" />
-                </div>
-
-                {/* Submit / Cancel */}
-                <div className="md:col-span-2 flex gap-4 mt-4">
-                    <button
-                        type="submit"
-                        disabled={isSubmitting || isUploading}
-                        className="flex-2 bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-black disabled:bg-slate-300 transition-all shadow-lg"
-                    >
-                        {isSubmitting ? "Finalizing Report..." : "Submit Incident Report"}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => router.back()}
-                        className="flex-1 bg-white border-2 border-slate-200 text-slate-600 font-bold py-4 rounded-2xl hover:bg-slate-50 transition-all"
-                    >
-                        Cancel
+            <div className="max-w-5xl mx-auto p-6 bg-white shadow-xl rounded-2xl mt-10 border border-slate-100">
+                <div className="flex items-center justify-between mb-8">
+                    <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+                        <span className="w-2 h-8 bg-rose-500 rounded-full"></span>
+                        {incidentId ? "Modify Incident Record" : "Register New Incident"}
+                    </h1>
+                    <button onClick={() => router.back()} className="text-slate-400 hover:text-slate-600">
+                        <X size={24} />
                     </button>
                 </div>
-            </form>
-        </div>
+
+                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                        <label className="block text-xs font-black uppercase text-slate-400 tracking-wider">Occurrence Details</label>
+                        <div className="grid grid-cols-2 gap-4">
+                            <input type="date" name="incidentDate" value={formData.incidentDate} onChange={handleChange} required className="p-3 border rounded-xl bg-slate-50 w-full" />
+                            <input type="time" name="incidentTime" value={formData.incidentTime} onChange={handleChange} required className="p-3 border rounded-xl bg-slate-50 w-full" />
+                        </div>
+                        <input type="text" name="locationOfIncident" value={formData.locationOfIncident} onChange={handleChange} required placeholder="Exact Location (e.g. Kitchen, Park)" className="p-3 border rounded-xl bg-slate-50 w-full" />
+                    </div>
+
+                    <div className="space-y-4">
+                        <label className="block text-xs font-black uppercase text-slate-400 tracking-wider">Classification</label>
+                        <div className="grid grid-cols-2 gap-4">
+                            <select name="incidentType" value={formData.incidentType} onChange={handleChange} className="p-3 border rounded-xl bg-slate-50 w-full font-bold">
+                                <option value="Injury">Injury</option>
+                                <option value="Near Miss">Near Miss</option>
+                                <option value="Behavioral">Behavioral</option>
+                                <option value="Property Damage">Property Damage</option>
+                            </select>
+                            <select name="severityLevel" value={formData.severityLevel} onChange={handleChange} className="p-3 border rounded-xl bg-slate-50 w-full font-bold">
+                                <option value="Low">Low Severity</option>
+                                <option value="Medium">Medium</option>
+                                <option value="High">High Severity</option>
+                                <option value="Critical">Critical</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* ATTACHMENT SECTION - Updated for consistency with ServiceExpense[cite: 1] */}
+                    <div className="md:col-span-2 p-6 bg-emerald-50/50 rounded-2xl border-2 border-dashed border-emerald-200">
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <UploadCloud className="text-emerald-600" size={32} />
+                                <div>
+                                    <h3 className="font-bold text-emerald-900">Evidence & Attachments</h3>
+                                    <p className="text-sm text-emerald-700">{selectedFile ? selectedFile.name : "Upload photos or documents related to the incident."}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <input type="file" id="file-upload" hidden onChange={handleFileSelect} accept="image/*,.pdf" />
+                                <label htmlFor="file-upload" className="px-6 py-2 bg-emerald-600 text-white rounded-full font-bold text-sm cursor-pointer hover:bg-emerald-700 transition-all">
+                                    {attachmentId || selectedFile ? "Change File" : "Choose File"}
+                                </label>
+                                {(attachmentId || selectedFile) && <CheckCircle2 className="text-emerald-500" size={24} />}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="md:col-span-2">
+                        <label className="block text-xs font-black uppercase text-slate-400 mb-2">Detailed Narrative</label>
+                        <textarea name="descriptionOfIncident" value={formData.descriptionOfIncident} onChange={handleChange} required rows="5" className="p-4 border rounded-2xl bg-slate-50 w-full focus:ring-2 focus:ring-rose-500 outline-none" placeholder="Provide a step-by-step account of the event..." />
+                    </div>
+
+                    <div className="md:col-span-2">
+                        <label className="block text-xs font-black uppercase text-slate-400 mb-2">Immediate Actions Taken</label>
+                        <textarea name="immediateActionsTaken" value={formData.immediateActionsTaken} onChange={handleChange} rows="3" className="p-4 border rounded-2xl bg-slate-50 w-full focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="What did you do immediately after the incident?" />
+                    </div>
+
+                    <div className="md:col-span-2 flex gap-4 mt-4">
+                        <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="flex-[2] bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-black disabled:bg-slate-300 transition-all shadow-lg flex items-center justify-center gap-2"
+                        >
+                            {isSubmitting && <Loader2 className="animate-spin" size={20} />}
+                            {isSubmitting ? "Saving Report..." : incidentId ? "Update Incident Report" : "Submit Incident Report"}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => router.back()}
+                            className="flex-1 bg-white border-2 border-slate-200 text-slate-600 font-bold py-4 rounded-2xl hover:bg-slate-50 transition-all"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 };
