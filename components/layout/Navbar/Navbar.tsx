@@ -139,9 +139,9 @@ export default function Navbar({ user, nav = [], handleLogout }: NavbarProps) {
           </nav>
         ) : (
           <nav
-            ref={dropdownRef}
-            className="hidden md:flex items-center space-x-1 md:space-x-2 lg:space-x-3"
-          >
+  ref={dropdownRef}
+  className="hidden md:flex md:flex-row flex-nowrap items-center justify-center gap-3"
+>
             {/* <Link
               href="/"
               className="px-1 md:px-3 py-2 font-medium text-base rounded-2xl hover:bg-[#008080]"
@@ -154,7 +154,7 @@ export default function Navbar({ user, nav = [], handleLogout }: NavbarProps) {
                 href={item.href ?? hrefForKey(item.key)}
                 className="px-1 md:px-3 py-2 font-medium text-sm rounded-2xl hover:bg-[#008080]"
               >
-                {item.label}
+                {/* {item.label} */}
               </Link>
             ))}
 

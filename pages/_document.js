@@ -9,9 +9,9 @@ export default function Document() {
         <meta content="Webflow" name="generator" />
 
         {/* CSS - Ensure these files are in /public/css/ */}
-        <link href="/css/normalize.css" rel="stylesheet" type="text/css" />
-        <link href="/css/webflow.css" rel="stylesheet" type="text/css" />
-        <link href="/css/mabocore.webflow.css" rel="stylesheet" type="text/css" />
+        {/* <link href="/css/normalize.css" rel="stylesheet" type="text/css" /> */}
+        {/* <link href="/css/webflow.css" rel="stylesheet" type="text/css" /> */}
+        {/* <link href="/css/mabocore.webflow.css" rel="stylesheet" type="text/css" /> */}
 
         {/* <link href="https://fonts.googleapis.com" rel="preconnect" /> */}
         {/* <link href="https://fonts.gstatic.com" rel="preconnect" crossOrigin="anonymous" /> */}
