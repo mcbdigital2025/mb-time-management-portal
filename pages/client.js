@@ -95,28 +95,22 @@ const Client = () => {
     setReportingClientId(client.clientId);
 
     try {
-      const res = await authenticatedFetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/client/report/email`,
-        {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            clientId: client.clientId,
-            companyId: user.companyId,
-            recipientRole: "Reception",
-          }),
-        },
-      );
+        const res = await authenticatedFetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/client/report/${encodeURIComponent(user.companyId)}/${encodeURIComponent(client.clientId)}`,
+          {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            }
 
-      if (!res.ok) {
-        const message = await res.text();
-        throw new Error(
-          message || "Failed to generate and email client report.",
+          },
         );
-      }
+
+        if (!res.ok) {
+          const message = await res.text();
+          throw new Error(message || "Failed to generate and email client report.");
+        }
 
       setSuccessMessage(
         `Report for ${client.firstName} ${client.lastName} has been generated and emailed to reception.`,
