@@ -38,10 +38,26 @@ const TrashIcon = ({ className = "w-4 h-4" }) => (
     </svg>
 );
 
-/**
- * columns: [{ header: string, accessor?: string, render?: (row) => ReactNode, align?: "left"|"center"|"right", className?: string }]
- * actions: [{ label: string, onClick: (row)=>void, variant?: "primary"|"danger"|"outline", icon?: "edit"|"trash"|"none", showLabel?: boolean, title?: string, disabled?: (row)=>boolean }]
- */
+const ReportIcon = ({ className = "w-4 h-4" }) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+    >
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+        <path d="M14 2v6h6" />
+        <path d="M16 13H8" />
+        <path d="M16 17H8" />
+        <path d="M10 9H8" />
+    </svg>
+);
+
+
 export default function ReusableTable({
     data = [],
     columns = [],
@@ -73,6 +89,7 @@ export default function ReusableTable({
         if (icon === "edit") return <PencilIcon />;
         if (icon === "trash") return <TrashIcon />;
         if (icon === "key") return <KeyRoundIcon />;
+        if (icon === "report") return <ReportIcon />;
         return null;
     };
 

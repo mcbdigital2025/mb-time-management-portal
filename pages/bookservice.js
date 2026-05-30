@@ -1,8 +1,10 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import JSONbig from "json-bigint";
-import { authenticatedFetch } from '../utils/api';
-import { toast } from 'react-toastify';
+import { authenticatedFetch } from "../utils/api";
+import { toast } from "react-toastify";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const BookingService = ({ user }) => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -24,291 +26,364 @@ const BookingService = ({ user }) => {
   // Form Data spanning all tables
   const [formData, setFormData] = useState({
     // Step 4: ServiceMileage
-    mileageCap: '', mileageRate: '', hasCompanyVehicle: false,
+    mileageCap: "",
+    mileageRate: "",
+    hasCompanyVehicle: false,
     // Step 5: ServiceAllowances
-    allowanceType: 'TRAVEL', allowanceAmount: 0.00,
+    allowanceType: "TRAVEL",
+    allowanceAmount: 0.0,
     // Step 6: ServiceStaffRequirements
-    minimumStaffRequired: 1, smartMatchEnabled: false,
+    minimumStaffRequired: 1,
+    smartMatchEnabled: false,
     // Step 7: ServiceScheduleSignatures
-    requireClientSignature: false, requireCarerSignature: false,
+    requireClientSignature: false,
+    requireCarerSignature: false,
 
     // ...ClientBookingSchedule
-      facilitiesId: 0,
-      instructions: '',
-      bookingType: 'ONE_TIME', // default for Step 8
-      workDate: '',
-      scheduledStartTime: '',
-      scheduledEndTime: '',
-      actualStartTime: '00:00',
-      actualEndTime: '00:00',
-      workLocation: '',
-      breakMinutes: 0,
-      serviceBonusEnabled: false,
-      serviceEndsNextDay: false,
-      isPublicHoliday: false,
-      clientCancel: false,
-      clientReschedule: false,
-      employeeCancel: false,
-      status: 'SCHEDULED',
-      // Step 9: ClientBookingRecurring (Lean Pattern)
-        monday: false,
-        tuesday: false,
-        wednesday: false,
-        thursday: false,
-        friday: false,
-        saturday: false,
-        sunday: false,
-        isActive: false // Keep this to toggle the rule on/off
-
+    facilitiesId: 0,
+    instructions: "",
+    bookingType: "ONE_TIME", // default for Step 8
+    workDate: "",
+    scheduledStartTime: "",
+    scheduledEndTime: "",
+    actualStartTime: "00:00",
+    actualEndTime: "00:00",
+    workLocation: "",
+    breakMinutes: 0,
+    serviceBonusEnabled: false,
+    serviceEndsNextDay: false,
+    isPublicHoliday: false,
+    clientCancel: false,
+    clientReschedule: false,
+    employeeCancel: false,
+    status: "SCHEDULED",
+    // Step 9: ClientBookingRecurring (Lean Pattern)
+    monday: false,
+    tuesday: false,
+    wednesday: false,
+    thursday: false,
+    friday: false,
+    saturday: false,
+    sunday: false,
+    isActive: false, // Keep this to toggle the rule on/off
   });
 
   // 1. Initial Data Load - Fixed Endpoints
-    useEffect(() => {
-      if (!user?.companyId) return;
+  useEffect(() => {
+    if (!user?.companyId) return;
 
-      const loadInitialData = async () => {
-        setLoading(true);
-        try {
-          const companyId = user.companyId.toString();
+    const loadInitialData = async () => {
+      setLoading(true);
+      try {
+        const companyId = user.companyId.toString();
 
-          // Standardized paths based on MaboCore backend structure
-          const [clientRes, empRes, typeRes, facRes] = await Promise.all([
-            authenticatedFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/client/${companyId}`),
-            authenticatedFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/employee/${companyId}`),
-            authenticatedFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/jobType/${companyId}`),
-            authenticatedFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/facilities/${companyId}`) // New Endpoint
-          ]);
-          if (clientRes.ok) {
-            const data = JSONbig.parse(await clientRes.text());
-            setClients(Array.isArray(data) ? data : []);
-          }
-
-          if (empRes.ok) {
-            const data = JSONbig.parse(await empRes.text());
-            console.log("Employee Data Received:", data); // Debugging
-            setEmployees(Array.isArray(data) ? data : []);
-          } else {
-            console.error("Employee fetch failed:", empRes.status);
-          }
-
-          if (typeRes.ok) {
-              const data = JSONbig.parse(await typeRes.text());
-              console.log("Job Type Data Received:", data);
-
-              // 1. You must save the list to state so the .map() in Step 3 works
-              setJobTypes(Array.isArray(data) ? data : []);
-
-              // 2. Access 'data', not 'typeRes', and check if it has items
-              if (Array.isArray(data) && data.length > 0) {
-                  setSelectedJobType(data[0].jobType || data[0].description || "");
-              }
-          }
-          if (facRes.ok) {
-              const data = JSONbig.parse(await facRes.text());
-              setFacilities(Array.isArray(data) ? data : []);
-          }
-
-        } catch (err) {
-          console.error("Initialization Error:", err);
-          toast.error("Failed to load selection lists.");
-        } finally {
-          setLoading(false);
+        // Standardized paths based on MaboCore backend structure
+        const [clientRes, empRes, typeRes, facRes] = await Promise.all([
+          authenticatedFetch(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/client/${companyId}`,
+          ),
+          authenticatedFetch(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/employee/${companyId}`,
+          ),
+          authenticatedFetch(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/jobType/${companyId}`,
+          ),
+          authenticatedFetch(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/facilities/${companyId}`,
+          ), // New Endpoint
+        ]);
+        if (clientRes.ok) {
+          const data = JSONbig.parse(await clientRes.text());
+          setClients(Array.isArray(data) ? data : []);
         }
-      };
 
-      loadInitialData();
-    }, [user]);
+        if (empRes.ok) {
+          const data = JSONbig.parse(await empRes.text());
+          console.log("Employee Data Received:", data); // Debugging
+          setEmployees(Array.isArray(data) ? data : []);
+        } else {
+          console.error("Employee fetch failed:", empRes.status);
+        }
 
+        if (typeRes.ok) {
+          const data = JSONbig.parse(await typeRes.text());
+          console.log("Job Type Data Received:", data);
 
- const handleFinalSubmit = async () => {
-     if (!user?.companyId) {
-       toast.error("User session expired. Please log in again.");
-       return;
-     }
+          // 1. You must save the list to state so the .map() in Step 3 works
+          setJobTypes(Array.isArray(data) ? data : []);
 
-     setLoading(true);
-     try {
-       const companyId = user.companyId;
+          // 2. Access 'data', not 'typeRes', and check if it has items
+          if (Array.isArray(data) && data.length > 0) {
+            setSelectedJobType(data[0].jobType || data[0].description || "");
+          }
+        }
+        if (facRes.ok) {
+          const data = JSONbig.parse(await facRes.text());
+          setFacilities(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error("Initialization Error:", err);
+        toast.error("Failed to load selection lists.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-       // Determine if we are updating or creating
-       // If formData.clientBookingId exists, we use it for the PUT request
-       const isUpdate = !!formData.clientBookingId;
-       const bookingId = formData.clientBookingId || 0;
+    loadInitialData();
+  }, [user]);
 
-       // 1. Construct the Payload following DTO structure
-       const payload = {
-         schedule: {
-           clientBookingId: isUpdate ? formData.clientBookingId : null,
-           companyId: companyId,
-           clientId: selectedClientId,
-           employeeId: selectedEmpId,
-           jobId: selectedJob?.jobId,
-           facilitiesId: parseInt(formData.facilitiesId) || 0,
-           instructions: formData.instructions,
-           bookingType: formData.bookingType || 'ONE_TIME',
-           workDate: formData.workDate,
-           scheduledStartTime: formData.scheduledStartTime,
-           scheduledEndTime: formData.scheduledEndTime,
-           actualStartTime: formData.actualStartTime || "00:00:00",
-           actualEndTime: formData.actualEndTime || "00:00:00",
-           workLocation: formData.workLocation,
-           breakMinutes: parseInt(formData.breakMinutes) || 0,
-           serviceBonusEnabled: !!formData.serviceBonusEnabled,
-           serviceEndsNextDay: !!formData.serviceEndsNextDay,
-           isPublicHoliday: !!formData.isPublicHoliday,
-           clientCancel: !!formData.clientCancel,
-           clientReschedule: !!formData.clientReschedule,
-           employeeCancel: !!formData.employeeCancel,
-           status: formData.status || 'SCHEDULED'
-         },
+  const handleFinalSubmit = async () => {
+    if (!user?.companyId) {
+      toast.error("User session expired. Please log in again.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const companyId = user.companyId;
+
+      // Determine if we are updating or creating
+      // If formData.clientBookingId exists, we use it for the PUT request
+      const isUpdate = !!formData.clientBookingId;
+      const bookingId = formData.clientBookingId || 0;
+
+      // 1. Construct the Payload following DTO structure
+      const payload = {
+        schedule: {
+          clientBookingId: isUpdate ? formData.clientBookingId : null,
+          companyId: companyId,
+          clientId: selectedClientId,
+          employeeId: selectedEmpId,
+          jobId: selectedJob?.jobId,
+          facilitiesId: parseInt(formData.facilitiesId) || 0,
+          instructions: formData.instructions,
+          bookingType: formData.bookingType || "ONE_TIME",
+          workDate: formData.workDate,
+          scheduledStartTime: formData.scheduledStartTime,
+          scheduledEndTime: formData.scheduledEndTime,
+          actualStartTime: formData.actualStartTime || "00:00:00",
+          actualEndTime: formData.actualEndTime || "00:00:00",
+          workLocation: formData.workLocation,
+          breakMinutes: parseInt(formData.breakMinutes) || 0,
+          serviceBonusEnabled: !!formData.serviceBonusEnabled,
+          serviceEndsNextDay: !!formData.serviceEndsNextDay,
+          isPublicHoliday: !!formData.isPublicHoliday,
+          clientCancel: !!formData.clientCancel,
+          clientReschedule: !!formData.clientReschedule,
+          employeeCancel: !!formData.employeeCancel,
+          status: formData.status || "SCHEDULED",
+        },
 
         recurring: {
-                companyId: companyId,
-                clientBookingId: bookingId,
-                monday: !!formData.monday,
-                tuesday: !!formData.tuesday,
-                wednesday: !!formData.wednesday,
-                thursday: !!formData.thursday,
-                friday: !!formData.friday,
-                saturday: !!formData.saturday,
-                sunday: !!formData.sunday,
-                isActive: formData.isActive
-         },
+          companyId: companyId,
+          clientBookingId: bookingId,
+          monday: !!formData.monday,
+          tuesday: !!formData.tuesday,
+          wednesday: !!formData.wednesday,
+          thursday: !!formData.thursday,
+          friday: !!formData.friday,
+          saturday: !!formData.saturday,
+          sunday: !!formData.sunday,
+          isActive: formData.isActive,
+        },
 
-         serviceMileage: {
-           companyId: companyId,
-           clientBookingId: bookingId,
-           mileageCap: formData.mileageCap,
-           mileageRate: formData.mileageRate,
-           hasCompanyVehicle: !!formData.hasCompanyVehicle
-         },
+        serviceMileage: {
+          companyId: companyId,
+          clientBookingId: bookingId,
+          mileageCap: formData.mileageCap,
+          mileageRate: formData.mileageRate,
+          hasCompanyVehicle: !!formData.hasCompanyVehicle,
+        },
 
-         serviceAllowances: {
-           companyId: companyId,
-           clientBookingId: bookingId,
-           allowanceType: formData.allowanceType,
-           amount: formData.allowanceAmount
-         },
+        serviceAllowances: {
+          companyId: companyId,
+          clientBookingId: bookingId,
+          allowanceType: formData.allowanceType,
+          amount: formData.allowanceAmount,
+        },
 
-         serviceStaffRequirements: {
-           companyId: companyId,
-           clientBookingId: bookingId,
-           minimumStaffRequired: parseInt(formData.minimumStaffRequired) || 1,
-           smartMatchEnabled: !!formData.smartMatchEnabled
-         },
+        serviceStaffRequirements: {
+          companyId: companyId,
+          clientBookingId: bookingId,
+          minimumStaffRequired: parseInt(formData.minimumStaffRequired) || 1,
+          smartMatchEnabled: !!formData.smartMatchEnabled,
+        },
 
-         serviceScheduleSignatures: {
-           companyId: companyId,
-           clientBookingId: bookingId,
-           requireClientSignature: !!formData.requireClientSignature,
-           requireCarerSignature: !!formData.requireCarerSignature
-         }
-       };
+        serviceScheduleSignatures: {
+          companyId: companyId,
+          clientBookingId: bookingId,
+          requireClientSignature: !!formData.requireClientSignature,
+          requireCarerSignature: !!formData.requireCarerSignature,
+        },
+      };
 
-       // 2. Determine Endpoint and Method
-       const endpoint = isUpdate
-         ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/clientschedule/update`
-         : `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/clientschedule/create`;
+      // 2. Determine Endpoint and Method
+      const endpoint = isUpdate
+        ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/clientschedule/update`
+        : `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/clientschedule/create`;
 
-       const method = isUpdate ? 'PUT' : 'POST';
+      const method = isUpdate ? "PUT" : "POST";
 
-       // 3. Send the combined DTO
-       const res = await authenticatedFetch(endpoint, {
-           method: method,
-           headers: { 'Content-Type': 'application/json' },
-           body: JSONbig.stringify(payload)
-       });
+      // 3. Send the combined DTO
+      const res = await authenticatedFetch(endpoint, {
+        method: method,
+        headers: { "Content-Type": "application/json" },
+        body: JSONbig.stringify(payload),
+      });
 
-       if (res.ok) {
-         toast.success(`Booking ${isUpdate ? 'updated' : 'created'} successfully!`);
-         setCurrentStep(1);
-       } else {
-         const errorText = await res.text();
-         toast.error(`Save Failed: ${errorText}`);
-       }
-     } catch (err) {
-       console.error("Submit Error:", err);
-       toast.error("A network error occurred while saving.");
-     } finally {
-       setLoading(false);
-     }
-   };
-
+      if (res.ok) {
+        toast.success(
+          `Booking ${isUpdate ? "updated" : "created"} successfully!`,
+        );
+        setCurrentStep(1);
+      } else {
+        const errorText = await res.text();
+        toast.error(`Save Failed: ${errorText}`);
+      }
+    } catch (err) {
+      console.error("Submit Error:", err);
+      toast.error("A network error occurred while saving.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
   const steps = [
-    { id: 1, title: 'Select Client' }, { id: 2, title: 'Select Employee' },
-    { id: 3, title: 'Job Type' }, { id: 4, title: 'Mileage Config' },
-    { id: 5, title: 'Service Allowance' }, { id: 6, title: 'Staffing' },
-    { id: 7, title: 'Signatures' }, { id: 8, title: 'One-Time Book Service' },
-    { id: 9, title: 'Book Recurring Service' }
+    { id: 1, title: "Select Client" },
+    { id: 2, title: "Select Employee" },
+    { id: 3, title: "Job Type" },
+    { id: 4, title: "Mileage Config" },
+    { id: 5, title: "Service Allowance" },
+    { id: 6, title: "Staffing" },
+    { id: 7, title: "Signatures" },
+    { id: 8, title: "One-Time Book Service" },
+    { id: 9, title: "Book Recurring Service" },
   ];
 
- // Fetch Jobs by Type
+  // Fetch Jobs by Type
   useEffect(() => {
     if (selectedJobType && user?.companyId) {
       const fetchJobsByType = async () => {
         try {
           const res = await authenticatedFetch(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/job/type/${encodeURIComponent(selectedJobType)}/${user.companyId}`
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/job/type/${encodeURIComponent(selectedJobType)}/${user.companyId}`,
           );
           if (res.ok) {
             setAvailableJobs(JSONbig.parse(await res.text()));
           }
-        } catch (err) { console.error("Jobs fetch error", err); }
+        } catch (err) {
+          console.error("Jobs fetch error", err);
+        }
       };
       fetchJobsByType();
     }
   }, [selectedJobType, user]);
 
   return (
-    <div style={{ display: 'flex', minHeight: '90vh', gap: '20px', padding: '20px', background: '#f0f2f5' }}>
+    <div
+      style={{
+        display: "flex",
+        minHeight: "90vh",
+        gap: "20px",
+        padding: "20px",
+        background: "#f0f2f5",
+      }}
+    >
+      {/* LEFT NAV */}
+      <div
+        style={{
+          width: "280px",
+          background: "#fff",
+          padding: "20px",
+          borderRadius: "12px",
+          border: "1px solid #ddd",
+        }}
+      >
+        <h3 style={{ color: "#389E0D" }}>MaboCore Wizard</h3>
+        {steps.map((s) => (
+          <div
+            key={s.id}
+            onClick={() => setCurrentStep(s.id)}
+            style={{
+              padding: "12px",
+              margin: "8px 0",
+              cursor: "pointer",
+              borderRadius: "8px",
+              background: currentStep === s.id ? "#f6ffed" : "transparent",
+              borderLeft:
+                currentStep === s.id
+                  ? "4px solid #389E0D"
+                  : "4px solid transparent",
+              color: currentStep === s.id ? "#389E0D" : "#666",
+            }}
+          >
+            Step {s.id}: {s.title}
+          </div>
+        ))}
 
-     {/* LEFT NAV */}
-           <div style={{ width: '280px', background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #ddd' }}>
-             <h3 style={{ color: '#389E0D' }}>MaboCore Wizard</h3>
-             {steps.map(s => (
-               <div key={s.id} onClick={() => setCurrentStep(s.id)} style={{
-                 padding: '12px', margin: '8px 0', cursor: 'pointer', borderRadius: '8px',
-                 background: currentStep === s.id ? '#f6ffed' : 'transparent',
-                 borderLeft: currentStep === s.id ? '4px solid #389E0D' : '4px solid transparent',
-                 color: currentStep === s.id ? '#389E0D' : '#666'
-               }}>Step {s.id}: {s.title}</div>
-             ))}
-
-             <button
-               onClick={handleFinalSubmit}
-               disabled={loading}
-               style={{
-                 width: '100%',
-                 marginTop: '20px',
-                 padding: '12px',
-                 background: loading ? '#ccc' : '#389E0D',
-                 color: '#fff',
-                 border: 'none',
-                 borderRadius: '6px',
-                 fontWeight: 'bold',
-                 cursor: loading ? 'not-allowed' : 'pointer'
-               }}
-             >
-               {loading ? "Saving..." : "Save All Steps"}
-             </button>
-           </div>
+        <button
+          onClick={handleFinalSubmit}
+          disabled={loading}
+          style={{
+            width: "100%",
+            marginTop: "20px",
+            padding: "12px",
+            background: loading ? "#ccc" : "#389E0D",
+            color: "#fff",
+            border: "none",
+            borderRadius: "6px",
+            fontWeight: "bold",
+            cursor: loading ? "not-allowed" : "pointer",
+          }}
+        >
+          {loading ? "Saving..." : "Save All Steps"}
+        </button>
+      </div>
       {/* RIGHT CONTENT */}
-      <div style={{ flex: 1, background: '#fff', padding: '40px', borderRadius: '12px', border: '1px solid #ddd', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-
+      <div
+        style={{
+          flex: 1,
+          background: "#fff",
+          padding: "40px",
+          borderRadius: "12px",
+          border: "1px solid #ddd",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+        }}
+      >
         {currentStep === 1 && (
           <section>
             <h2>Step 1: Select Client</h2>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <tbody>
-                {clients.map(c => (
-                  <tr key={c.clientId} onClick={() => { setSelectedClientId(c.clientId); setCurrentStep(2); }} style={{ cursor: 'pointer', background: selectedClientId === c.clientId ? '#e6f7ff' : '' }}>
-                    <td style={{ padding: '12px', borderBottom: '1px solid #eee' }}>{c.firstName} {c.lastName}</td>
+                {clients.map((c) => (
+                  <tr
+                    key={c.clientId}
+                    onClick={() => {
+                      setSelectedClientId(c.clientId);
+                      setCurrentStep(2);
+                    }}
+                    style={{
+                      cursor: "pointer",
+                      background:
+                        selectedClientId === c.clientId ? "#e6f7ff" : "",
+                    }}
+                  >
+                    <td
+                      style={{
+                        padding: "12px",
+                        borderBottom: "1px solid #eee",
+                      }}
+                    >
+                      {c.firstName} {c.lastName}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -316,91 +391,194 @@ const BookingService = ({ user }) => {
           </section>
         )}
         {currentStep === 2 && (
-                  <section>
-                    <h2>Step 2: Select Employee</h2>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <tbody>
-                        {employees.map(e => (
-                          <tr key={e.employeeId} onClick={() => { setSelectedEmpId(e.employeeId); setCurrentStep(3); }} style={{ cursor: 'pointer', background: setSelectedEmpId === e.employeeId ? '#e6f7ff' : '' }}>
-                            <td style={{ padding: '12px', borderBottom: '1px solid #eee' }}>{e.firstName} {e.lastName}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </section>
-            )}
+          <section>
+            <h2>Step 2: Select Employee</h2>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <tbody>
+                {employees.map((e) => (
+                  <tr
+                    key={e.employeeId}
+                    onClick={() => {
+                      setSelectedEmpId(e.employeeId);
+                      setCurrentStep(3);
+                    }}
+                    style={{
+                      cursor: "pointer",
+                      background:
+                        setSelectedEmpId === e.employeeId ? "#e6f7ff" : "",
+                    }}
+                  >
+                    <td
+                      style={{
+                        padding: "12px",
+                        borderBottom: "1px solid #eee",
+                      }}
+                    >
+                      {e.firstName} {e.lastName}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
 
-             {currentStep === 3 && (
-               <section>
-                 <h2>Step 3: Select Specific Job</h2>
+        {currentStep === 3 && (
+          <section>
+            <h2>Step 3: Select Specific Job</h2>
 
-                 {/* Category Selection Dropdown */}
-                 <label className="text-sm font-bold text-gray-600">Filter by Job Category:</label>
-                 <select
-                   value={selectedJobType}
-                   onChange={(e) => setSelectedJobType(e.target.value)}
-                   style={{ width: '100%', padding: '10px', margin: '10px 0', borderRadius: '8px', border: '1px solid #ddd' }}
-                 >
-                   {jobTypes.map((jt, idx) => (
-                     <option key={jt?.jobId?.toString() || idx} value={jt.jobType}>
-                       {jt.jobType}
-                     </option>
-                   ))}
-                 </select>
+            {/* Category Selection Dropdown */}
+            <label className="text-sm font-bold text-gray-600">
+              Filter by Job Category:
+            </label>
+            <select
+              value={selectedJobType}
+              onChange={(e) => setSelectedJobType(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px",
+                margin: "10px 0",
+                borderRadius: "8px",
+                border: "1px solid #ddd",
+              }}
+            >
+              {jobTypes.map((jt, idx) => (
+                <option key={jt?.jobId?.toString() || idx} value={jt.jobType}>
+                  {jt.jobType}
+                </option>
+              ))}
+            </select>
 
-                 {/* Jobs Table - Now using availableJobs */}
-                 <div style={{ marginTop: '20px' }}>
-                   <h3 style={{ fontSize: '1rem', color: '#666' }}>Available {selectedJobType} Jobs:</h3>
-                   <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
-                     <thead>
-                       <tr style={{ textAlign: 'left', borderBottom: '2px solid #eee' }}>
-                         <th style={{ padding: '12px' }}>Job Code</th>
-                         <th style={{ padding: '12px' }}>Description</th>
-                       </tr>
-                     </thead>
-                     <tbody>
-                       {availableJobs.length > 0 ? (
-                         availableJobs.map(j => (
-                           <tr
-                             key={j.jobId}
-                             onClick={() => {
-                               setSelectedJob(j);
-                               // Also update formData so Step 8 sees the selection
-                               setFormData(prev => ({ ...prev, jobType: j.jobCode }));
-                               setCurrentStep(4);
-                             }}
-                             style={{
-                               cursor: 'pointer',
-                               background: selectedJob?.jobId === j.jobId ? '#e6f7ff' : 'transparent',
-                               transition: 'background 0.2s'
-                             }}
-                             onMouseEnter={(e) => e.currentTarget.style.background = '#fafafa'}
-                             onMouseLeave={(e) => e.currentTarget.style.background = selectedJob?.jobId === j.jobId ? '#e6f7ff' : 'transparent'}
-                           >
-                             <td style={{ padding: '12px', borderBottom: '1px solid #eee', fontWeight: 'bold' }}>{j.jobCode}</td>
-                             <td style={{ padding: '12px', borderBottom: '1px solid #eee' }}>{j.description}</td>
-                           </tr>
-                         ))
-                       ) : (
-                         <tr>
-                           <td colSpan="2" style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
-                             No specific jobs found for this category.
-                           </td>
-                         </tr>
-                       )}
-                     </tbody>
-                   </table>
-                 </div>
-               </section>
-             )}
+            {/* Jobs Table - Now using availableJobs */}
+            <div style={{ marginTop: "20px" }}>
+              <h3 style={{ fontSize: "1rem", color: "#666" }}>
+                Available {selectedJobType} Jobs:
+              </h3>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  marginTop: "10px",
+                }}
+              >
+                <thead>
+                  <tr
+                    style={{
+                      textAlign: "left",
+                      borderBottom: "2px solid #eee",
+                    }}
+                  >
+                    <th style={{ padding: "12px" }}>Job Code</th>
+                    <th style={{ padding: "12px" }}>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {availableJobs.length > 0 ? (
+                    availableJobs.map((j) => (
+                      <tr
+                        key={j.jobId}
+                        onClick={() => {
+                          setSelectedJob(j);
+                          // Also update formData so Step 8 sees the selection
+                          setFormData((prev) => ({
+                            ...prev,
+                            jobType: j.jobCode,
+                          }));
+                          setCurrentStep(4);
+                        }}
+                        style={{
+                          cursor: "pointer",
+                          background:
+                            selectedJob?.jobId === j.jobId
+                              ? "#e6f7ff"
+                              : "transparent",
+                          transition: "background 0.2s",
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.background = "#fafafa")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.background =
+                            selectedJob?.jobId === j.jobId
+                              ? "#e6f7ff"
+                              : "transparent")
+                        }
+                      >
+                        <td
+                          style={{
+                            padding: "12px",
+                            borderBottom: "1px solid #eee",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {j.jobCode}
+                        </td>
+                        <td
+                          style={{
+                            padding: "12px",
+                            borderBottom: "1px solid #eee",
+                          }}
+                        >
+                          {j.description}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan="2"
+                        style={{
+                          padding: "20px",
+                          textAlign: "center",
+                          color: "#999",
+                        }}
+                      >
+                        No specific jobs found for this category.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
         {currentStep === 4 && (
           <section>
             <h2>Step 4: Mileage Configuration (ServiceMileage Table)</h2>
-            <div style={{ display: 'grid', gap: '20px' }}>
-              <label>Mileage Cap: <input type="number" name="mileageCap" value={formData.mileageCap} onChange={handleInputChange} className="input-style" /></label>
-              <label>Mileage Rate: <input type="number" step="0.01" name="mileageRate" value={formData.mileageRate} onChange={handleInputChange} className="input-style" /></label>
-              <label><input type="checkbox" name="hasCompanyVehicle" checked={formData.hasCompanyVehicle} onChange={handleInputChange} /> Has Company Vehicle</label>
-              <button onClick={() => setCurrentStep(5)} className="btn-next">Next: Allowances</button>
+            <div style={{ display: "grid", gap: "20px" }}>
+              <label>
+                Mileage Cap:{" "}
+                <input
+                  type="number"
+                  name="mileageCap"
+                  value={formData.mileageCap}
+                  onChange={handleInputChange}
+                  className="input-style"
+                />
+              </label>
+              <label>
+                Mileage Rate:{" "}
+                <input
+                  type="number"
+                  step="0.01"
+                  name="mileageRate"
+                  value={formData.mileageRate}
+                  onChange={handleInputChange}
+                  className="input-style"
+                />
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  name="hasCompanyVehicle"
+                  checked={formData.hasCompanyVehicle}
+                  onChange={handleInputChange}
+                />{" "}
+                Has Company Vehicle
+              </label>
+              <button onClick={() => setCurrentStep(5)} className="btn-next">
+                Next: Allowances
+              </button>
             </div>
           </section>
         )}
@@ -408,14 +586,41 @@ const BookingService = ({ user }) => {
         {currentStep === 5 && (
           <section>
             <h2>Step 5: Service Allowance (ServiceAllowances Table)</h2>
-            <div style={{ display: 'grid', gap: '20px' }}>
-              <label>Allowance Type:
-                <select name="allowanceType" value={formData.allowanceType} onChange={handleInputChange}>
-                  {['MEAL', 'TRAVEL', 'TOOL', 'UNIFORM', 'FIRST_AID', 'SLEEP_OVER', 'OTHER'].map(t => <option key={t} value={t}>{t}</option>)}
+            <div style={{ display: "grid", gap: "20px" }}>
+              <label>
+                Allowance Type:
+                <select
+                  name="allowanceType"
+                  value={formData.allowanceType}
+                  onChange={handleInputChange}
+                >
+                  {[
+                    "MEAL",
+                    "TRAVEL",
+                    "TOOL",
+                    "UNIFORM",
+                    "FIRST_AID",
+                    "SLEEP_OVER",
+                    "OTHER",
+                  ].map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
                 </select>
               </label>
-              <label>Amount: <input type="number" name="allowanceAmount" value={formData.allowanceAmount} onChange={handleInputChange} /></label>
-              <button onClick={() => setCurrentStep(6)} className="btn-next">Next: Staffing</button>
+              <label>
+                Amount:{" "}
+                <input
+                  type="number"
+                  name="allowanceAmount"
+                  value={formData.allowanceAmount}
+                  onChange={handleInputChange}
+                />
+              </label>
+              <button onClick={() => setCurrentStep(6)} className="btn-next">
+                Next: Staffing
+              </button>
             </div>
           </section>
         )}
@@ -423,13 +628,27 @@ const BookingService = ({ user }) => {
         {/* Step 6: Staffing Requirements */}
         {currentStep === 6 && (
           <section>
-            <h2 className="text-xl font-bold mb-4">Step 6: Staffing Requirements</h2>
-            <div style={{ background: '#f9f9f9', padding: '25px', borderRadius: '12px', border: '1px solid #eee' }}>
-              <div style={{ display: 'grid', gap: '25px' }}>
-
+            <h2 className="text-xl font-bold mb-4">
+              Step 6: Staffing Requirements
+            </h2>
+            <div
+              style={{
+                background: "#f9f9f9",
+                padding: "25px",
+                borderRadius: "12px",
+                border: "1px solid #eee",
+              }}
+            >
+              <div style={{ display: "grid", gap: "25px" }}>
                 {/* Minimum Staff Required */}
                 <div className="space-y-2">
-                  <label style={{ display: 'block', fontWeight: 'bold', color: '#555' }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontWeight: "bold",
+                      color: "#555",
+                    }}
+                  >
                     Minimum Staff Required
                   </label>
                   <input
@@ -438,33 +657,62 @@ const BookingService = ({ user }) => {
                     min="1"
                     value={formData.minimumStaffRequired}
                     onChange={handleInputChange}
-                    style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #ccc' }}
+                    style={{
+                      width: "100%",
+                      padding: "12px",
+                      borderRadius: "6px",
+                      border: "1px solid #ccc",
+                    }}
                   />
-                  <p style={{ fontSize: '12px', color: '#888' }}>
+                  <p style={{ fontSize: "12px", color: "#888" }}>
                     Specify the number of employees required for this service.
                   </p>
                 </div>
 
                 {/* Smart Match Toggle */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '15px', background: '#fff', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "15px",
+                    padding: "15px",
+                    background: "#fff",
+                    borderRadius: "8px",
+                    border: "1px solid #e0e0e0",
+                  }}
+                >
                   <input
                     type="checkbox"
                     name="smartMatchEnabled"
                     id="smartMatchEnabled"
                     checked={formData.smartMatchEnabled}
                     onChange={handleInputChange}
-                    style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                    style={{ width: "20px", height: "20px", cursor: "pointer" }}
                   />
-                  <label htmlFor="smartMatchEnabled" style={{ cursor: 'pointer', fontWeight: '600' }}>
+                  <label
+                    htmlFor="smartMatchEnabled"
+                    style={{ cursor: "pointer", fontWeight: "600" }}
+                  >
                     Enable Smart Match
                   </label>
                 </div>
 
-                <p style={{ fontSize: '13px', color: '#666', fontStyle: 'italic' }}>
-                  Smart Match uses AI to suggest employees based on proximity and skills.
+                <p
+                  style={{
+                    fontSize: "13px",
+                    color: "#666",
+                    fontStyle: "italic",
+                  }}
+                >
+                  Smart Match uses AI to suggest employees based on proximity
+                  and skills.
                 </p>
 
-                <button onClick={() => setCurrentStep(7)} className="btn-next" style={{ background: '#389E0D' }}>
+                <button
+                  onClick={() => setCurrentStep(7)}
+                  className="btn-next"
+                  style={{ background: "#389E0D" }}
+                >
                   Next: Signatures
                 </button>
               </div>
@@ -474,71 +722,112 @@ const BookingService = ({ user }) => {
 
         {currentStep === 7 && (
           <section>
-            <h2 style={{ marginBottom: '20px', color: '#333' }}>Step 7: Signature Requirements</h2>
+            <h2 style={{ marginBottom: "20px", color: "#333" }}>
+              Step 7: Signature Requirements
+            </h2>
 
-            <div style={{ display: 'grid', gap: '15px' }}>
-
+            <div style={{ display: "grid", gap: "15px" }}>
               {/* Client Signature Card */}
               <div
-                onClick={() => setFormData(prev => ({ ...prev, requireClientSignature: !prev.requireClientSignature }))}
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    requireClientSignature: !prev.requireClientSignature,
+                  }))
+                }
                 style={{
-                  padding: '20px',
-                  borderRadius: '10px',
-                  border: '2px solid',
-                  borderColor: formData.requireClientSignature ? '#389E0D' : '#eee',
-                  background: formData.requireClientSignature ? '#f6ffed' : '#fff',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  transition: 'all 0.2s'
+                  padding: "20px",
+                  borderRadius: "10px",
+                  border: "2px solid",
+                  borderColor: formData.requireClientSignature
+                    ? "#389E0D"
+                    : "#eee",
+                  background: formData.requireClientSignature
+                    ? "#f6ffed"
+                    : "#fff",
+                  cursor: "pointer",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  transition: "all 0.2s",
                 }}
               >
                 <div>
-                  <strong style={{ display: 'block', fontSize: '16px' }}>Client Signature</strong>
-                  <span style={{ color: '#888', fontSize: '14px' }}>Require the client to sign off on the service upon completion.</span>
+                  <strong style={{ display: "block", fontSize: "16px" }}>
+                    Client Signature
+                  </strong>
+                  <span style={{ color: "#888", fontSize: "14px" }}>
+                    Require the client to sign off on the service upon
+                    completion.
+                  </span>
                 </div>
                 <input
                   type="checkbox"
                   checked={formData.requireClientSignature}
                   readOnly
-                  style={{ width: '20px', height: '20px' }}
+                  style={{ width: "20px", height: "20px" }}
                 />
               </div>
 
               {/* Carer/Employee Signature Card */}
               <div
-                onClick={() => setFormData(prev => ({ ...prev, requireCarerSignature: !prev.requireCarerSignature }))}
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    requireCarerSignature: !prev.requireCarerSignature,
+                  }))
+                }
                 style={{
-                  padding: '20px',
-                  borderRadius: '10px',
-                  border: '2px solid',
-                  borderColor: formData.requireCarerSignature ? '#389E0D' : '#eee',
-                  background: formData.requireCarerSignature ? '#f6ffed' : '#fff',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  transition: 'all 0.2s'
+                  padding: "20px",
+                  borderRadius: "10px",
+                  border: "2px solid",
+                  borderColor: formData.requireCarerSignature
+                    ? "#389E0D"
+                    : "#eee",
+                  background: formData.requireCarerSignature
+                    ? "#f6ffed"
+                    : "#fff",
+                  cursor: "pointer",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  transition: "all 0.2s",
                 }}
               >
                 <div>
-                  <strong style={{ display: 'block', fontSize: '16px' }}>Carer Signature</strong>
-                  <span style={{ color: '#888', fontSize: '14px' }}>Require the employee (carer) to sign and verify their hours.</span>
+                  <strong style={{ display: "block", fontSize: "16px" }}>
+                    Carer Signature
+                  </strong>
+                  <span style={{ color: "#888", fontSize: "14px" }}>
+                    Require the employee (carer) to sign and verify their hours.
+                  </span>
                 </div>
                 <input
                   type="checkbox"
                   checked={formData.requireCarerSignature}
                   readOnly
-                  style={{ width: '20px', height: '20px' }}
+                  style={{ width: "20px", height: "20px" }}
                 />
               </div>
 
-              <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-                <button onClick={() => setCurrentStep(6)} style={{ padding: '10px 20px', borderRadius: '4px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer' }}>
+              <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
+                <button
+                  onClick={() => setCurrentStep(6)}
+                  style={{
+                    padding: "10px 20px",
+                    borderRadius: "4px",
+                    border: "1px solid #ddd",
+                    background: "#fff",
+                    cursor: "pointer",
+                  }}
+                >
                   Back
                 </button>
-                <button onClick={() => setCurrentStep(8)} className="btn-next" style={{ marginTop: 0, flex: 1 }}>
+                <button
+                  onClick={() => setCurrentStep(8)}
+                  className="btn-next"
+                  style={{ marginTop: 0, flex: 1 }}
+                >
                   Next: One-Time Details
                 </button>
               </div>
@@ -548,134 +837,474 @@ const BookingService = ({ user }) => {
 
         {currentStep === 8 && (
           <section>
-            <h2 style={{ borderBottom: '2px solid #389E0D', paddingBottom: '10px' }}>
+            <h2
+              style={{
+                borderBottom: "2px solid #389E0D",
+                paddingBottom: "10px",
+              }}
+            >
               Step 8: One-Time Booking Details
             </h2>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' }}>
-
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "20px",
+                marginTop: "20px",
+              }}
+            >
               {/* --- Section: Type & Location --- */}
-              <div style={{ gridColumn: 'span 2', background: '#f9f9f9', padding: '15px', borderRadius: '8px' }}>
-                <h3 style={{ fontSize: '14px', color: '#888', marginBottom: '10px' }}>LOCATION & FACILITIES</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                  <label>Work Location:
-                    <input name="workLocation" value={formData.workLocation} onChange={handleInputChange} style={{width:'100%', padding: '8px'}} placeholder="Full Address"/>
+              <div
+                style={{
+                  gridColumn: "span 2",
+                  background: "#f9f9f9",
+                  padding: "15px",
+                  borderRadius: "8px",
+                }}
+              >
+                <h3
+                  style={{
+                    fontSize: "14px",
+                    color: "#888",
+                    marginBottom: "10px",
+                  }}
+                >
+                  LOCATION & FACILITIES
+                </h3>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "15px",
+                  }}
+                >
+                  <label>
+                    Work Location:
+                    <input
+                      name="workLocation"
+                      value={formData.workLocation}
+                      onChange={handleInputChange}
+                      style={{ width: "100%", padding: "8px" }}
+                      placeholder="Full Address"
+                    />
                   </label>
-                  <label>Select Facility:
-                        <select
-                          name="facilitiesId"
-                          value={formData.facilitiesId}
-                          onChange={handleInputChange}
-                          style={{width:'100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc'}}
-                        >
-                          <option value="0">-- Select a Facility --</option>
-                          {facilities.map(f => (
-                            <option key={f.facilitiesId} value={f.facilitiesId}>
-                              {f.facilitiesName} ({f.city})
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                  <label>
+                    Select Facility:
+                    <select
+                      name="facilitiesId"
+                      value={formData.facilitiesId}
+                      onChange={handleInputChange}
+                      style={{
+                        width: "100%",
+                        padding: "8px",
+                        borderRadius: "4px",
+                        border: "1px solid #ccc",
+                      }}
+                    >
+                      <option value="0">-- Select a Facility --</option>
+                      {facilities.map((f) => (
+                        <option key={f.facilitiesId} value={f.facilitiesId}>
+                          {f.facilitiesName} ({f.city})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
               </div>
 
               {/* --- Section: Scheduled Timing --- */}
-              <div style={{ background: '#fff', padding: '15px', border: '1px solid #eee', borderRadius: '8px' }}>
-                <h3 style={{ fontSize: '14px', color: '#888', marginBottom: '10px' }}>SCHEDULED TIMES</h3>
-                <label>Work Date:
-                  <input type="date" name="workDate" value={formData.workDate} onChange={handleInputChange} style={{width:'100%', marginBottom: '10px'}}/>
-                </label>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <label style={{flex: 1}}>Start: <input type="time" name="scheduledStartTime" value={formData.scheduledStartTime} onChange={handleInputChange}/></label>
-                  <label style={{flex: 1}}>End: <input type="time" name="scheduledEndTime" value={formData.scheduledEndTime} onChange={handleInputChange}/></label>
+              <div className="bg-white p-4 md:p-6 border border-gray-200 rounded-lg mb-6">
+                <h3 className="text-gray-500 text-sm mb-3 font-medium">
+                  SCHEDULED TIMES
+                </h3>
+
+                <div className="mb-4">
+                  <label className="block font-medium mb-1">Work Date</label>
+                  <DatePicker
+                    selected={
+                      formData.workDate ? new Date(formData.workDate) : null
+                    }
+                    onChange={(date) =>
+                      setFormData((prev) => ({ ...prev, workDate: date }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    dateFormat="yyyy-MM-dd"
+                    placeholderText="Select work date"
+                  />
                 </div>
-                <label style={{marginTop: '10px', display: 'block'}}>Break (Minutes):
-                  <input type="number" name="breakMinutes" value={formData.breakMinutes} onChange={handleInputChange} style={{width:'100%'}}/>
-                </label>
+
+                <div className="flex gap-4 mb-4">
+                  <div className="flex-1">
+                    <label className="block font-medium mb-1">Start Time</label>
+                    <DatePicker
+                      selected={
+                        formData.scheduledStartTime
+                          ? new Date(
+                              `1970-01-01T${formData.scheduledStartTime}`,
+                            )
+                          : null
+                      }
+                      onChange={(date) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          scheduledStartTime: date
+                            ? date.toLocaleTimeString("en-GB", {
+                                hour12: false,
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "",
+                        }))
+                      }
+                      showTimeSelect
+                      showTimeSelectOnly
+                      timeIntervals={15}
+                      timeCaption="Start"
+                      dateFormat="HH:mm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block font-medium mb-1">End Time</label>
+                    <DatePicker
+                      selected={
+                        formData.scheduledEndTime
+                          ? new Date(`1970-01-01T${formData.scheduledEndTime}`)
+                          : null
+                      }
+                      onChange={(date) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          scheduledEndTime: date
+                            ? date.toLocaleTimeString("en-GB", {
+                                hour12: false,
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "",
+                        }))
+                      }
+                      showTimeSelect
+                      showTimeSelectOnly
+                      timeIntervals={15}
+                      timeCaption="End"
+                      dateFormat="HH:mm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-medium mb-1">
+                    Break (Minutes)
+                  </label>
+                  <input
+                    type="number"
+                    name="breakMinutes"
+                    value={formData.breakMinutes}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter break duration"
+                  />
+                </div>
               </div>
 
               {/* --- Section: Actual Timing (Defaults to 00:00) --- */}
-              <div style={{ background: '#fff', padding: '15px', border: '1px solid #eee', borderRadius: '8px' }}>
-                <h3 style={{ fontSize: '14px', color: '#888', marginBottom: '10px' }}>ACTUAL TIMES (FOR LOGGING)</h3>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <label style={{flex: 1}}>Actual Start: <input type="time" name="actualStartTime" value={formData.actualStartTime} onChange={handleInputChange}/></label>
-                  <label style={{flex: 1}}>Actual End: <input type="time" name="actualEndTime" value={formData.actualEndTime} onChange={handleInputChange}/></label>
+              <div className="bg-white p-4 md:p-6 border border-gray-200 rounded-lg">
+                <h3 className="text-gray-500 text-sm mb-3 font-medium">
+                  ACTUAL TIMES (FOR LOGGING)
+                </h3>
+
+                <div className="flex gap-4 mb-4">
+                  <div className="flex-1">
+                    <label className="block font-medium mb-1">
+                      Actual Start
+                    </label>
+                    <DatePicker
+                      selected={
+                        formData.actualStartTime
+                          ? new Date(`1970-01-01T${formData.actualStartTime}`)
+                          : null
+                      }
+                      onChange={(date) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          actualStartTime: date
+                            ? date.toLocaleTimeString("en-GB", {
+                                hour12: false,
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "",
+                        }))
+                      }
+                      showTimeSelect
+                      showTimeSelectOnly
+                      timeIntervals={15}
+                      timeCaption="Start"
+                      dateFormat="HH:mm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block font-medium mb-1">Actual End</label>
+                    <DatePicker
+                      selected={
+                        formData.actualEndTime
+                          ? new Date(`1970-01-01T${formData.actualEndTime}`)
+                          : null
+                      }
+                      onChange={(date) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          actualEndTime: date
+                            ? date.toLocaleTimeString("en-GB", {
+                                hour12: false,
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "",
+                        }))
+                      }
+                      showTimeSelect
+                      showTimeSelectOnly
+                      timeIntervals={15}
+                      timeCaption="End"
+                      dateFormat="HH:mm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
                 </div>
-                <div style={{ marginTop: '15px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px' }}>
-                  <label><input type="checkbox" name="isPublicHoliday" checked={formData.isPublicHoliday} onChange={handleInputChange}/> Public Holiday</label>
-                  <label><input type="checkbox" name="serviceBonusEnabled" checked={formData.serviceBonusEnabled} onChange={handleInputChange}/> Service Bonus</label>
-                  <label><input type="checkbox" name="serviceEndsNextDay" checked={formData.serviceEndsNextDay} onChange={handleInputChange}/> Ends Next Day</label>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="isPublicHoliday"
+                      checked={formData.isPublicHoliday}
+                      onChange={handleInputChange}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                    />
+                    Public Holiday
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="serviceBonusEnabled"
+                      checked={formData.serviceBonusEnabled}
+                      onChange={handleInputChange}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                    />
+                    Service Bonus
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="serviceEndsNextDay"
+                      checked={formData.serviceEndsNextDay}
+                      onChange={handleInputChange}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                    />
+                    Ends Next Day
+                  </label>
                 </div>
               </div>
 
               {/* --- Section: Cancellation Flags --- */}
-              <div style={{ gridColumn: 'span 2', background: '#fff0f0', padding: '15px', borderRadius: '8px', border: '1px solid #ffccc7' }}>
-                <h3 style={{ fontSize: '14px', color: '#cf1322', marginBottom: '10px' }}>CANCELLATION & RESCHEDULE FLAGS</h3>
-                <div style={{ display: 'flex', gap: '20px' }}>
-                  <label><input type="checkbox" name="clientCancel" checked={formData.clientCancel} onChange={handleInputChange}/> Client Cancel</label>
-                  <label><input type="checkbox" name="clientReschedule" checked={formData.clientReschedule} onChange={handleInputChange}/> Client Reschedule</label>
-                  <label><input type="checkbox" name="employeeCancel" checked={formData.employeeCancel} onChange={handleInputChange}/> Employee Cancel</label>
+              <div className="col-span-2 bg-red-50 p-4 rounded-lg border border-red-200">
+                <h3 className="text-red-600 text-sm font-medium mb-2">
+                  CANCELLATION & RESCHEDULE FLAGS
+                </h3>
+                <div className="flex flex-wrap gap-5">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="clientCancel"
+                      checked={formData.clientCancel}
+                      onChange={handleInputChange}
+                      className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 cursor-pointer"
+                    />
+                    Client Cancel
+                  </label>
+
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="clientReschedule"
+                      checked={formData.clientReschedule}
+                      onChange={handleInputChange}
+                      className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 cursor-pointer"
+                    />
+                    Client Reschedule
+                  </label>
+
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="employeeCancel"
+                      checked={formData.employeeCancel}
+                      onChange={handleInputChange}
+                      className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 cursor-pointer"
+                    />
+                    Employee Cancel
+                  </label>
                 </div>
               </div>
-
             </div>
 
-            <div style={{ marginTop: '30px', display: 'flex', gap: '15px' }}>
-              <button onClick={() => setCurrentStep(7)} style={{ padding: '10px 20px', borderRadius: '4px', border: '1px solid #ddd', background: '#fff' }}>Back</button>
-              <button onClick={() => setCurrentStep(9)} className="btn-next" style={{ flex: 1, marginTop: 0 }}>Next: Recurring Rules</button>
+            <div style={{ marginTop: "30px", display: "flex", gap: "15px" }}>
+              <button
+                onClick={() => setCurrentStep(7)}
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: "4px",
+                  border: "1px solid #ddd",
+                  background: "#fff",
+                }}
+              >
+                Back
+              </button>
+              <button
+                onClick={() => setCurrentStep(9)}
+                className="btn-next"
+                style={{ flex: 1, marginTop: 0 }}
+              >
+                Next: Recurring Rules
+              </button>
             </div>
           </section>
         )}
 
-       {currentStep === 9 && (
-         <section>
-           <h2>Step 9: Book Recurring Service</h2>
-           <div style={{ background: '#f9f9f9', padding: '20px', borderRadius: '8px', border: '1px solid #ddd' }}>
+        {currentStep === 9 && (
+          <section>
+            <h2>Step 9: Book Recurring Service</h2>
+            <div
+              style={{
+                background: "#f9f9f9",
+                padding: "20px",
+                borderRadius: "8px",
+                border: "1px solid #ddd",
+              }}
+            >
+              {/* 2. Weekly Pattern (Monday - Sunday) */}
+              <p>
+                <strong>Weekly Schedule:</strong>
+              </p>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "15px",
+                  marginBottom: "20px",
+                  flexWrap: "wrap",
+                }}
+              >
+                {[
+                  "monday",
+                  "tuesday",
+                  "wednesday",
+                  "thursday",
+                  "friday",
+                  "saturday",
+                  "sunday",
+                ].map((day) => (
+                  <label
+                    key={day}
+                    style={{
+                      textTransform: "capitalize",
+                      textAlign: "center",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      name={day}
+                      checked={!!formData[day]}
+                      onChange={handleInputChange}
+                    />
+                    <br />
+                    {day.slice(0, 3)}
+                  </label>
+                ))}
+              </div>
 
-             {/* 2. Weekly Pattern (Monday - Sunday) */}
-             <p><strong>Weekly Schedule:</strong></p>
-             <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
-               {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => (
-                 <label key={day} style={{ textTransform: 'capitalize', textAlign: 'center', cursor: 'pointer' }}>
-                   <input
-                     type="checkbox"
-                     name={day}
-                     checked={!!formData[day]}
-                     onChange={handleInputChange}
-                   />
-                   <br />
-                   {day.slice(0, 3)}
-                 </label>
-               ))}
-             </div>
+              {/* 3. Validity and Holiday Behavior */}
+              <div className="grid grid-cols-1 md:grid-cols- gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-end">
+                  <div>
+                    <label className="block font-medium mb-1">Start Date</label>
+                    <DatePicker
+                      selected={
+                        formData.startDate ? new Date(formData.startDate) : null
+                      }
+                      onChange={(date) =>
+                        setFormData((prev) => ({ ...prev, startDate: date }))
+                      }
+                      placeholderText="Select start date"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      dateFormat="yyyy-MM-dd"
+                    />
+                  </div>
 
-             {/* 3. Validity and Holiday Behavior */}
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-               <label>
-                 <strong>Start Date:</strong>
-                 <input type="date" name="startDate" value={formData.startDate} onChange={handleInputChange} style={{ width: '100%', marginTop: '5px' }} />
-               </label>
-               <label>
-                 <strong>End Date (Optional):</strong>
-                 <input type="date" name="endDate" value={formData.endDate || ''} onChange={handleInputChange} style={{ width: '100%', marginTop: '5px' }} />
-               </label>
+                  <div>
+                    <label className="block font-medium mb-1">
+                      End Date (Optional)
+                    </label>
+                    <DatePicker
+                      selected={
+                        formData.endDate ? new Date(formData.endDate) : null
+                      }
+                      onChange={(date) =>
+                        setFormData((prev) => ({ ...prev, endDate: date }))
+                      }
+                      placeholderText="Select end date"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      dateFormat="yyyy-MM-dd"
+                    />
+                  </div>
+                </div>
 
-               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <label style={{ cursor: 'pointer' }}>
-                   <input type="checkbox" name="isActive" checked={formData.isActive !== false} onChange={handleInputChange} />
-                   {" "}Is Active
-                 </label>
-               </div>
-             </div>
-           </div>
-         </section>
-       )}
-
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                  }}
+                >
+                  <label style={{ cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      name="isActive"
+                      checked={formData.isActive !== false}
+                      onChange={handleInputChange}
+                    />{" "}
+                    Is Active
+                  </label>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
       </div>
       <style jsx>{`
-        .btn-next { margin-top: 20px; padding: 10px 20px; background: #1890ff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
-        .input-style { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        .col-span-2 { grid-column: span 2; }
+        .btn-next {
+          margin-top: 20px;
+          padding: 10px 20px;
+          background: #1890ff;
+          color: #fff;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        .input-style {
+          width: 100%;
+          padding: 8px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+        }
+        .col-span-2 {
+          grid-column: span 2;
+        }
       `}</style>
     </div>
   );

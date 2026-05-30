@@ -83,9 +83,10 @@ export function NavGroup({
   const isDesktop = variant === "desktop";
 
   const defaultClasses = {
-    root: isDesktop ? "relative" : "border-b border-gray-200 py-2",
+    root: isDesktop  ? "relative inline-flex shrink-0"
+  : "border-b border-gray-200 py-2",
     trigger: isDesktop
-      ? "inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-black hover:text-white cursor-pointer"
+      ?  "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-[#008080] hover:text-white cursor-pointer"
       : "w-full flex items-center justify-between px-2 py-2 text-base font-medium",
     triggerLabel: "",
     triggerIcon: isDesktop
@@ -127,7 +128,7 @@ export function NavGroup({
                     key={item.key}
                     href={href}
                     onClick={() => setTimeout(onItemClick, 0)}
-                    className="group flex items-center bg-[#008080]/4 gap-4 rounded-2xl px-3 py-3 transition hover:bg-[#008080]"
+                    className="group flex items-center gap-4 rounded-2xl px-3 py-3 transition-all duration-200 bg-teal-50 hover:bg-[#008080]"
                   >
                     <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#008080] text-[#e5f1ef]">
                       {item.icon ?? getItemIcon(item.key)}

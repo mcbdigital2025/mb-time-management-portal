@@ -23,13 +23,17 @@ import {
   Search,
   Settings,
   Users,
+  BarChart3,
+  Download
 } from "lucide-react";
 import { toast } from "react-toastify";
 import ViewEmployeesSkeleton from "../components/loaders/ViewEmployeesSkeleton";
 import { authenticatedFetch } from "../utils/api";
 
 import { useEffect, useMemo, useState } from "react";
+import ViewClients from "./client";
 import ViewEmployees from "./viewemployees";
+import ViewScheduleService from "./scheduleservice";
 
 const AdminDashboard = ({ user }) => {
   const [loading, setLoading] = useState(true);
@@ -130,14 +134,6 @@ const AdminDashboard = ({ user }) => {
     (s) => s.status?.toUpperCase() === "CANCELED",
   ).length;
 
-  const completedCount = weeklySchedules.filter(
-    (s) => s.status?.toUpperCase() === "COMPLETED",
-  ).length;
-
-  const scheduledCount = weeklySchedules.filter(
-    (s) => s.status?.toUpperCase() === "SCHEDULED",
-  ).length;
-
   const getStatusStyle = (status) => {
     switch (status?.toUpperCase()) {
       case "COMPLETED":
@@ -212,7 +208,7 @@ const AdminDashboard = ({ user }) => {
               onClick={() => setSection("clients")}
             />
             <SidebarItem
-              icon={CircleAlert}
+              icon={BarChart3}
               label="Reports"
               active={section === "reports"}
               onClick={() => setSection("reports")}
@@ -236,7 +232,6 @@ const AdminDashboard = ({ user }) => {
         </aside>
 
         {/* Main content */}
-
         {loading ? (
           <div className="p-10">
             <ViewEmployeesSkeleton />
@@ -244,7 +239,7 @@ const AdminDashboard = ({ user }) => {
         ) : (
           <main className="flex-1 hero-radial-background">
             {/* Top bar */}
-            <div className="border-b border-slate-200  px-4 py-4 pb-0 backdrop-blur md:px-6 xl:px-8">
+            <div className="border-b border-slate-200 px-4 py-4 pb-0 backdrop-blur md:px-6 xl:px-8">
               <div className="flex flex-row gap-4 xl:flex-row xl:items-center xl:justify-between">
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight">
@@ -293,7 +288,7 @@ const AdminDashboard = ({ user }) => {
             <div className="p-3 md:p-3 xl:p-3">
               {section === "dashboard" && (
                 <>
-                  {/* Dashboard hero / controls */}
+                  {/* Dashboard Hero */}
                   <section className="mb-6 rounded-[28px] bg-linear-to-r from-[#008080] to-[#014e4e] px-5 py-3 text-white shadow-sm md:px-6">
                     <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                       <div>
@@ -345,7 +340,6 @@ const AdminDashboard = ({ user }) => {
                       title="Weekly Bookings"
                       value={weeklySchedules.length}
                       subtitle="Current week"
-                      // subtitle={format(currentMonth, "MMM yyyy")}
                       icon={<CalendarDays size={18} />}
                     />
                     <DashboardMetric
@@ -356,7 +350,7 @@ const AdminDashboard = ({ user }) => {
                     />
                   </section>
 
-                  {/* Secondary info row */}
+                  {/* Roster Table */}
                   <section className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
                     <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
                       <div className="mb-5 flex items-center justify-between">
@@ -364,7 +358,6 @@ const AdminDashboard = ({ user }) => {
                           <h3 className="text-lg font-semibold text-slate-900">
                             Workforce Roster
                           </h3>
-
                           <p className="text-sm text-slate-500">
                             Current week schedules and employee assignments
                           </p>
@@ -391,7 +384,7 @@ const AdminDashboard = ({ user }) => {
                                 className="transition hover:bg-slate-50"
                               >
                                 <td className="py-4 pr-4 text-center">
-                                  <div className="inline-flex min-w-[15.5 flex-col rounded-2xl bg-slate-50 px-3 py-2">
+                                  <div className="inline-flex min-w-[15.5] flex-col rounded-2xl bg-slate-50 px-3 py-2">
                                     <span className="text-sm font-bold text-slate-900">
                                       {format(parseISO(booking.workDate), "dd")}
                                     </span>
@@ -436,7 +429,6 @@ const AdminDashboard = ({ user }) => {
                             ))}
                           </tbody>
                         </table>
-
                         {weeklySchedules.length === 0 && (
                           <div className="py-16 text-center text-sm italic text-slate-400">
                             No bookings scheduled for this week.
@@ -448,11 +440,16 @@ const AdminDashboard = ({ user }) => {
                 </>
               )}
 
-              {section === "schedules" && <div>Schedules section</div>}
+              {section === "schedules" && <ViewScheduleService user={user} />}
 
               {section === "employees" && <ViewEmployees />}
 
-              {section === "clients" && <div>Clients section</div>}
+              {section === "clients" && <ViewClients />}
+
+              {/* INTEGRATED: Admin Reporting Layout Engine Block */}
+              {section === "reports" && <AdminReports user={user} />}
+
+              {section === "settings" && <div>Settings section</div>}
             </div>
           </main>
         )}
@@ -461,13 +458,136 @@ const AdminDashboard = ({ user }) => {
   );
 };
 
+/* ==========================================================================
+   AdminReports Engine Component
+   ========================================================================== */
+const AdminReports = ({ user }) => {
+  const [activeReport, setActiveReport] = useState("variance");
+  const [timeframe, setTimeframe] = useState("weekly");
+
+  return (
+    <div className="p-6 bg-white rounded-[28px] border border-slate-200 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Reporting & Analytics Engine</h2>
+          <p className="text-sm text-slate-500">Generate and export administrative, operations, and financial data insights.</p>
+        </div>
+
+        {/* Timeframe Scope Filters */}
+        <div className="inline-flex rounded-xl bg-slate-100 p-1 self-start md:self-auto">
+          {["weekly", "fortnight", "monthly"].map((type) => (
+            <button
+              key={type}
+              onClick={() => setTimeframe(type)}
+              className={`rounded-lg px-4 py-1.5 text-xs font-semibold uppercase tracking-wider transition ${
+                timeframe === type
+                  ? "bg-white text-[#008080] shadow-xs"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-slate-200 gap-6 mb-6">
+        <button
+          onClick={() => setActiveReport("variance")}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            activeReport === "variance"
+              ? "border-[#008080] text-[#008080]"
+              : "border-transparent text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          Roster Variance & Attendance
+        </button>
+        <button
+          onClick={() => setActiveReport("payroll")}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            activeReport === "payroll"
+              ? "border-[#008080] text-[#008080]"
+              : "border-transparent text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          Payroll Cost Estimates
+        </button>
+        <button
+          onClick={() => setActiveReport("cancellations")}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            activeReport === "cancellations"
+              ? "border-[#008080] text-[#008080]"
+              : "border-transparent text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          Cancellation Analytics
+        </button>
+      </div>
+
+      {/* Export Action Strip */}
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={() => toast.info(`Exporting current data matrix as CSV...`)}
+          className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+        >
+          <Download size={14} />
+          Export CSV
+        </button>
+      </div>
+
+      {/* Dynamic Data Context Views */}
+      <div className="py-2">
+        {activeReport === "variance" && <PlaceholderReportTable title="Staff Attendance Roster Variance Table" timeframe={timeframe} columns={["Staff Name", "Date", "Scheduled Hours", "Actual Clocked Hours", "Variance (hrs)", "Status"]} />}
+        {activeReport === "payroll" && <PlaceholderReportTable title="Payroll Gross/Net Operational Estimates Table" timeframe={timeframe} columns={["Employee Code", "Employee Profile", "Estimated Gross Pay", "Superannuation", "Calculated Deductions", "Net Estimation"]} />}
+        {activeReport === "cancellations" && <PlaceholderReportTable title="Facility Disruption / Drop Matrix" timeframe={timeframe} columns={["Facility Name", "Canceled Shifts", "Postponed Shifts", "Total Rostered Shifts", "Disruption Index %"]} />}
+      </div>
+    </div>
+  );
+};
+
+/* Dummy UI view context to provide clear alignment before pulling your dynamic API endpoints */
+function PlaceholderReportTable({ title, timeframe, columns }) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-sm font-semibold text-slate-700">{title}</span>
+        <span className="rounded-md bg-[#ede9fe] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-[#6d5bd0]">
+          Active Filter Scope: {timeframe}
+        </span>
+      </div>
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs">
+        <table className="w-full text-left text-sm text-slate-600">
+          <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-200">
+            <tr>
+              {columns.map((col, idx) => (
+                <th key={idx} className="px-4 py-3">{col}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b border-slate-100">
+              <td colSpan={columns.length} className="px-4 py-8 text-center text-xs italic text-slate-400">
+                Data pipeline ready. Connect your backend query module to render active operational datasets.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ==========================================================================
+   Structural Helper Elements
+   ========================================================================== */
 function SidebarItem({ icon: Icon, label, active = false, onClick }) {
   return (
     <button
       onClick={onClick}
       className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm transition cursor-pointer ${
         active
-          ? "bg-white text-[#5a49c6] shadow-sm"
+          ? "bg-white text-[#008080] shadow-sm font-semibold"
           : "text-white/85 hover:bg-white/10"
       }`}
     >
@@ -488,7 +608,7 @@ function DashboardMetric({ title, value, subtitle, icon }) {
           </h3>
           <p className="mt-2 text-sm text-slate-500">{subtitle}</p>
         </div>
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#f3f0ff] text-[#6d5bd0]">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#ede9fe] text-[#6d5bd0]">
           {icon}
         </div>
       </div>
