@@ -185,6 +185,12 @@ const BookingService = ({ user }) => {
           saturday: !!formData.saturday,
           sunday: !!formData.sunday,
           isActive: formData.isActive,
+          startDate: formData.startDate
+            ? formData.startDate.split("T")[0]
+            : null,
+          endDate: formData.endDate ? formData.endDate.split("T")[0] : null,
+          createdDate: null,
+          updatedDate: null,
         },
 
         serviceMileage: {
@@ -223,7 +229,8 @@ const BookingService = ({ user }) => {
         : `${process.env.NEXT_PUBLIC_API_BASE_URL}/mcbtt/api/timesheet/clientschedule/create`;
 
       const method = isUpdate ? "PUT" : "POST";
-
+      console.log("payload :");
+      console.log(payload);
       // 3. Send the combined DTO
       const res = await authenticatedFetch(endpoint, {
         method: method,
